@@ -1,0 +1,11 @@
+{
+  "version": "10.3.1",
+  "zotero": "10.0.6",
+  "xpiBytes": 255580,
+  "sha256": "8966c2d6d36c44c225890c8b4625a72fb735239428c4e2e295edf94566272339",
+  "unitTests": 125,
+  "unitFailed": 0,
+  "nativeNumberingTests": 6,
+  "nativeNumberingFailed": 0,
+  "scope": "Number display, sorting/filtering, fallback numbers, gutter geometry and accessibility. Full publisher regression retained as 10.3.0 evidence."
+}

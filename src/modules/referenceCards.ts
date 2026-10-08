@@ -47,6 +47,10 @@ export default class ReferenceCards {
     this.clear();this.refs=refs;this.disposed=false;
     const fragment=this.body.ownerDocument.createDocumentFragment();
     const parent=this.parent();
+    const original:ItemBaseInfo[]=(this.body as any).references||refs;
+    const positions=new Map(original.map((ref,index)=>[ref,index+1]));
+    const numbers=refs.map((ref,index)=>Number.isSafeInteger(Number(ref.number))&&Number(ref.number)>0?Number(ref.number):(positions.get(ref)||index+1));
+    this.grid.style.setProperty("--refnexus-number-width",`${numbers.reduce((width,number)=>Math.max(width,String(number).length+1),2)}ch`);
     if((window as any).IntersectionObserver)this.observer=new (window as any).IntersectionObserver((entries:IntersectionObserverEntry[])=>{
       for(const entry of entries)if(entry.isIntersecting){this.observer?.unobserve(entry.target);const row=entry.target as HTMLElement,ref=(row as any).reference;
         this.matchQueue.push(async()=>{if(!current()||!row.isConnected)return;const found=await this.views.utils.searchLibraryItem(ref,parent.libraryID);if(!current()||!row.isConnected||!found)return;
@@ -58,6 +62,10 @@ export default class ReferenceCards {
     for(let index=0;index<refs.length;index++) {
       const ref=refs[index],doc=this.body.ownerDocument;
       const row=doc.createElement("div");row.className="reference-item";row.tabIndex=0;row.setAttribute("role","option");row.setAttribute("aria-selected","false");(row as any).reference=ref;
+      row.setAttribute("aria-posinset",String(index+1));row.setAttribute("aria-setsize",String(refs.length));
+      const marker=doc.createElement("div");marker.className="reference-marker";
+      const number=doc.createElement("span");number.className="reference-number";number.textContent=`${numbers[index]}.`;number.title=`${getString("cards-number-label")} ${numbers[index]}`;
+      row.dataset.referenceNumber=String(numbers[index]);row.setAttribute("aria-label",`${number.title}: ${ref.title||ref.text||""}`);
       const dot=doc.createElement("span");dot.className="reference-state";
       const age=Math.max(0,new Date().getFullYear()-Number(ref.year||2000));dot.style.backgroundColor=ref._item?"var(--color-accent, #3678b5)":`hsl(210 30% ${Math.min(85,40+age*2)}%)`;dot.title=ref._item?getString("cards-in-library"):String(ref.year||"");
       const content=doc.createElement("div");content.className="reference-description";
@@ -79,7 +87,7 @@ export default class ReferenceCards {
       row.style.opacity=ref._item?"1":String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`)||"1");
       title.addEventListener("mouseenter",()=>{if(!Zotero.Prefs.get(`${config.addonRef}.isShowTip`))return;window.clearTimeout(this.hoverTimer);this.hoverTimer=window.setTimeout(()=>{if(!current()||!row.isConnected)return;this.tip=this.views.showTipUI(title.getBoundingClientRect() as any,{...ref,primaryVenue:ref.publicationVenue,identifiers:ref.identifiers||{}} as any,"left",ref.identifiers?.DOI,true);},Math.max(100,Math.min(2000,Number(Zotero.Prefs.get(`${config.addonRef}.showTipAfterMillisecond`))||233)));});
       title.addEventListener("mouseleave",()=>{window.clearTimeout(this.hoverTimer);if(this.tip){window.clearTimeout(this.tip.tipTimer);this.tip.tipTimer=window.setTimeout(()=>this.tip?.clear(),500);}});
-      row.append(dot,content,action);
+      marker.append(number,dot);row.append(marker,content,action);
       row.addEventListener("click",event=>this.select(index,event));
       row.addEventListener("dblclick",()=>this.open(ref));
       row.addEventListener("contextmenu",event=>{if(!this.selected.has(ref))this.select(index,event);});

@@ -87,3 +87,4 @@ cards-partial = partial list
 cards-source-auto = Automatic (recommended)
 cards-source-web = Publisher HTML / XML
 cards-auto-empty = No usable list; check PDF text, DOI or connection
+cards-number-label = Source list number

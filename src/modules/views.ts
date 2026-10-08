@@ -38,6 +38,9 @@ export default class Views {
           .reference-item.selected {background:var(--color-accent-10,rgba(60,120,200,.16));}
           .reference-item:focus-visible {outline:1px solid var(--color-accent,#3678b5);}
           .reference-state {width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px;}
+          .reference-marker {display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 var(--refnexus-number-width,3ch);min-width:0;}
+          .reference-number {align-self:stretch;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:.9em;line-height:1.35;color:inherit;white-space:nowrap;}
+          .reference-marker .reference-state {margin-top:0;}
           .reference-description {display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;overflow-wrap:anywhere;}
           .reference-text {font-size:.9em;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;}
           .reference-title {font-size:1em;line-height:1.35;}

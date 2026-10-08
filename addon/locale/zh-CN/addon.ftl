@@ -87,3 +87,4 @@ cards-partial = 部分列表
 cards-source-auto = 自动获取（推荐）
 cards-source-web = 出版社网页 / XML
 cards-auto-empty = 未找到可用列表；请检查 PDF 文本层、DOI 或网络
+cards-number-label = 来源列表编号

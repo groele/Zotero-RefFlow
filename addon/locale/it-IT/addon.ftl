@@ -23,3 +23,4 @@ cards-partial = elenco parziale
 cards-source-auto = Automatico (consigliato)
 cards-source-web = Editore HTML / XML
 cards-auto-empty = Nessun elenco; controllare PDF, DOI o connessione
+cards-number-label = Numero nella lista di origine
