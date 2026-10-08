@@ -1,0 +1,4 @@
+content __addonRef__ chrome/content/
+locale __addonRef__ en-US locale/en-US/
+locale __addonRef__ zh-CN locale/zh-CN/
+locale __addonRef__ it-IT locale/it-IT/
