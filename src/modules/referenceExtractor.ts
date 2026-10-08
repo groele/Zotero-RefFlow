@@ -5,6 +5,7 @@ export interface ReferenceTextLine {
   x?: number;
   /** Reading order reconstructed by the PDF layout pass (including columns). */
   order?: number;
+  margin?: boolean;
 }
 
 export interface ExtractedReference {
@@ -15,15 +16,16 @@ export interface ExtractedReference {
   x?: number;
 }
 
-const BIBLIOGRAPHY_HEADING = /^(?:(?:\d+(?:\.\d+)*\.?|[IVX]+\.)\s+)?(?:references?|bibliography|works\s+cited|literature\s+cited|参考文献|引用文献|文献)$/i;
+const BIBLIOGRAPHY_HEADING = /^(?:(?:\d+(?:\.\d+)*\.?|[IVX]+\.)\s+)?(?:references?(?:\s+(?:and|&)\s+notes)?|bibliography|works\s+cited|literature\s+cited|références|referencias|literatur|参考文献|引用文献|文献)(?:\s*\(?continued\)?|\s*\(续\))?$/i;
 const NUMBERED_START = /^\s*(?:\[(\d{1,4})\]|\((\d{1,4})\)|［(\d{1,4})］|(\d{1,4})\s*[.)、．]|(\d{1,4})\s+)/;
 const AUTHOR_YEAR_START = /^\s*(?:[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]+(?:\s+(?:et\s+al\.?|and\s+[A-Z][A-Za-z'’.-]+|&\s*[A-Z][A-Za-z'’.-]+))?\s*[,.(]?\s*(?:18|19|20)\d{2}[a-z]?\b|[\u4e00-\u9fff]{2,8}(?:等|著)?[，,（( ]{0,3}(?:18|19|20)\d{2})/i;
-const AUTHOR_INITIALS_START = /^(?:[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]{1,30},?\s+[A-Z]\.(?:\s*[A-Z]\.)?|[\u4e00-\u9fff]{2,8}[，,]\s*[\u4e00-\u9fff]{2,8})/;
-const SECTION_HEADING = /^(?:(?:\d+(?:\.\d+)*\s+)?(?:appendix|acknowledg(?:e)?ments?|conclusion|discussion|supplementary)\b|附录|致谢|结论|讨论|补充材料)/i;
+const AUTHOR_INITIALS_START = /^(?:(?:(?:van|von|de|del|der|da|di|du|la|le)\s+){0,3}\p{Lu}[\p{L}'’.-]{1,40},?\s+\p{Lu}\.(?:\s*\p{Lu}\.)?|[\u4e00-\u9fff]{2,8}[，,]\s*[\u4e00-\u9fff]{2,8})/u;
+const SECTION_HEADING = /^(?:(?:\d+(?:\.\d+)*\s+)?(?:appendix|acknowledg(?:e)?ments?|conclusion|discussion|supplementary|supporting\s+information|methods|author\s+contributions?|competing\s+interests?|conflicts?\s+of\s+interest|data\s+availability|funding|publisher[’']?s\s+note)\b|附录|致谢|结论|讨论|补充材料)/i;
 
 function normalizeText(text: string): string {
   return String(text || "")
     .replace(/[\u00ad\u200b\ufeff]/g, "")
+    .replace(/[ﬀﬁﬂﬃﬄ]/g, value=>({"ﬀ":"ff","ﬁ":"fi","ﬂ":"fl","ﬃ":"ffi","ﬄ":"ffl"}[value]!))
     .replace(/[\t\u00a0]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -55,9 +57,12 @@ export function isReferenceStart(text: string): boolean {
 
 /** Extract a bibliography section from page-ordered PDF text lines. */
 export function extractReferencesFromLines(input: ReferenceTextLine[]): ExtractedReference[] {
+  // Repeated margin text is a running header/footer, not part of a wrapped citation.
+  const repeated=new Map<string,Set<number>>();
+  for(const line of input)if(line.margin&&!isBibliographyHeading(line.text)&&getNumber(line.text)===undefined){const key=normalizeText(line.text);const pages=repeated.get(key)||new Set<number>();pages.add(line.page);repeated.set(key,pages);}
   const lines = input
     .map(line => ({ ...line, text: normalizeText(line.text) }))
-    .filter(line => line.text.length > 0 && !/^\d{1,4}$/.test(line.text))
+    .filter(line => line.text.length > 0 && !/^\d{1,4}$/.test(line.text) && !(line.margin&&(repeated.get(line.text)?.size||0)>=2))
     .sort((a, b) => a.page - b.page || (a.order !== undefined && b.order !== undefined ? a.order - b.order : b.y - a.y));
   if (!lines.length) return [];
 
@@ -69,13 +74,18 @@ export function extractReferencesFromLines(input: ReferenceTextLine[]): Extracte
   let current: ExtractedReference | undefined;
   let sawReference = false;
   let numberedStyle = false;
+  let inBibliography=headingIndex<0;
+  const finish=()=>{if(current&&current.text.length>=12)collected.push(current);current=undefined;};
   for (let i = start >= 0 ? start : 0; i < lines.length; i++) {
     const line = lines[i];
-    if (headingIndex >= 0 && sawReference && SECTION_HEADING.test(line.text) && !BIBLIOGRAPHY_HEADING.test(line.text)) break;
-    if (isBibliographyHeading(line.text)) continue;
+    if(i===(start>=0?start:0))inBibliography=true;
+    if (isBibliographyHeading(line.text)) {inBibliography=true;continue;}
+    if (sawReference && SECTION_HEADING.test(line.text)) {finish();inBibliography=false;continue;}
+    if(!inBibliography)continue;
 
     const numbered = getNumber(line.text);
-    const authorYear = AUTHOR_YEAR_START.test(line.text) || AUTHOR_INITIALS_START.test(line.text);
+    const authorYear = (AUTHOR_YEAR_START.test(line.text) || AUTHOR_INITIALS_START.test(line.text)) &&
+      (!current || current.x===undefined || line.x===undefined || line.x<=current.x+4);
     const referenceStart = numbered !== undefined || (headingIndex >= 0 && authorYear && !numberedStyle);
     if (referenceStart) {
       if (current && current.text.length >= 12) collected.push(current);
@@ -92,7 +102,8 @@ export function extractReferencesFromLines(input: ReferenceTextLine[]): Extracte
         collected.push(current);
         current = { text: line.text, page: line.page, y: line.y };
       } else if (!isHeading(line.text) && line.text.length > 1) {
-        current.text = `${current.text.replace(/-$/, "")}${current.text.endsWith("-") ? "" : " "}${line.text}`;
+        // Preserve meaningful hyphens (spin-orbit); only join soft-hyphen runs in layout.
+        current.text = `${current.text}${current.text.endsWith("-") ? "" : " "}${line.text}`;
       }
       continue;
     }
@@ -103,7 +114,7 @@ export function extractReferencesFromLines(input: ReferenceTextLine[]): Extracte
       sawReference = true;
     }
   }
-  if (current && current.text.length >= 12) collected.push(current);
+  finish();
 
   // Without a heading, require a coherent block of at least three entries. This avoids
   // returning numbered equations/steps from the article body as a bibliography.

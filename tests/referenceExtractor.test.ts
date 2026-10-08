@@ -3,6 +3,22 @@ import assert from "node:assert";
 import { extractReferencesFromLines } from "../src/modules/referenceExtractor";
 
 describe("Reference text extraction", () => {
+  test("Harvard surname particles and hanging author continuations do not split entries",()=>{
+    const refs=extractReferencesFromLines([{text:'References',page:1,y:700,x:40},{text:'van der Waals, J. A long author list,',page:1,y:680,x:40},{text:'Brown, A., and Smith, B. (2024). First reference title.',page:1,y:660,x:55},{text:'de Vries, A. (2023). Second reference title.',page:1,y:640,x:40}]);
+    assert.equal(refs.length,2);assert.ok(refs[0].text.includes('Brown'));assert.ok(refs[1].text.startsWith('de Vries'));
+  });
+  test("Science References and Notes heading and publication ligatures",()=>{
+    const refs=extractReferencesFromLines(['References and Notes','1. Smith, J. A ﬁnite spin-','orbit coupling model. Science, 2024.','2. Brown, A. Another title. Science, 2023.','Acknowledgments','This text must not enter the bibliography.'].map((text,i)=>({text,page:1,y:700-i*20})));
+    assert.equal(refs.length,2);assert.ok(refs[0].text.includes('finite spin-orbit'));assert.ok(!refs[1].text.includes('Acknowledgments'));
+  });
+  test("method reference section is retained without swallowing intervening prose",()=>{
+    const refs=extractReferencesFromLines(['References','1. Smith, J. Main reference. Nature, 2024.','Methods','Several paragraphs of methods prose.','References','2. Brown, A. Methods reference. Nature, 2023.','Author contributions','This attribution must not enter the last reference.'].map((text,i)=>({text,page:1,y:700-i*20})));
+    assert.equal(refs.length,2);assert.ok(!refs[0].text.includes('paragraphs'));assert.ok(!refs[1].text.includes('attribution'));
+  });
+  test("repeated page margins do not contaminate citations",()=>{
+    const refs=extractReferencesFromLines([{text:'References',page:1,y:700},{text:'1. Smith, J. First reference. Journal, 2024.',page:1,y:680},{text:'Journal | Volume 20 | 2024',page:1,y:20,margin:true},{text:'Journal | Volume 20 | 2024',page:2,y:780,margin:true},{text:'2. Brown, A. Second reference. Journal, 2023.',page:2,y:680}]);
+    assert.equal(refs.length,2);assert.ok(refs.every(ref=>!ref.text.includes('Volume 20')));
+  });
   test("recognizes author initials and numbered bibliography headings",()=>{
     const refs=extractReferencesFromLines([
       {page:1,y:720,text:'6. References'},

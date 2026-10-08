@@ -12,3 +12,8 @@ zotero-cmd.json
 /tests/native-fixtures/*.pdf
 /tests/unit-results.txt
 /zotero-reference-zotero10.xpi
+
+/tests/unit-results-*.txt
+/tests/native-fixtures/*.html
+/tests/native-fixtures/*.xml
+/tests/native-fixtures/*.json

@@ -1,0 +1,144 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T13:08:27.585Z",
+  "tests": [
+    {
+      "name": "native section heading has a localized title",
+      "ok": true,
+      "ms": 208,
+      "detail": {
+        "title": "参考文献"
+      }
+    },
+    {
+      "name": "PDF single extraction",
+      "ok": true,
+      "ms": 2554,
+      "detail": {
+        "count": 4,
+        "first": "Smith, J. Citation fixture 1. Journal A, 2024."
+      }
+    },
+    {
+      "name": "PDF columns extraction",
+      "ok": true,
+      "ms": 2531,
+      "detail": {
+        "count": 6,
+        "first": "Smith, J. Column citation 1. Journal A, 2024. DOI: 10.1234/fixture1"
+      }
+    },
+    {
+      "name": "PDF author-year extraction",
+      "ok": true,
+      "ms": 2571,
+      "detail": {
+        "count": 3,
+        "first": "Smith, J., Doe, A. (2024). First author-year citation. Journal A, 10, 123-130."
+      }
+    },
+    {
+      "name": "PDF numbered-prose extraction",
+      "ok": true,
+      "ms": 2578,
+      "detail": {
+        "count": 0
+      }
+    },
+    {
+      "name": "PDF large extraction",
+      "ok": true,
+      "ms": 2697,
+      "detail": {
+        "count": 12,
+        "first": "Smith, J. Large document citation 1. Journal A, 2024."
+      }
+    },
+    {
+      "name": "DOI extraction stops at prose boundaries",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "doi": "10.1234/example"
+      }
+    },
+    {
+      "name": "late response cannot populate a different selected item",
+      "ok": true,
+      "ms": 625
+    },
+    {
+      "name": "changing source invalidates the pending response",
+      "ok": true,
+      "ms": 469
+    },
+    {
+      "name": "library matching refuses a conflicting DOI",
+      "ok": true,
+      "ms": 19
+    }
+  ],
+  "metrics": {
+    "single": {
+      "ms": 8,
+      "count": 4,
+      "order": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "columns": {
+      "ms": 13,
+      "count": 6,
+      "order": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    "author-year": {
+      "ms": 6,
+      "count": 3,
+      "order": [
+        1,
+        2,
+        3
+      ]
+    },
+    "numbered-prose": {
+      "ms": 6,
+      "count": 0,
+      "order": []
+    },
+    "large": {
+      "ms": 8,
+      "count": 12,
+      "order": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ]
+    }
+  },
+  "implementation": {
+    "taskCoordinator": true,
+    "pdfDiagnostics": true
+  },
+  "finished": "2026-10-08T13:08:43.878Z",
+  "passed": 10,
+  "failed": 0
+}

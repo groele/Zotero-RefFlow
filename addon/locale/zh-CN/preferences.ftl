@@ -65,3 +65,7 @@ notInLibarayOpacity-end = 显示不在我的文库的条目
 caption-online = 在线服务
 openAlexKey-label = OpenAlex API Key（可选）
 openAlexKey-description = 匿名获取仍可使用；高频获取时可填入自己的免费密钥。密钥仅存放在本机 Zotero 配置中。
+source-auto =
+    .label = 自动获取（推荐）
+source-web =
+    .label = 出版社网页 / XML

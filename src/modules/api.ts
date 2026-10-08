@@ -4,6 +4,8 @@ import Requests from "./requests";
 import OpenAlexProvider from "./openalex";
 import RetractionChecker from "./retraction";
 import CitationVerifier from "./verifier";
+import PublisherReferences from "./publisherReferences";
+import type {ReferenceResult} from "./referenceRetrieval";
 
 class API {
   private async optional<T>(work:Promise<T>,timeoutMs:number,fallback:T):Promise<T> {
@@ -14,6 +16,7 @@ class API {
   public utils: Utils;
   public requests: Requests;
   public openAlex: OpenAlexProvider;
+  public publisherReferences=new PublisherReferences();
   public retractionChecker: RetractionChecker;
   public Info: { crossref: Function, connectedpapers: Function, readpaper: Function, semanticscholar: Function, unpaywall: Function, arXiv: Function };
   public BaseInfo: { readcube: Function };
@@ -39,19 +42,10 @@ class API {
             text = item.unstructured
             textInfo = this.utils.refText2Info(text)
           } else {
-            if (
-              item["article-title"] &&
-              item.year &&
-              item.author
-            ) {
-              text = `${item.author} et al., ${item.year}, ${item["article-title"]}`
-            } else {
-              let textArray = []
-              for (let key in item) {
-                textArray.push(`${key}: ${item[key]}`)
-              }
-              text = textArray.join("; ")
-            }
+            const volume=item.volume?String(item.volume)+(item.issue?`(${item.issue})`:""):"";
+            const pages=item["first-page"]?String(item["first-page"]):"";
+            text=[item.author,item["article-title"],item["journal-title"],volume+(pages?(volume?": ":"")+pages:""),item.year?`(${item.year})`:"",item.DOI?`https://doi.org/${item.DOI}`:""].filter(Boolean).join(". ");
+            if(!text)text=Object.entries(item).filter(([key])=>key!=="key").map(([key,value])=>`${key}: ${value}`).join("; ");
           }
           if (item.DOI) {
             identifiers = { DOI: item.DOI }
@@ -325,8 +319,6 @@ class API {
     let crossrefData = crossrefRes.status === "fulfilled" ? crossrefRes.value?.message : undefined;
     let openalexWork = openalexRes.status === "fulfilled" ? openalexRes.value : undefined;
 
-    let baseItem: any = crossrefData || openalexWork?.work;
-    if (!baseItem) return undefined;
 
     let references: ItemBaseInfo[] = [];
     if (crossrefData && Array.isArray(crossrefData.reference)) {
@@ -428,6 +420,7 @@ class API {
     }
 
     // 5. 执行撤稿观察与学术诚信检查 (基于 Zotero 本地库极速匹配，0 网络时延)
+    if(!crossrefData&&!openalexWork&&!references.length)return undefined;
     for (const ref of references) {
       if (ref.identifiers?.DOI && !ref.retraction?.isRetracted) {
         const retStatus = this.retractionChecker.checkLocal(ref.identifiers.DOI,ref._item);
@@ -448,8 +441,24 @@ class API {
     };
 
     finalInfo.references = references;
+    finalInfo.referenceExpected=Number(expectedCount)||references.length;
+    finalInfo.referencePartial=references.length<Number(expectedCount);
     finalInfo.DOI = cleanDOI;
     return finalInfo;
+  }
+
+  /** Publisher HTML/JATS is requested only when index metadata is absent/incomplete. */
+  async getReferenceList(DOI:string,url?:string,title?:string,signal?:AbortSignal):Promise<ReferenceResult> {
+    if(signal?.aborted)return {references:[],source:"Online"};
+    let info:ItemInfo|undefined;
+    try{info=await this.getDOIInfoByCrossref(DOI);}catch(error){ztoolkit.log("Index reference request failed; trying publisher",error);}
+    const references=info?.references||[];
+    if(signal?.aborted)return {references:[],source:"Online"};
+    if(!references.length || info?.referencePartial) {
+      const structured=await this.publisherReferences.getReferences(DOI,url||info?.url,title||info?.title,signal);
+      if(structured.length>references.length)return {references:structured,source:structured[0].sources?.[0]||"Publisher",expected:info?.referenceExpected,partial:Boolean(info?.referenceExpected&&structured.length<info.referenceExpected)};
+    }
+    return {references,source:references[0]?.sources?.[0]||"Online",expected:info?.referenceExpected,partial:info?.referencePartial};
   }
 
   async getDOIRelatedArray(DOI: string, limit: number = 20): Promise<ItemBaseInfo[] | undefined> {

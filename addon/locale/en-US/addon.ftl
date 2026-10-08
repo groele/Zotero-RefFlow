@@ -84,3 +84,6 @@ cards-work-not-found = Could not identify the DOI; add a DOI and try again
 cards-cached-offline = Offline cached snapshot
 
 cards-partial = partial list
+cards-source-auto = Automatic (recommended)
+cards-source-web = Publisher HTML / XML
+cards-auto-empty = No usable list; check PDF text, DOI or connection

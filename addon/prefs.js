@@ -1,6 +1,6 @@
 pref("extensions.zotero.__addonRef__.enable", true);
 
-pref("extensions.zotero.__addonRef__.prioritySource", "PDF");
+pref("extensions.zotero.__addonRef__.prioritySource", "Auto");
 pref("extensions.zotero.__addonRef__.autoRefresh", false);
 pref("extensions.zotero.__addonRef__.notAutoRefreshItemTypes", "book, letter, note");
 pref("extensions.zotero.__addonRef__.isShowTip", true);

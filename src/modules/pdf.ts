@@ -107,10 +107,16 @@ export default class PDF {
       if (typeof textPage?.getTextContent!=="function") throw new Error(`PDF text layer is unavailable on page ${pageNumber}`);
       const content: any=await this.bounded(textPage.getTextContent({includeMarkedContent:false}),deadline,options.signal);
       const width=Number(page.view?.[2])-Number(page.view?.[0]) || pageView?.viewport?.width || 612;
-      const lines=textItemsToLines(content?.items||[],pageNumber,width);
+      const height=Number(page.view?.[3])-Number(page.view?.[1]) || 792;
+      const lines=textItemsToLines(content?.items||[],pageNumber,width,height);
       pages.push(lines);stats.pagesRead++;
       options.onProgress?.(stats.pagesRead,pageCount);
-      if (lines.some(line=>isBibliographyHeading(line.text))) {stats.headingFound=true;break;}
+      if (lines.some(line=>isBibliographyHeading(line.text))) {
+        stats.headingFound=true;
+        // A continued/methods list may begin at 51; keep scanning for the main list.
+        const firstReference=extractReferencesFromLines(lines)[0];
+        if(firstReference && (firstReference.number===undefined||firstReference.number===1))break;
+      }
       await this.bounded(Zotero.Promise.delay(0),deadline,options.signal);
     }
     stats.scanLimited=!stats.headingFound && first>1;

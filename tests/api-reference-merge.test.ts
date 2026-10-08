@@ -4,6 +4,22 @@ import assert from "node:assert";
 import API from "../src/modules/api";
 
 describe("API reference provider ordering", () => {
+  test("Semantic Scholar is attempted when both primary indexes have no parent record",async()=>{
+    const api=new API({} as any);(api.requests as any).get=async()=>undefined;(api.openAlex as any).getWorkByDOI=async()=>undefined;
+    (api as any).getDOIReferencesBySemanticScholar=async()=>[{title:'Independent fallback reference',text:'Independent fallback reference',authors:[],identifiers:{},sources:['SemanticScholar']}];
+    const info=await api.getDOIInfoByCrossref('10.1234/absent');assert.equal(info?.references?.length,1);assert.equal(info?.references?.[0].sources?.[0],'SemanticScholar');api.publisherReferences.dispose();
+  });
+  test("complete index lists skip publisher fetching",async()=>{
+    const api=new API({} as any);let calls=0;
+    (api as any).getDOIInfoByCrossref=async()=>({references:[{title:'Index reference',identifiers:{},authors:[],sources:['Crossref']}],referenceExpected:1,referencePartial:false});
+    (api.publisherReferences as any).getReferences=async()=>{calls++;return [];};
+    const result=await api.getReferenceList('10.1234/complete');assert.equal(result.references.length,1);assert.equal(calls,0);api.publisherReferences.dispose();
+  });
+  test("structured bibliography replaces a short index list as a whole",async()=>{
+    const api=new API({} as any);(api as any).getDOIInfoByCrossref=async()=>({references:[{title:'Short index list'}],referenceExpected:3,referencePartial:true});
+    (api.publisherReferences as any).getReferences=async()=>[1,2,3].map(number=>({title:'Publisher reference '+number,identifiers:{},authors:[],sources:['PMC JATS']}));
+    const result=await api.getReferenceList('10.1234/partial');assert.equal(result.references.length,3);assert.equal(result.source,'PMC JATS');assert.equal(result.partial,false);api.publisherReferences.dispose();
+  });
   test("does not enrich a reference with a conflicting DOI even when titles match", async () => {
     const api=new API({refText2Info:(text:string)=>({title:text}),identifiers2URL:()=>undefined} as any);
     (api.requests as any).get=async()=>({message:{DOI:"10.1000/source",title:["Source"],reference:[{DOI:"10.1000/expected","article-title":"Identical scientific title",author:"Author",year:"2024"}]}});

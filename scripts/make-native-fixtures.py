@@ -37,3 +37,7 @@ make_pdf(out/'author-year.pdf', [[(40,740,'Bibliography'), (40,710,'Smith, J., D
 make_pdf(out/'numbered-prose.pdf', [[(40,740,'Procedure'), (40,710,'1. Heat the sample for two minutes.'), (40,680,'2. Cool the sample and measure the current.'), (40,650,'3. Record the observation and repeat the steps.')]])
 make_pdf(out/'large.pdf', [[(40,740,f'Body page {i+1}'),(40,710,'This body text has no bibliography.')] for i in range(119)] + [[(40,740,'References')] + [(40,710-i*25,f'[{i+1}] Smith, J. Large document citation {i+1}. Journal A, 2024.') for i in range(12)]])
 print(f'Wrote 5 fixture PDFs to {out.resolve()}')
+
+make_pdf(out/'science-notes.pdf', [[(40,740,'References and Notes'), (40,710,'1. Smith, J. First Science reference. Science, 2024.'), (40,680,'2. Brown, A. Second Science reference. Science, 2023.'), (40,640,'Acknowledgments'), (40,610,'This text should not enter the bibliography.')]])
+make_pdf(out/'nature-methods.pdf', [[(40,740,'References'), (40,710,'1. Smith, J. Main Nature reference. Nature, 2024.'), (40,680,'2. Brown, A. Another main reference. Nature, 2023.')], [(40,740,'Methods'),(40,700,'Methods body is not a reference.')],[(40,740,'References'), (40,710,'3. Lee, K. Methods reference. Nature, 2022.'), (40,680,'4. Doe, A. Another methods reference. Nature, 2021.'), (40,640,'Author contributions'),(40,610,'Attribution must not enter the last citation.')]])
+print('Added Science notes and Nature methods PDFs')

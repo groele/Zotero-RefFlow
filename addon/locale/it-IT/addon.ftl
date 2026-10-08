@@ -20,3 +20,6 @@ relatedbox-source-tooltip = Fonte corrente: { $source } (Fai clic per cambiare f
 cards-cached-offline = Dati dalla cache offline
 
 cards-partial = elenco parziale
+cards-source-auto = Automatico (consigliato)
+cards-source-web = Editore HTML / XML
+cards-auto-empty = Nessun elenco; controllare PDF, DOI o connessione

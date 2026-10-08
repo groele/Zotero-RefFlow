@@ -7,6 +7,8 @@ import BatchImporter from "./batchImporter";
 import ReferenceCards from "./referenceCards";
 import ReferenceTasks, { ReferenceTaskContext } from "./referenceTasks";
 import { cacheReferences, readCachedReferences } from "./referenceCache";
+import { retrieveReferenceList, ReferenceProvider, ReferenceResult } from "./referenceRetrieval";
+import CitationVerifier from "./verifier";
 
 
 export default class Views {
@@ -135,7 +137,7 @@ export default class Views {
         count.addEventListener("dblclick", () => this.utils.copyText(((body as any).references || []).map((ref: ItemBaseInfo) => ref.text || ref.title || "").join("\n"), false));
         const source = body.ownerDocument.createElement("select");
         source.setAttribute("aria-label", getString("relatedbox-source-label") || "Reference source");
-        for (const [value, label] of [["PDF", "PDF"], ["API", "Online"]]) {
+        for (const [value, label] of [["Auto", getString("cards-source-auto")], ["PDF", "PDF"], ["Web", getString("cards-source-web")], ["API", "Online"]]) {
           const option = body.ownerDocument.createElement("option");
           option.value = value;
           option.textContent = label;
@@ -245,6 +247,7 @@ export default class Views {
     this.disposed=true;
     this.referenceTasks.dispose();
     this.utils.API.requests.dispose();
+    this.utils.API.publisherReferences.dispose();
     if (this.notifierID) Zotero.Notifier.unregisterObserver(this.notifierID);
     if (this.paneID) Zotero.ItemPaneManager.unregisterSection(this.paneID);
     await this.storage.flush();
@@ -269,7 +272,10 @@ export default class Views {
     if(this.readerMatchesItem(reader,item))return reader._item || Zotero.Items.get(reader.itemID);
     const best=await item.getBestAttachment();
     const attachments=await (Zotero.Items as any).getAsync(item.getAttachments()) as Zotero.Item[];
-    for(const candidate of [best,...attachments]) {
+    const candidates=[best,...attachments].filter((candidate,index,list)=>candidate&&list.indexOf(candidate)===index) as Zotero.Item[];
+    const supplementary=(candidate:Zotero.Item)=>/\bsupplement(?:ary|al)?\b|\bsupporting\s+information\b|\badditional\s+file\b|\b(?:ESI|SI)\b|补充|附件/i.test(String(candidate.getField("title"))+" "+String(candidate.getField("url")));
+    candidates.sort((a,b)=>Number(supplementary(a))-Number(supplementary(b)));
+    for(const candidate of candidates) {
       if(!candidate || candidate.attachmentContentType!=="application/pdf" || candidate.deleted)continue;
       const path=await candidate.getFilePathAsync();
       if(path && Zotero.File.pathToFile(path).exists())return candidate;
@@ -284,7 +290,7 @@ export default class Views {
     if (!path) return "";
     const file=Zotero.File.pathToFile(path);
     if (!file.exists()) return "";
-    return `pdf-layout-v3:${attachment.libraryID}:${attachment.key}:${file.fileSize}:${file.lastModifiedTime}`;
+    return `pdf-layout-v4:${attachment.libraryID}:${attachment.key}:${file.fileSize}:${file.lastModifiedTime}`;
   }
 
   private async getReaderForItem(item: Zotero.Item,signal?: AbortSignal): Promise<_ZoteroTypes.ReaderInstance | undefined> {
@@ -346,6 +352,58 @@ export default class Views {
     });
   }
 
+  private async smartReferences(item:Zotero.Item,reader:any,task:ReferenceTaskContext,includePDF:boolean,fromCurrentPage:boolean,label:HTMLElement,webFirst=false):Promise<ReferenceResult> {
+    const api=this.utils.API,title=String(item.getField("title")),url=String(item.getField("url"));
+    let doi=String(item.getField("DOI")||"");
+    const resolveDOI=async()=>{
+      if(!this.utils.isDOI(doi))doi=CitationVerifier.normalizeDOI(url)||"";
+      if(!doi&&task.isCurrent())doi=(await api.resolveWork(title,(item.getCreators()[0] as any)?.lastName,String(item.getField("date"))))?.doi||"";
+      return doi;
+    };
+    const providers:ReferenceProvider[]=[];
+    if(includePDF)providers.push({name:"PDF",run:async()=>{
+      reader=reader||await this.getReaderForItem(item,task.signal);
+      if(!reader||!task.isCurrent())return;
+      const references=await this.utils.PDF.getReferences(reader,fromCurrentPage,{signal:task.signal,notify:false,onProgress:pages=>{if(task.isCurrent())label.textContent=`${getString("relatedbox-loading")} PDF · ${pages} ${getString("relatedbox-pages-label")}`;}});
+      return {references,source:"PDF"};
+    }});
+    providers.push({name:"Snapshot",run:async()=>{
+      for(const id of item.getAttachments().slice(0,20)) {
+        if(!task.isCurrent())return;
+        const attachment=Zotero.Items.get(id);if(attachment?.attachmentContentType!=="text/html"||attachment.deleted)continue;
+        const path=await attachment.getFilePathAsync();if(!path)continue;
+        const file=Zotero.File.pathToFile(path);if(!file.exists()||file.fileSize>8*1024*1024)continue;
+        const html=await Zotero.File.getContentsAsync(path);
+        if(typeof html!=="string")continue;
+        const references=api.publisherReferences.parseHTML(html,String(attachment.getField("url")||url),doi,title);
+        if(references.length)return {references,source:references[0].sources?.[0]+" snapshot"};
+      }
+      return;
+    }});
+    if(webFirst)providers.push({name:"Publisher / JATS",run:async()=>{
+      if(!await resolveDOI()||!task.isCurrent())return;
+      const references=await api.publisherReferences.getReferences(doi,url,title,task.signal);
+      return {references,source:references[0]?.sources?.[0]||"Publisher"};
+    }});
+    providers.push({name:"Online",run:async()=>{
+      if(!await resolveDOI()||!task.isCurrent())return;
+      return api.getReferenceList(doi,url,title,task.signal);
+    }});
+    return retrieveReferenceList(providers,task.signal,source=>{if(task.isCurrent())label.textContent=`${getString("relatedbox-loading")} ${source}`;});
+  }
+
+  private async snapshotSignature(item:Zotero.Item):Promise<any[]> {
+    const signatures:any[]=[];
+    for(const id of item.getAttachments().slice(0,20)) {
+      const attachment=Zotero.Items.get(id);
+      if(!attachment||attachment.deleted||attachment.attachmentContentType!=="text/html")continue;
+      const path=await attachment.getFilePathAsync();
+      const file=path?Zotero.File.pathToFile(path):undefined;
+      signatures.push([attachment.key,attachment.dateModified,file?.exists()?file.fileSize:0,file?.exists()?file.lastModifiedTime:0]);
+    }
+    return signatures;
+  }
+
   private async performReferences(panel: XUL.TabPanel, local: boolean, fromCurrentPage: boolean, item: Zotero.Item, readerOverride: _ZoteroTypes.ReaderInstance | undefined, task: ReferenceTaskContext) {
     let label = panel.querySelector("label#reference-num") as XUL.Label;
     const literatureType=panel.getAttribute("data-refnexus-type")||"References";
@@ -354,7 +412,7 @@ export default class Views {
     const source=initialSource;
     let reader = readerOverride || this.utils.getReader();
     if(!this.readerMatchesItem(reader,item))reader=undefined as any;
-    const signature=source==="PDF"?await this.pdfCacheSignature(item,reader):JSON.stringify([item.getField("DOI"),item.getField("title"),item.getField("date"),item.getCreators()]);
+    const signature=source==="PDF"?await this.pdfCacheSignature(item,reader):JSON.stringify(["retrieval-v1",item.getField("DOI"),item.getField("url"),item.getField("title"),item.getField("date"),item.getCreators(),source==="Auto"?await this.pdfCacheSignature(item,reader):"",["Auto","Web"].includes(source)?await this.snapshotSignature(item):[]]);
     if (!task.isCurrent()) return;
 
     // clear 
@@ -368,6 +426,7 @@ export default class Views {
     let references: ItemBaseInfo[]=[];
     (panel as any).references=[];
     if (!local && source==="API") this.utils.API.requests.clearCache();
+    if(!local&&["API","Auto","Web"].includes(source))this.utils.API.publisherReferences.clearCache();
 
     let resultSource=source;
     if(literatureType!=="References") {
@@ -398,6 +457,21 @@ export default class Views {
           await this.storage.set(item,key,{...cacheReferences(references,signature),snapshot:{source:provider,total:result.total,truncated:result.truncated}});
         }
       }
+    } else if (source === "Auto" || source === "Web") {
+      const key=`References-${source}`;
+      const cached=await this.storage.getAsync(item,key);
+      const previous=readCachedReferences(cached,signature,cached?.snapshot?.partial?15*60*1000:24*60*60*1000);
+      let result:ReferenceResult;
+      if(local&&previous)result={references:previous,...cached.snapshot};
+      else {
+        result=await this.smartReferences(item,reader,task,source!=="Web",fromCurrentPage,label,source==="Web");
+        if(!task.isCurrent())return;
+        if(!result.references.length&&previous)result={references:previous,...cached.snapshot,source:cached.snapshot.source+` · ${getString("cards-cached-offline")}`,attempts:result.attempts};
+        else if(result.references.length)await this.storage.set(item,key,{...cacheReferences(result.references,signature),snapshot:{source:result.source,partial:result.partial,expected:result.expected}});
+      }
+      references=result.references;resultSource=result.source;
+      if(result.partial)resultSource+=` (${references.length}${result.expected?"/"+result.expected:"+"} · ${getString("cards-partial")})`;
+      label.title=result.attempts?.join("\n")||"";
     } else if (source == "PDF") {
       // 优先本地读取
       const key = "References-PDF";
@@ -412,16 +486,20 @@ export default class Views {
         if (!task.isCurrent()) return;
         if (!reader) {
           references = [];
-          (new ztoolkit.ProgressWindow("[PDF unavailable]"))
-            .createLine({ text: "Open this item's PDF in the Zotero reader to extract its references", type: "fail" })
-            .show();
         } else {
-          references = await this.utils.PDF.getReferences(reader, fromCurrentPage,{signal:task.signal,notify:false,onProgress:scanned=>{if(task.isCurrent()) label.textContent=`${getString("relatedbox-loading")} PDF · ${scanned} ${getString("relatedbox-pages-label")}`;}});
+          try{references = await this.utils.PDF.getReferences(reader, fromCurrentPage,{signal:task.signal,notify:false,onProgress:scanned=>{if(task.isCurrent()) label.textContent=`${getString("relatedbox-loading")} PDF · ${scanned} ${getString("relatedbox-pages-label")}`;}});}
+          catch(error:any){if(error?.name==="AbortError"||fromCurrentPage)throw error;references=[];ztoolkit.log("PDF failed; trying structured sources",error);}
         }
         if (!task.isCurrent()) return;
         if (references.length && signature && !fromCurrentPage && Zotero.Prefs.get(`${config.addonRef}.savePDFReferences`)) {
           await this.storage.set(item,key,cacheReferences(references,signature));
         }
+      }
+      // An empty/scanned/missing PDF should not require a manual source switch.
+      if(!references?.length&&!fromCurrentPage){
+        const result=await this.smartReferences(item,undefined,task,false,false,label);
+        if(!task.isCurrent())return;
+        references=result.references;resultSource=result.source;label.title=result.attempts?.join("\n")||"";
       }
     } else {
       const key = "References-API";
@@ -445,7 +523,8 @@ export default class Views {
             popupWin
               .createLine({ text: "Request DOI references...", type: "default" })
               .show();
-            references = (await this.utils.API.getDOIInfoByCrossref(DOI))?.references!;
+            const result=await this.utils.API.getReferenceList(DOI,url,title,task.signal);references=result.references;resultSource=result.source;
+            if(result.partial)resultSource+=` (${references.length}${result.expected?"/"+result.expected:"+"} · ${getString("cards-partial")})`;
           } else if (this.utils.isChinese(title) || fileName) {
             // 知网文献处理
             if (!fileName) {
@@ -490,7 +569,8 @@ export default class Views {
             if (resolved?.doi) {
               DOI = resolved.doi;
               popupWin.changeLine({ text: `Found DOI: ${DOI}, fetching references...`, type: "default" });
-              references = (await this.utils.API.getDOIInfoByCrossref(DOI))?.references!;
+              const result=await this.utils.API.getReferenceList(DOI,url,title,task.signal);references=result.references;resultSource=result.source;
+              if(result.partial)resultSource+=` (${references.length}${result.expected?"/"+result.expected:"+"} · ${getString("cards-partial")})`;
             }
           }
 
@@ -514,7 +594,7 @@ export default class Views {
           }
 
           if (!task.isCurrent()) return;
-          if (references?.length && resultSource==="API" && Zotero.Prefs.get(`${config.addonRef}.saveAPIReferences`)) {
+          if (references?.length && resultSource!=="PDF fallback" && Zotero.Prefs.get(`${config.addonRef}.saveAPIReferences`)) {
             await this.storage.set(item,key,cacheReferences(references,signature));
           }
           if (popupWin) {
@@ -553,7 +633,7 @@ export default class Views {
     }
 
     if (referenceNum === 0) {
-      label.textContent = `${getString("relatedbox-empty")} [${currentSource}]`;
+      label.textContent = `${getString(["Auto","Web","PDF"].includes(source)?"cards-auto-empty":"relatedbox-empty")} [${currentSource}]`;
       return;
     }
     const sort=Zotero.Prefs.get(`${config.addonRef}.sortBy`);

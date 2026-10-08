@@ -59,3 +59,7 @@ notInLibarayOpacity-end =
 caption-online = Online services
 openAlexKey-label = OpenAlex API key (optional)
 openAlexKey-description = Anonymous access is available. For frequent requests, enter your free personal key. The key is stored in the local Zotero preferences.
+source-auto =
+    .label = Automatic (recommended)
+source-web =
+    .label = Publisher HTML / XML

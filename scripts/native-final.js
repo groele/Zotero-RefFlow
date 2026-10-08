@@ -9,7 +9,7 @@ await test('production XPI cold startup with native sidebar and no debug bridge'
   const addon=await AddonManager.getAddonByID('refnexus@polygon.org');check(addon?.isActive,'Production XPI not active');check(Zotero.ZoteroRefNexus?.views?.referenceTasks,'Plugin startup failed');check(Zotero.ZoteroRefNexus.data.env==='production','Not a production package');
   const errors=Zotero.getErrors(true);check(!errors.some(error=>/refnexus.js|refnexus@polygon.org/.test(error)),'Plugin startup errors');return {addonVersion:addon.version,env:Zotero.ZoteroRefNexus.data.env,errors};
 });
-for(const name of ['native-regression','native-stress','native-online']) {
+for(const name of ['native-regression','native-stress','native-online','native-publishers']) {
   await test(name,async()=>{
     const output=cfg.output.replace(/\.json$/,`-${name}.json`);
     const code=await Zotero.File.getContentsAsync(cfg.workspace+'\\scripts\\'+name+'.js');

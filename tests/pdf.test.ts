@@ -21,6 +21,10 @@ test("glyph fragments within words are joined without inventing spaces",()=>{
   const lines=textItemsToLines([text('Ref',40,700,15),text('erences',55,700,35)],1);
   assert.equal(lines[0].text,'References');
 });
+test("a reference heading in the right column does not move before left-column citations",()=>{
+ const items=[text('[1] Smith, J. Left title. Journal, 2024.',40,740),text('[2] Brown, A. Left title. Journal, 2023.',40,700),text('References',330,760),text('[3] Lee, K. Right title. Journal, 2022.',330,740),text('[4] Doe, B. Right title. Journal, 2021.',330,700)];
+ const lines=textItemsToLines(items,1);assert.ok(lines.findIndex(line=>line.text.startsWith('[2]'))<lines.findIndex(line=>line.text==='References'));
+});
 
 test("PDF deadlines cover a stalled text-content promise",async()=>{
   const stalled=reader(()=>new Promise(()=>{}));

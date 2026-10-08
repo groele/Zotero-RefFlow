@@ -1,7 +1,7 @@
 import { isBibliographyHeading, isReferenceStart, ReferenceTextLine } from "./referenceExtractor";
 
 /** Reconstruct column-aware reading order without joining adjacent columns. */
-export function textItemsToLines(items: any[], page: number, pageWidth = 612): ReferenceTextLine[] {
+export function textItemsToLines(items: any[], page: number, pageWidth = 612, pageHeight=792): ReferenceTextLine[] {
   type Entry = { text: string; x: number; y: number; height: number; width: number; spaceBefore:boolean;spaceAfter:boolean };
   const entries: Entry[] = items.map(item => ({
     text: String(item.str || "").trim(),
@@ -31,7 +31,8 @@ export function textItemsToLines(items: any[], page: number, pageWidth = 612): R
   const lines: Line[] = [];
   const buckets = new Map<string,Line[]>();
   for (const entry of entries) {
-    const column = isBibliographyHeading(entry.text) ? -1 : split === undefined || entry.x < split ? 0 : 1;
+    // A heading inside the right column must stay there (Nature Methods references).
+    const column = isBibliographyHeading(entry.text) && (split===undefined||entry.x<split) ? -1 : split === undefined || entry.x < split ? 0 : 1;
     const bucket = Math.round(entry.y/4);
     const nearby=[bucket-1,bucket,bucket+1].flatMap(y=>buckets.get(`${column}:${y}`)||[]);
     let line=nearby.find(candidate => Math.abs(candidate.y-entry.y)<=Math.max(1.5,Math.min(candidate.height,entry.height)*0.45) && entry.x-candidate.right<=Math.max(35,entry.height*3));
@@ -48,5 +49,5 @@ export function textItemsToLines(items: any[], page: number, pageWidth = 612): R
   const headingY=lines.find(line=>line.column===-1)?.y;
   const group=(line:Line)=>headingY!==undefined && line.y>headingY+2?-2:line.column;
   return lines.sort((a,b)=>group(a)-group(b) || b.y-a.y || a.x-b.x)
-    .map((line,order)=>({text:line.text.replace(/\s+/g," ").trim(),page,y:line.y,x:line.x,order}));
+    .map((line,order)=>({text:line.text.replace(/\s+/g," ").trim(),page,y:line.y,x:line.x,order,margin:line.y>pageHeight*0.955||line.y<pageHeight*0.045}));
 }

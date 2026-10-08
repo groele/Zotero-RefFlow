@@ -59,3 +59,7 @@ notInLibarayOpacity-end =
 caption-online = Servizi online
 openAlexKey-label = Chiave API OpenAlex (facoltativa)
 openAlexKey-description = Per richieste frequenti, usa la tua chiave gratuita. La chiave viene salvata nelle preferenze locali di Zotero.
+source-auto =
+    .label = Automatico (consigliato)
+source-web =
+    .label = Editore HTML / XML

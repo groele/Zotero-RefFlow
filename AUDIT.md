@@ -2,6 +2,8 @@
 
 日期：2026-10-08；版本：RefNexus 10.2.0；环境：Windows、Zotero 10.0.6 / Gecko 140。
 
+本页保留 10.2.0 的历史审查结果。**10.3.0 的新增改进和最终包验证见 [出版社测试说明](docs/PUBLISHERS.md)。**
+
 ## 基准与范围
 
 用户提供的原包：`zotero-reference-zotero10.xpi`，实际 Ethereal Reference 1.8.17，原 ID `zoteroreference@polygon.org`。
