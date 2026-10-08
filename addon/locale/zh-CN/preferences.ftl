@@ -76,3 +76,6 @@ about-project = 项目与更新
 about-issues = 反馈问题
 about-upstream = 原始项目
 openAlexKey-get = 申请 / 查看免费的 OpenAlex API Key
+
+about-updates = 插件更新由 groele/Zotero-diy 提供，仅支持 Zotero 10。
+about-release-notes = 版本说明

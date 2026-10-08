@@ -180,7 +180,7 @@ export default class Views {
         const cancel = body.ownerDocument.createElement("button");
         cancel.type = "button"; cancel.id = "refnexus-cancel"; cancel.hidden = true;
         cancel.textContent = getString("relatedbox-cancel-label");
-        cancel.addEventListener("click", () => { this.resetReferencePane(body); count.textContent=getString("relatedbox-cancelled"); });
+        cancel.addEventListener("click", () => { this.cancelReferencePane(body); count.textContent=getString("relatedbox-cancelled")+((body as any).references?.length?` · ${getString("cards-kept-results")}`:""); });
         controls.style.flexWrap = "wrap";
         controls.style.gap = "6px";
         controls.classList.add("refnexus-status");
@@ -235,6 +235,13 @@ export default class Views {
     body.querySelectorAll("button").forEach(button=>{ (button as HTMLButtonElement).disabled=false; });
     const cancel=body.querySelector("#refnexus-cancel") as HTMLElement;
     if (cancel) cancel.hidden=true;
+  }
+
+  private cancelReferencePane(body:Element):void {
+    this.referenceTasks.invalidate(body);
+    body.removeAttribute("aria-busy");
+    body.querySelectorAll("#refresh-button, #refnexus-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
+    const cancel=body.querySelector("#refnexus-cancel") as HTMLElement;if(cancel)cancel.hidden=true;
   }
 
   private typeMenu(body:HTMLElement,item?:Zotero.Item) {
@@ -343,7 +350,7 @@ export default class Views {
       try {
         await this.performReferences(panel,local,fromCurrentPage,item,readerOverride,{...context,isCurrent:current});
       } catch (error: any) {
-        if (current() && label) {label.textContent=error?.name==="TimeoutError"?getString("relatedbox-timeout"):getString("relatedbox-fetch-error");(label as HTMLElement).title=String(error?.message||error);}
+        if (current() && label) {label.textContent=(error?.name==="TimeoutError"?getString("relatedbox-timeout"):getString("relatedbox-fetch-error"))+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");(label as HTMLElement).title=String(error?.message||error);}
         if (error?.name!=="AbortError") ztoolkit.log("Reference fetch failed",error);
       } finally {
         if (current()) {
@@ -360,7 +367,7 @@ export default class Views {
     let doi=String(item.getField("DOI")||"");
     const resolveDOI=async()=>{
       if(!this.utils.isDOI(doi))doi=CitationVerifier.normalizeDOI(url)||"";
-      if(!doi&&task.isCurrent())doi=(await api.resolveWork(title,(item.getCreators()[0] as any)?.lastName,String(item.getField("date"))))?.doi||"";
+      if(!doi&&task.isCurrent())doi=(await api.resolveWork(title,(item.getCreators()[0] as any)?.lastName,String(item.getField("date")),task.signal))?.doi||"";
       return doi;
     };
     const providers:ReferenceProvider[]=[];
@@ -415,19 +422,16 @@ export default class Views {
     const source=initialSource;
     let reader = readerOverride || this.utils.getReader();
     if(!this.readerMatchesItem(reader,item))reader=undefined as any;
-    const signature=source==="PDF"?await this.pdfCacheSignature(item,reader):JSON.stringify(["retrieval-v1",item.getField("DOI"),item.getField("url"),item.getField("title"),item.getField("date"),item.getCreators(),source==="Auto"?await this.pdfCacheSignature(item,reader):"",["Auto","Web"].includes(source)?await this.snapshotSignature(item):[]]);
+    const signature=source==="PDF"?await this.pdfCacheSignature(item,reader):JSON.stringify(["retrieval-v2",item.getField("DOI"),item.getField("url"),item.getField("title"),item.getField("date"),item.getCreators(),source==="Auto"?await this.pdfCacheSignature(item,reader):"",["Auto","Web"].includes(source)?await this.snapshotSignature(item):[]]);
     if (!task.isCurrent()) return;
 
-    // clear 
-    panel.querySelectorAll("#related-grid *").forEach(e => e.remove());
-
-    const gridEl = panel.querySelector("#related-grid");
-    if (gridEl) {
-      (gridEl as any)._seenTexts = new Set<string>();
+    // Keep the last successful same-type list interactive while refreshing.
+    // Different literature types must never display each other's results.
+    if(panel.getAttribute("data-refnexus-result-type")&&panel.getAttribute("data-refnexus-result-type")!==literatureType){
+      (panel as any)._cards?.clear();(panel as any).references=[];
     }
 
     let references: ItemBaseInfo[]=[];
-    (panel as any).references=[];
     if (!local && source==="API") this.utils.API.requests.clearCache();
     if(!local&&["API","Auto","Web"].includes(source))this.utils.API.publisherReferences.clearCache();
 
@@ -440,7 +444,7 @@ export default class Views {
       if(local && previous){references=previous;resultSource=describe(cached?.snapshot?.source||"OpenAlex",Number(cached?.snapshot?.total||references.length),Boolean(cached?.snapshot?.truncated));}
       else {
         let doi=String(item.getField("DOI")||"");
-        if(!doi)doi=(await this.utils.API.resolveWork(String(item.getField("title")),(item.getCreators()[0] as any)?.lastName,String(item.getField("date"))))?.doi||"";
+        if(!doi)doi=(await this.utils.API.resolveWork(String(item.getField("title")),(item.getCreators()[0] as any)?.lastName,String(item.getField("date")),task.signal))?.doi||"";
         if(!task.isCurrent())return;
         if(!doi)throw new Error(getString("cards-work-not-found"));
         let result:any,provider="OpenAlex";
@@ -449,7 +453,7 @@ export default class Views {
           if(!task.isCurrent())return;
           if(previous){references=previous;resultSource=describe(cached?.snapshot?.source||provider,Number(cached?.snapshot?.total||references.length),Boolean(cached?.snapshot?.truncated))+` · ${getString("cards-cached-offline")}`;label.title=String(error);}
           else if(literatureType==="Citations") {
-            const fallback=await this.utils.API.getDOIRelatedArray(doi,100);
+            const fallback=await this.utils.API.getDOIRelatedArray(doi,100,task.signal);
             if(!task.isCurrent())return;
             if(!fallback?.length)throw error;
             result={references:fallback,total:undefined,truncated:true};provider="Semantic Scholar";
@@ -481,9 +485,7 @@ export default class Views {
       references = local && !fromCurrentPage && signature ? readCachedReferences(await this.storage.getAsync(item,key),signature,Number.MAX_SAFE_INTEGER) as any : undefined;
       if (!task.isCurrent()) return;
       if (references) {
-        (new ztoolkit.ProgressWindow("[Local] PDF"))
-          .createLine({ text: `${references.length} references`, type: "success"})
-          .show();
+        resultSource="PDF";
       } else {
         if (!reader) reader=await this.getReaderForItem(item,task.signal) as any;
         if (!task.isCurrent()) return;
@@ -506,124 +508,59 @@ export default class Views {
       }
     } else {
       const key = "References-API";
-      references = local ? readCachedReferences(await this.storage.getAsync(item,key),signature,24*60*60*1000) as any : undefined;
-      if (!task.isCurrent()) return;
-      if (references) {
-        (new ztoolkit.ProgressWindow("[Local] API"))
-          .createLine({ text: `${references.length} references`, type: "success" })
-          .show();
-      } else {
-        
-        let DOI = item.getField("DOI") as string;
-        let url = item.getField("url") as string;
-        let title = item.getField("title") as string;
-
-        let fileName = this.utils.parseCNKIURL(url)?.fileName;
-        let popupWin: any;
-        try {
-          if (this.utils.isDOI(DOI)) {
-            popupWin = new ztoolkit.ProgressWindow("[Pending] API", { closeTime: -1 });
-            popupWin
-              .createLine({ text: "Request DOI references...", type: "default" })
-              .show();
-            const result=await this.utils.API.getReferenceList(DOI,url,title,task.signal);references=result.references;resultSource=result.source;
-            if(result.partial)resultSource+=` (${references.length}${result.expected?"/"+result.expected:"+"} · ${getString("cards-partial")})`;
-          } else if (this.utils.isChinese(title) || fileName) {
-            // 知网文献处理
-            if (!fileName) {
-              try {
-                let url = (await this.utils.API.getCNKIURL(title)) as string;
-                if (!task.isCurrent()) return;
-                if (url) {
-                  fileName = this.utils.parseCNKIURL(url)?.fileName;
-                }
-              } catch {
-                (new ztoolkit.ProgressWindow("[Fail] API"))
-                  .createLine({ text: `Error, Get CNKI URL`, type: "fail" })
-                  .show();
-                return;
+      const cached=await this.storage.getAsync(item,key);
+      const previous=readCachedReferences(cached,signature,cached?.snapshot?.partial?15*60*1000:24*60*60*1000);
+      if(!task.isCurrent())return;
+      let result:ReferenceResult;
+      if(local&&previous)result={references:previous,...cached.snapshot,source:cached?.snapshot?.source||"Online"};
+      else {
+        const api=this.utils.API;
+        result=await retrieveReferenceList([
+          {name:"Online",run:async()=>{
+            let doi=String(item.getField("DOI")||"");
+            const url=String(item.getField("url")||""),title=String(item.getField("title")||"");
+            doi=CitationVerifier.normalizeDOI(doi)||CitationVerifier.normalizeDOI(url)||"";
+            if(!doi){
+              let fileName=this.utils.parseCNKIURL(url)?.fileName;
+              if(fileName||this.utils.isChinese(title)){
+                if(!fileName)fileName=this.utils.parseCNKIURL(await api.getCNKIURL(title)||"")?.fileName;
+                if(!task.isCurrent())return;
+                if(fileName){const refs=(await api.getCNKIFileInfo(fileName))?.references||[];if(refs.length)return {references:refs,source:"CNKI"};}
               }
-              if (!fileName) {
-                (new ztoolkit.ProgressWindow("[Fail] API"))
-                  .createLine({ text: `Fail, Get CNKI URL`, type: "fail" })
-                  .show();
-                return;
-              }
+              if(!task.isCurrent())return;
+              label.textContent=getString("cards-resolving-doi");
+              const creator=item.getCreators()[0] as any;
+              doi=(await api.resolveWork(title,creator?.name||creator?.lastName,String(item.getField("date")),task.signal))?.doi||"";
             }
-            popupWin = new ztoolkit.ProgressWindow("[Pending] API", { closeTime: -1, closeOtherProgressWindows: true });
-            popupWin
-              .createLine({ text: "Request CNKI references...", type: "default" })
-              .show();
-            references = (await this.utils.API.getCNKIFileInfo(fileName))?.references!;
-            if (!references) {
-              popupWin.changeHeadline("[Fail] API");
-              popupWin.changeLine({ text: `Not Supported, ${fileName}`, type: "fail" });
-              popupWin.startCloseTimer(3000);
-              return;
-            }
-          } else {
-            // 国际文献无 DOI：通过多源联邦解析器解析 DOI
-            popupWin = new ztoolkit.ProgressWindow("[Pending] API", { closeTime: -1 });
-            popupWin.createLine({ text: "Resolving Title to DOI...", type: "default" }).show();
-            const firstAuthor = (item.getCreators()?.[0] as any)?.name || (item.getCreators()?.[0] as any)?.lastName;
-            const date = item.getField("date") as string;
-            const resolved = await this.utils.API.resolveWork(title, firstAuthor, date);
-            if (!task.isCurrent()) return;
-            if (resolved?.doi) {
-              DOI = resolved.doi;
-              popupWin.changeLine({ text: `Found DOI: ${DOI}, fetching references...`, type: "default" });
-              const result=await this.utils.API.getReferenceList(DOI,url,title,task.signal);references=result.references;resultSource=result.source;
-              if(result.partial)resultSource+=` (${references.length}${result.expected?"/"+result.expected:"+"} · ${getString("cards-partial")})`;
-            }
-          }
-
-          // 若 API 未能获取到参考文献，且当前存在 PDF reader，优雅降级至本地 PDF 智能提取
-          if (!task.isCurrent()) return;
-          if ((!references || references.length === 0) && !reader) reader=await this.getReaderForItem(item,task.signal) as any;
-          if (!task.isCurrent()) return;
-          if ((!references || references.length === 0) && reader) {
-            if (!popupWin) {
-              popupWin = new ztoolkit.ProgressWindow("[Fallback] PDF", { closeTime: -1 });
-              popupWin.show();
-            }
-            popupWin.changeHeadline("[Fallback] PDF");
-            popupWin.changeLine({ text: "API未收录引文，正在启用本地 PDF 解析...", type: "default" });
-            try {
-              references = await this.utils.PDF.getReferences(reader, fromCurrentPage,{signal:task.signal,notify:false});
-              resultSource="PDF fallback";
-            } catch (pdfErr) {
-              ztoolkit.log("PDF fallback error:", pdfErr);
-            }
-          }
-
-          if (!task.isCurrent()) return;
-          if (references?.length && resultSource!=="PDF fallback" && Zotero.Prefs.get(`${config.addonRef}.saveAPIReferences`)) {
-            await this.storage.set(item,key,cacheReferences(references,signature));
-          }
-          if (popupWin) {
-            popupWin.changeHeadline(references?.length ? "[Done]" : "[Empty]");
-            popupWin.changeLine({ text: `${references?.length || 0} references`, type: references?.length ? "success" : "fail" });
-            popupWin.startCloseTimer(3000);
-          }
-        } catch (apiErr) {
-          ztoolkit.log("refreshReferences API error:", apiErr);
-          if (popupWin) {
-            popupWin.changeHeadline("[Fail] API");
-            popupWin.changeLine({ text: "API请求失败，请稍后重试", type: "fail" });
-            popupWin.startCloseTimer(3000);
-          }
-          throw apiErr;
-        } finally {
-          popupWin?.close();
-        }
+            if(!doi||!task.isCurrent())return;
+            return api.getReferenceList(doi,url,title,task.signal);
+          }},
+          {name:"PDF fallback",run:async()=>{
+            reader=reader||await this.getReaderForItem(item,task.signal);
+            if(!reader||!task.isCurrent())return;
+            const refs=await this.utils.PDF.getReferences(reader,fromCurrentPage,{signal:task.signal,notify:false});
+            return {references:refs,source:"PDF fallback"};
+          }}
+        ],task.signal,source=>{if(task.isCurrent())label.textContent=`${getString("relatedbox-loading")} ${source}`;});
+        if(!task.isCurrent())return;
+        if(!result.references.length&&previous)result={references:previous,...cached.snapshot,source:(cached?.snapshot?.source||"Online")+` · ${getString("cards-cached-offline")}`,attempts:result.attempts};
+        else if(result.references.length&&result.source!=="PDF fallback"&&Zotero.Prefs.get(`${config.addonRef}.saveAPIReferences`))await this.storage.set(item,key,{...cacheReferences(result.references,signature),snapshot:{source:result.source,partial:result.partial,expected:result.expected}});
       }
+      references=result.references;resultSource=result.source;
+      if(result.partial)resultSource+=` (${references.length}${result.expected?"/"+result.expected:"+"} · ${getString("cards-partial")})`;
+      label.title=result.attempts?.join("\n")||"";
     }
 
     if (!task.isCurrent()) return;
     if (!references) {
       references = [];
     }
+    if(!references.length && (panel as any).references?.length){
+      label.textContent=`${(panel as any).references.length} · ${getString("cards-refresh-empty-kept")}`;
+      return;
+    }
     const referenceNum = references.length;
+    panel.setAttribute("data-refnexus-result-type",literatureType);
     // @ts-ignore
     panel.references = references;
 
@@ -639,15 +576,24 @@ export default class Views {
       label.textContent = `${getString(["Auto","Web","PDF"].includes(source)?"cards-auto-empty":"relatedbox-empty")} [${currentSource}]`;
       return;
     }
-    const sort=Zotero.Prefs.get(`${config.addonRef}.sortBy`);
-    const displayed=[...references];
-    if(sort==="Recency")displayed.sort((a,b)=>Number(b.year||0)-Number(a.year||0));
-    if(sort==="Cited Count")displayed.sort((a,b)=>Number((b as any).citationCount||0)-Number((a as any).citationCount||0));
-    await (panel as any)._cards?.render(displayed,task.isCurrent);
+    await this.sortReferences(panel as any);
     if(!task.isCurrent())return;
     (panel as any)._setL10nArgs?.(JSON.stringify({count:referenceNum}));
     label.innerText = `${referenceNum} ${getString("relatedbox-number-label")} [${currentSource}]`;
     if (reader && this.utils.PDF.getDiagnostics(reader)?.scanLimited) label.textContent+=` · ${getString("relatedbox-scan-limited")}`;
+    (panel as any)._cards?.updateStatus();
+  }
+
+  public async sortReferences(panel:HTMLElement):Promise<void> {
+    const refs:ItemBaseInfo[]=(panel as any).references||[],displayed=[...refs];
+    const sort=Zotero.Prefs.get(`${config.addonRef}.sortBy`);
+    if(sort==="Recency")displayed.sort((a,b)=>Number(b.year||0)-Number(a.year||0));
+    if(sort==="Cited Count")displayed.sort((a,b)=>Number(b.citationCount||0)-Number(a.citationCount||0));
+    const identity=panel.getAttribute('data-refnexus-item-id');
+    // A committed list outlives the fetching task. Lazy matching must remain
+    // valid after the task has been removed from ReferenceTasks.
+    await (panel as any)._cards?.render(displayed,()=>panel.isConnected&&panel.getAttribute('data-refnexus-item-id')===identity&&(panel as any).references===refs);
+    (panel as any)._cards?.updateStatus();
   }
 
   public showTipUI(refRect: Rect, reference: ItemInfo, position: string, idText?: string, localOnly: boolean = false) {

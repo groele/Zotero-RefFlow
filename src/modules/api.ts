@@ -8,10 +8,13 @@ import PublisherReferences from "./publisherReferences";
 import type {ReferenceResult} from "./referenceRetrieval";
 
 class API {
-  private async optional<T>(work:Promise<T>,timeoutMs:number,fallback:T):Promise<T> {
+  private async optional<T>(work:(signal:AbortSignal)=>Promise<T>,timeoutMs:number,fallback:T,signal?:AbortSignal):Promise<T> {
     let timer:any;
-    try{return await Promise.race([work,new Promise<T>(resolve=>{timer=window.setTimeout(()=>resolve(fallback),timeoutMs);})]);}
-    finally{window.clearTimeout(timer);}
+    const controller=new ((window as any).AbortController||globalThis.AbortController)();
+    const abort=()=>controller.abort();signal?.addEventListener('abort',abort,{once:true});
+    if(signal?.aborted){abort();signal.removeEventListener('abort',abort);return fallback;}
+    try{return await Promise.race([work(controller.signal),new Promise<T>(resolve=>{timer=window.setTimeout(()=>{controller.abort();resolve(fallback);},timeoutMs);})]);}
+    finally{window.clearTimeout(timer);controller.abort();signal?.removeEventListener('abort',abort);}
   }
   public utils: Utils;
   public requests: Requests;
@@ -278,10 +281,10 @@ class API {
   /**
    * 从 Semantic Scholar Academic Graph 获取参考文献列表 (作为 Tier A 知识图谱兜底补全)
    */
-  async getDOIReferencesBySemanticScholar(DOI: string): Promise<ItemBaseInfo[]> {
+  async getDOIReferencesBySemanticScholar(DOI: string,signal?:AbortSignal): Promise<ItemBaseInfo[]> {
     const cleanDoi = DOI.trim().replace(/^https?:\/\/doi\.org\//i, "").replace(/^doi:\s*/i, "");
     const api = `https://api.semanticscholar.org/graph/v1/paper/DOI:${encodeURIComponent(cleanDoi)}/references?fields=title,authors,year,venue,externalIds&limit=100`;
-    const response = await this.requests.get(api);
+    const response = await this.requests.get(api,"json",{},signal);
     if (!response || !Array.isArray(response.data)) return [];
 
     return response.data.map((item: any, idx: number) => {
@@ -305,16 +308,18 @@ class API {
     });
   }
 
-  async getDOIInfoByCrossref(DOI: string): Promise<ItemInfo | undefined> {
+  async getDOIInfoByCrossref(DOI: string,signal?:AbortSignal): Promise<ItemInfo | undefined> {
+    if(signal?.aborted)return undefined;
     const cleanDOI = CitationVerifier.normalizeDOI(DOI) || DOI.trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, "").replace(/^doi:\s*/i, "");
 
     // 1. 并发请求 Crossref Polite API 与 OpenAlex (保留 DOI 斜杠路径，符合 RFC 规范)
     const doiPath = cleanDOI.split("/").map(seg => encodeURIComponent(seg)).join("/");
     const crossrefUrl = `https://api.crossref.org/works/${doiPath}`;
     const [crossrefRes, openalexRes] = await Promise.allSettled([
-      this.requests.get(crossrefUrl),
-      this.optional(this.openAlex.getWorkByDOI(cleanDOI),5000,undefined)
+      this.requests.get(crossrefUrl,"json",{},signal),
+      this.optional(child=>this.openAlex.getWorkByDOI(cleanDOI,child),5000,undefined,signal)
     ]);
+    if(signal?.aborted)return undefined;
 
     let crossrefData = crossrefRes.status === "fulfilled" ? crossrefRes.value?.message : undefined;
     let openalexWork = openalexRes.status === "fulfilled" ? openalexRes.value : undefined;
@@ -334,12 +339,14 @@ class API {
     let openalexHydrated: any[] = [];
     if (openalexWork && openalexWork.referencedWorks && openalexWork.referencedWorks.length > 0) {
       try {
-        openalexHydrated = await this.optional(this.openAlex.hydrateBatch(openalexWork.referencedWorks),references.length?4000:10000,[]);
+        const ids=openalexWork.referencedWorks;
+        openalexHydrated = await this.optional(child=>this.openAlex.hydrateBatch(ids,child),references.length?4000:10000,[],signal);
       } catch (e) {
         ztoolkit.log("OpenAlex hydration error:", e);
       }
     }
 
+    if(signal?.aborted)return undefined;
     // 3. Preserve the provider's bibliography order. OpenAlex enriches matching
     // Crossref entries, but its unmatched records are never appended as if they
     // were part of the same ordered reference list.
@@ -410,7 +417,7 @@ class API {
     }
     if (references.length === 0) {
       try {
-        const s2Refs = await this.getDOIReferencesBySemanticScholar(cleanDOI);
+        const s2Refs = await this.getDOIReferencesBySemanticScholar(cleanDOI,signal);
         if (s2Refs && s2Refs.length > 0) {
           references = s2Refs;
         }
@@ -451,7 +458,7 @@ class API {
   async getReferenceList(DOI:string,url?:string,title?:string,signal?:AbortSignal):Promise<ReferenceResult> {
     if(signal?.aborted)return {references:[],source:"Online"};
     let info:ItemInfo|undefined;
-    try{info=await this.getDOIInfoByCrossref(DOI);}catch(error){ztoolkit.log("Index reference request failed; trying publisher",error);}
+    try{info=await this.getDOIInfoByCrossref(DOI,signal);}catch(error){ztoolkit.log("Index reference request failed; trying publisher",error);}
     const references=info?.references||[];
     if(signal?.aborted)return {references:[],source:"Online"};
     if(!references.length || info?.referencePartial) {
@@ -461,11 +468,11 @@ class API {
     return {references,source:references[0]?.sources?.[0]||"Online",expected:info?.referenceExpected,partial:info?.referencePartial};
   }
 
-  async getDOIRelatedArray(DOI: string, limit: number = 20): Promise<ItemBaseInfo[] | undefined> {
+  async getDOIRelatedArray(DOI: string, limit: number = 20,signal?:AbortSignal): Promise<ItemBaseInfo[] | undefined> {
     const cleanDoi = DOI.trim().replace(/^https?:\/\/doi\.org\//i, "");
     // 使用官方免费公开的 Semantic Scholar Academic Graph API
     const api = `https://api.semanticscholar.org/graph/v1/paper/DOI:${encodeURIComponent(cleanDoi)}/citations?fields=title,authors,year,venue,externalIds&limit=${limit}`;
-    let response = await this.requests.get(api);
+    let response = await this.requests.get(api,"json",{},signal);
     if (response && Array.isArray(response.data)) {
       return response.data.map((item: any) => {
         const citing = item.citingPaper || item;
@@ -559,11 +566,11 @@ class API {
    * @param title 
    * @returns 
    */
-  async getTitleInfoByCrossref(title: string, author?: string, year?: string): Promise<ItemInfo | undefined> {
+  async getTitleInfoByCrossref(title: string, author?: string, year?: string,signal?:AbortSignal): Promise<ItemInfo | undefined> {
     if (!title || title.trim().length < 5) return undefined;
     const cleanTitle = title.trim();
     const api = `https://api.crossref.org/works?query.bibliographic=${encodeURIComponent(cleanTitle)}&rows=3`;
-    let response = await this.requests.get(api);
+    let response = await this.requests.get(api,"json",{},signal);
     if (response && response.message?.items) {
       const skipTypes = ["component", "dataset"];
       const items = response.message.items.filter((e: any) => !skipTypes.includes(e.type));
@@ -608,11 +615,12 @@ class API {
   /**
    * 联邦解析器：结合 Crossref 与 OpenAlex，通过多维校验矩阵拒绝低置信匹配
    */
-  async resolveWork(title: string, author?: string, year?: string): Promise<{ doi?: string; oaUrl?: string; info?: ItemInfo } | undefined> {
-    if (!title) return undefined;
+  async resolveWork(title: string, author?: string, year?: string,signal?:AbortSignal): Promise<{ doi?: string; oaUrl?: string; info?: ItemInfo } | undefined> {
+    if (!title || signal?.aborted) return undefined;
 
     // 1. 尝试 Crossref 权威解析
-    const crInfo = await this.getTitleInfoByCrossref(title, author, year);
+    const crInfo = await this.getTitleInfoByCrossref(title, author, year,signal);
+    if(signal?.aborted)return undefined;
     if (crInfo && crInfo.identifiers?.DOI) {
       return {
         doi: crInfo.identifiers.DOI,
@@ -621,7 +629,7 @@ class API {
     }
 
     // 2. 尝试 OpenAlex 联邦检索
-    const oaSummary = await this.openAlex.searchWorkByTitle(title, author, year);
+    const oaSummary = await this.openAlex.searchWorkByTitle(title, author, year,signal);
     if (oaSummary && oaSummary.doi) {
       return {
         doi: oaSummary.doi,

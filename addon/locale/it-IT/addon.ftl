@@ -33,3 +33,7 @@ graph-pane-sidenav =
 
 pane-sidenav =
     .tooltiptext = Riferimenti
+
+cards-kept-results = Risultati precedenti conservati
+cards-refresh-empty-kept = Nessun nuovo elenco; risultati precedenti conservati
+cards-resolving-doi = Ricerca del DOI…

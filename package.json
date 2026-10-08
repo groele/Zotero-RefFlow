@@ -1,6 +1,6 @@
 {
   "name": "zotero-refnexus",
-  "version": "10.3.3",
+  "version": "11.0.0",
   "description": "Zotero 10 reference retrieval and citation graphs, derived from Zotero Reference / Ethereal Reference by Polygon / MuiseDestiny.",
   "config": {
     "addonName": "Zotero RefNexus",
@@ -10,13 +10,14 @@
     "downloadURL": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/zotero-refnexus.xpi",
     "updateURL": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json",
     "issuesURL": "https://github.com/groele/Zotero-diy/issues",
+    "releaseNotesURL": "https://github.com/groele/Zotero-diy/blob/main/RefNexus-Zotero10/docs/RELEASE-NOTES.md",
     "upstreamURL": "https://github.com/MuiseDestiny/zotero-reference"
   },
   "main": "src/index.ts",
   "scripts": {
     "build-dev": "cross-env NODE_ENV=development node scripts/build.mjs",
     "build-prod": "cross-env NODE_ENV=production node scripts/build.mjs",
-    "build": "concurrently -c auto npm:build-prod npm:tsc",
+    "build": "npm run tsc && npm run build-prod",
     "tsc": "tsc --noEmit",
     "test": "node scripts/test.mjs",
     "native:fixtures": "python scripts/make-native-fixtures.py",

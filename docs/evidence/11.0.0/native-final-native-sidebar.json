@@ -1,0 +1,287 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T17:07:51.560Z",
+  "tests": [
+    {
+      "name": "cold production startup retains Zotero native sidebar geometry",
+      "ok": true,
+      "detail": {
+        "addonVersion": "11.0.0",
+        "orient": null,
+        "direction": "row",
+        "host": {
+          "x": 643,
+          "y": 141.39999389648438,
+          "width": 357,
+          "height": 458.6000061035156,
+          "right": 1000
+        },
+        "content": {
+          "x": 643,
+          "y": 141.39999389648438,
+          "width": 320,
+          "height": 458.6000061035156,
+          "right": 963
+        },
+        "rail": {
+          "x": 963,
+          "y": 141.39999389648438,
+          "width": 37,
+          "height": 458.6000061035156,
+          "right": 1000
+        },
+        "children": [
+          "zotero-item-pane-content",
+          "zotero-view-item-sidenav"
+        ]
+      }
+    },
+    {
+      "name": "reference icon uses a tooltip without a visible label",
+      "ok": true,
+      "detail": {
+        "tooltip": "参考文献"
+      }
+    },
+    {
+      "name": "graph open mounts the related list only inside a native custom section",
+      "ok": true,
+      "detail": {
+        "geometry": {
+          "orient": null,
+          "direction": "row",
+          "host": {
+            "x": 643,
+            "y": 141.39999389648438,
+            "width": 357,
+            "height": 458.6000061035156,
+            "right": 1000
+          },
+          "content": {
+            "x": 643,
+            "y": 141.39999389648438,
+            "width": 320,
+            "height": 458.6000061035156,
+            "right": 963
+          },
+          "rail": {
+            "x": 963,
+            "y": 141.39999389648438,
+            "width": 37,
+            "height": 458.6000061035156,
+            "right": 1000
+          },
+          "children": [
+            "zotero-item-pane-content",
+            "zotero-view-item-sidenav"
+          ]
+        },
+        "panelParent": "div"
+      }
+    },
+    {
+      "name": "repeated graph toggles preserve host geometry and do not duplicate panels",
+      "ok": true,
+      "detail": {
+        "toggles": 4
+      }
+    },
+    {
+      "name": "narrow and wide item panes retain the icon rail at the right edge",
+      "ok": true,
+      "detail": {
+        "widths": [
+          357,
+          357,
+          430
+        ],
+        "geometries": [
+          {
+            "orient": null,
+            "direction": "row",
+            "host": {
+              "x": 643,
+              "y": 141.39999389648438,
+              "width": 357,
+              "height": 458.6000061035156,
+              "right": 1000
+            },
+            "content": {
+              "x": 643,
+              "y": 141.39999389648438,
+              "width": 320,
+              "height": 458.6000061035156,
+              "right": 963
+            },
+            "rail": {
+              "x": 963,
+              "y": 141.39999389648438,
+              "width": 37,
+              "height": 458.6000061035156,
+              "right": 1000
+            },
+            "children": [
+              "zotero-item-pane-content",
+              "zotero-view-item-sidenav"
+            ]
+          },
+          {
+            "orient": null,
+            "direction": "row",
+            "host": {
+              "x": 643,
+              "y": 141.39999389648438,
+              "width": 357,
+              "height": 458.6000061035156,
+              "right": 1000
+            },
+            "content": {
+              "x": 643,
+              "y": 141.39999389648438,
+              "width": 320,
+              "height": 458.6000061035156,
+              "right": 963
+            },
+            "rail": {
+              "x": 963,
+              "y": 141.39999389648438,
+              "width": 37,
+              "height": 458.6000061035156,
+              "right": 1000
+            },
+            "children": [
+              "zotero-item-pane-content",
+              "zotero-view-item-sidenav"
+            ]
+          },
+          {
+            "orient": null,
+            "direction": "row",
+            "host": {
+              "x": 570,
+              "y": 141.39999389648438,
+              "width": 430,
+              "height": 458.6000061035156,
+              "right": 1000
+            },
+            "content": {
+              "x": 570,
+              "y": 141.39999389648438,
+              "width": 393,
+              "height": 458.6000061035156,
+              "right": 963
+            },
+            "rail": {
+              "x": 963,
+              "y": 141.39999389648438,
+              "width": 37,
+              "height": 458.6000061035156,
+              "right": 1000
+            },
+            "children": [
+              "zotero-item-pane-content",
+              "zotero-view-item-sidenav"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "note and regular-item switching keeps native layout and graph availability",
+      "ok": true,
+      "detail": {
+        "switches": 2
+      }
+    },
+    {
+      "name": "a second native main window has independent graph controls and normal layout",
+      "ok": true,
+      "detail": {
+        "windows": 2,
+        "independent": true
+      }
+    },
+    {
+      "name": "graph close restores the same native host geometry",
+      "ok": true,
+      "detail": {
+        "orient": null,
+        "direction": "row",
+        "host": {
+          "x": 643,
+          "y": 141.39999389648438,
+          "width": 357,
+          "height": 458.6000061035156,
+          "right": 1000
+        },
+        "content": {
+          "x": 643,
+          "y": 141.39999389648438,
+          "width": 320,
+          "height": 458.6000061035156,
+          "right": 963
+        },
+        "rail": {
+          "x": 963,
+          "y": 141.39999389648438,
+          "width": 37,
+          "height": 458.6000061035156,
+          "right": 1000
+        },
+        "children": [
+          "zotero-item-pane-content",
+          "zotero-view-item-sidenav"
+        ]
+      }
+    },
+    {
+      "name": "PDF reader context hides the library-only graph section and retains its native rail",
+      "ok": true,
+      "detail": {
+        "readerRailWidth": 37,
+        "libraryGraphHidden": true
+      }
+    },
+    {
+      "name": "disable and hot-upgrade recovery repair the legacy vertical mutation",
+      "ok": true,
+      "detail": {
+        "cycles": 2,
+        "legacyRecovered": true,
+        "geometry": {
+          "orient": null,
+          "direction": "row",
+          "host": {
+            "x": 643,
+            "y": 141.39999389648438,
+            "width": 357,
+            "height": 458.6000061035156,
+            "right": 1000
+          },
+          "content": {
+            "x": 643,
+            "y": 141.39999389648438,
+            "width": 320,
+            "height": 458.6000061035156,
+            "right": 963
+          },
+          "rail": {
+            "x": 963,
+            "y": 141.39999389648438,
+            "width": 37,
+            "height": 458.6000061035156,
+            "right": 1000
+          },
+          "children": [
+            "zotero-item-pane-content",
+            "zotero-view-item-sidenav"
+          ]
+        }
+      }
+    }
+  ],
+  "screenshot": "D:\\Dev Studio\\Reference in zotero\\zotero-reference\\docs\\evidence\\11.0.0\\native-final-native-sidebar.png",
+  "finished": "2026-10-08T17:07:59.168Z",
+  "passed": 10,
+  "failed": 0
+}

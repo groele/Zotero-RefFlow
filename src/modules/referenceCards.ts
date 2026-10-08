@@ -2,6 +2,7 @@ import {config} from "../../package.json";
 import {getString} from "../utils/locale";
 import type Views from "./views";
 import type TipUI from "./tip";
+import {referenceIdentity} from "./referenceIdentity";
 
 /** Compact reference cards and selection behavior aligned with the supplied XPI. */
 export default class ReferenceCards {
@@ -18,6 +19,7 @@ export default class ReferenceCards {
   private hoverTimer?:number;
   private tip?:TipUI;
   private empty?:HTMLElement;
+  private generation=0;
 
   constructor(private views:Views,private body:HTMLElement,private grid:HTMLElement,private search:HTMLInputElement) {
     search.addEventListener("input",()=>{window.clearTimeout(this.searchTimer);this.searchTimer=window.setTimeout(()=>this.filter(),80);});
@@ -26,7 +28,7 @@ export default class ReferenceCards {
     grid.addEventListener("contextmenu",event=>{event.preventDefault();this.menu(event);});
   }
   dispose(){this.disposed=true;window.clearTimeout(this.searchTimer);this.clear();}
-  clear(){this.observer?.disconnect();this.matchQueue=[];window.clearTimeout(this.searchTimer);window.clearTimeout(this.hoverTimer);this.tip?.clear();this.tip=undefined;this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
+  clear(){this.generation++;this.observer?.disconnect();this.matchQueue=[];window.clearTimeout(this.searchTimer);window.clearTimeout(this.hoverTimer);this.tip?.clear();this.tip=undefined;this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
   private drainMatches(){while(this.matchActive<4&&this.matchQueue.length){const match=this.matchQueue.shift()!;this.matchActive++;void match().catch(error=>ztoolkit.log(error)).finally(()=>{this.matchActive--;if(!this.disposed)this.drainMatches();});}}
   private queueLibraryMatch(row:HTMLElement,parent:Zotero.Item,current:()=>boolean){
     if(this.matchedRows.has(row))return;
@@ -64,7 +66,15 @@ export default class ReferenceCards {
   }
   async render(refs:ItemBaseInfo[],current:()=>boolean){
     const query=this.search.value;
+    const selected=new Set([...this.selected].map(referenceIdentity));
+    const active=this.grid.ownerDocument.activeElement as HTMLElement|null;
+    const focused=active?.closest?.('.reference-item') as any;
+    const focusKey=focused&&this.grid.contains(focused)?referenceIdentity(focused.reference):undefined;
+    const focusAction=active?.classList.contains('reference-action');
+    const anchorKey=this.refs[this.anchor]?referenceIdentity(this.refs[this.anchor]):undefined;
     this.clear();this.search.value=query;this.refs=refs;this.disposed=false;
+    const externalCurrent=current,generation=this.generation;
+    current=()=>externalCurrent()&&this.generation===generation&&!this.disposed;
     const fragment=this.body.ownerDocument.createDocumentFragment();
     const parent=this.parent();
     const original:ItemBaseInfo[]=(this.body as any).references||refs;
@@ -125,7 +135,15 @@ export default class ReferenceCards {
     if(current()&&!this.disposed){
       this.grid.append(fragment);
       this.empty=this.body.ownerDocument.createElement("p");this.empty.className="refnexus-empty-result";this.empty.setAttribute("role","status");this.empty.textContent=getString("cards-no-search-results");this.empty.hidden=true;this.grid.after(this.empty);
+      for(const ref of refs)if(selected.has(referenceIdentity(ref)))this.selected.add(ref);
+      this.anchor=Math.max(0,refs.findIndex(ref=>referenceIdentity(ref)===anchorKey));
+      this.updateSelection();
       if(query)this.filter();
+      const now=this.grid.ownerDocument.activeElement;
+      if(focusKey&&(!now||now===this.grid.ownerDocument.body||now===this.grid.ownerDocument.documentElement)){
+        const row=this.rows.find(row=>!row.hidden&&referenceIdentity((row as any).reference)===focusKey);
+        (focusAction?row?.querySelector<HTMLElement>('.reference-action'):row)?.focus();
+      }
       // Native background windows may delay intersection callbacks. Match only
       // the first screen's bounded rows eagerly; keep long lists lazy.
       for(const [index,row] of this.rows.entries()){
@@ -135,6 +153,7 @@ export default class ReferenceCards {
       this.drainMatches();
     }
   }
+  updateStatus(){if(this.search.value.trim())this.filter();}
   private open(ref:ItemBaseInfo){if(ref._item)this.views.utils.selectItemInLibrary(ref._item);else{const url=ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:undefined);if(url&&/^https?:\/\//i.test(url))Zotero.launchURL(url);}}
   menu(event?:MouseEvent){
     const parentAtOpen=this.parent(),refsAtOpen=this.subset(),allAtOpen=[...this.refs];
@@ -152,7 +171,7 @@ export default class ReferenceCards {
     add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const matches=[...String(parent.getField("extra")||"").matchAll(/^refnexus_batch_parent: (refnexus_batch_\w+)$/gm)];const id=matches[matches.length-1]?.[1];if(id){await this.views.rollbackReferences(parent,id);if(Number(this.body.getAttribute("data-refnexus-item-id"))===parent.id)await this.views.refreshReferences(this.body as any,true,false,false,parent);}});
     separator();
     for(const source of ["Auto","PDF","Web","API"])add(source==="Auto"?"cards-source-auto":source==="Web"?"cards-source-web":source==="PDF"?"cards-source-pdf":"cards-source-online",()=>{if(!samePanel())return;this.body.querySelector<HTMLSelectElement>("select")!.value=source;this.body.querySelector("select")!.dispatchEvent(new (window as any).Event("change"));},this.body.getAttribute("source")===source);
-    for(const sort of ["Original","Recency","Cited Count"])add(sort==="Original"?"cards-sort-original":sort==="Recency"?"cards-sort-recency":"cards-sort-cited",async()=>{if(!samePanel())return;Zotero.Prefs.set(`${config.addonRef}.sortBy`,sort);await this.views.refreshReferences(this.body as any,true);},Zotero.Prefs.get(`${config.addonRef}.sortBy`)===sort);
+    for(const sort of ["Original","Recency","Cited Count"])add(sort==="Original"?"cards-sort-original":sort==="Recency"?"cards-sort-recency":"cards-sort-cited",async()=>{if(!samePanel())return;Zotero.Prefs.set(`${config.addonRef}.sortBy`,sort);await this.views.sortReferences(this.body);},Zotero.Prefs.get(`${config.addonRef}.sortBy`)===sort);
     add("relatedbox-download-oa",()=>Zotero.Prefs.set(`${config.addonRef}.downloadOA`,!Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)));
     popup.addEventListener("popuphidden",()=>popup.remove(),{once:true});doc.documentElement.append(popup);
     if(event)popup.openPopupAtScreen(event.screenX,event.screenY,true);else popup.openPopup(this.body.closest("item-pane-custom-section"),"after_end",0,0,false,false);

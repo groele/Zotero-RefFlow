@@ -70,3 +70,6 @@ about-project = Project and updates
 about-issues = Report an issue
 about-upstream = Original project
 openAlexKey-get = Get / view a free OpenAlex API key
+
+about-updates = Updates are provided by groele/Zotero-diy. Zotero 10 only.
+about-release-notes = Release notes

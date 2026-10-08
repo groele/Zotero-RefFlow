@@ -1,0 +1,30 @@
+{
+  "version": "10.0.6",
+  "tests": [
+    {
+      "name": "installed production XPI exposes derivative maintainer and homepage",
+      "ok": true,
+      "detail": {
+        "version": "11.0.0",
+        "maintainer": "groele",
+        "homepage": "https://github.com/groele/Zotero-diy/tree/main/RefNexus-Zotero10"
+      }
+    },
+    {
+      "name": "native preferences show source attribution and correct project links",
+      "ok": true,
+      "detail": {
+        "attribution": "Zotero RefNexus · 11.0.0二次开发与维护：groele基于 Zotero Reference / Ethereal Reference（Polygon / MuiseDestiny）二次修改；保留原作者署名及 AGPL-3.0-or-later 许可。插件更新由 groele/Zotero-diy 提供，仅支持 Zotero 10。项目与更新反馈问题原始项目版本说明",
+        "links": [
+          "https://github.com/groele/Zotero-diy/tree/main/RefNexus-Zotero10",
+          "https://github.com/groele/Zotero-diy/issues",
+          "https://github.com/MuiseDestiny/zotero-reference",
+          "https://github.com/groele/Zotero-diy/blob/main/RefNexus-Zotero10/docs/RELEASE-NOTES.md"
+        ]
+      }
+    }
+  ],
+  "finished": "2026-10-08T17:11:49.747Z",
+  "passed": 2,
+  "failed": 0
+}

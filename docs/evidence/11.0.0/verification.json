@@ -1,0 +1,17 @@
+{
+  "version": "11.0.0",
+  "addonID": "refnexus@polygon.org",
+  "bytes": 259638,
+  "sha256": "ba498342a442bb2470dd13ebe231cd41765f9d1375f5a8637cad1ced63aaa3c9",
+  "updateURL": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json",
+  "downloadURL": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/zotero-refnexus.xpi",
+  "functionalNativePassed": 109,
+  "functionalNativeFailed": 0,
+  "unitPassed": 156,
+  "liveOnlinePassed": 5,
+  "metadataNativePassed": 2,
+  "testedZotero": "10.0.6",
+  "platform": "Windows",
+  "productionBuild": "2026-10-09 01:06:36 Asia/Shanghai",
+  "verified": true
+}

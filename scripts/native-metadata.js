@@ -13,9 +13,10 @@ await test('native preferences show source attribution and correct project links
   let about;for(let i=0;i<100;i++){about=pref.document.getElementById('refnexus-about');if(about)break;await delay(100);}
   check(about,'About section missing');await pref.document.l10n.translateFragment(about);await delay(150);
   check(about.textContent.includes('groele')&&about.textContent.includes('Polygon / MuiseDestiny')&&about.textContent.includes('AGPL-3.0-or-later'),'Source credits or maintainer missing');
-  const expected=['https://github.com/groele/Zotero-diy/tree/main/RefNexus-Zotero10','https://github.com/groele/Zotero-diy/issues','https://github.com/MuiseDestiny/zotero-reference'];
+  const expected=['https://github.com/groele/Zotero-diy/tree/main/RefNexus-Zotero10','https://github.com/groele/Zotero-diy/issues','https://github.com/MuiseDestiny/zotero-reference','https://github.com/groele/Zotero-diy/blob/main/RefNexus-Zotero10/docs/RELEASE-NOTES.md'];
   const actual=[...about.querySelectorAll('a')].map(a=>a.href);check(JSON.stringify(actual)===JSON.stringify(expected),'Wrong settings links');
   check([...about.querySelectorAll('a')].every(a=>a.textContent.trim()),'Empty accessible link label');
+  check(about.textContent.includes('groele/Zotero-diy')&&about.textContent.includes('Zotero 10'),'Update authority or compatibility explanation missing');
   check(pref.document.querySelector('a[href="https://openalex.org/settings/api"]'),'Free API key entry missing');return {attribution:about.textContent.trim(),links:actual};
  }finally{pref.close();}
 });

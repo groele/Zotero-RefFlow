@@ -1,0 +1,113 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T17:07:45.097Z",
+  "scope": "native DOM/SQLite/XHR; reference provider responses are controlled fixtures",
+  "tests": [
+    {
+      "name": "refresh keeps existing cards usable until a replacement is ready",
+      "ok": true,
+      "ms": 15,
+      "detail": {
+        "retainedCards": 14
+      }
+    },
+    {
+      "name": "failed refresh retains the previous list and reports recovery",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "retained": true,
+        "label": "14 · 未获取新列表，保留上次结果"
+      }
+    },
+    {
+      "name": "cancel preserves the previous list and rejects a late replacement",
+      "ok": true,
+      "ms": 24,
+      "detail": {
+        "retained": true
+      }
+    },
+    {
+      "name": "successful refresh preserves filtered count, selection and focused reference",
+      "ok": true,
+      "ms": 225,
+      "detail": {
+        "selection": true,
+        "focus": true,
+        "filteredCount": true
+      }
+    },
+    {
+      "name": "sort is local and retains selection and source numbering",
+      "ok": true,
+      "ms": 9,
+      "detail": {
+        "providerRequests": 0
+      }
+    },
+    {
+      "name": "lazy library matching remains valid after the fetch task completes",
+      "ok": true,
+      "ms": 97,
+      "detail": {
+        "taskFinished": true,
+        "localMatch": true,
+        "controlledIntersectionScheduling": true
+      }
+    },
+    {
+      "name": "different literature types do not retain another type list",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "isolated": true
+      }
+    },
+    {
+      "name": "two native consumers share XHR while cancelling only one remains isolated",
+      "ok": true,
+      "ms": 124,
+      "detail": {
+        "httpRequests": 1,
+        "cancelledConsumers": 1
+      }
+    },
+    {
+      "name": "last-consumer cancellation physically aborts native XHR and leaves no cache",
+      "ok": true,
+      "ms": 66,
+      "detail": {
+        "settledMs": 31
+      }
+    },
+    {
+      "name": "cancelled queued native XHR frees capacity before the active request completes",
+      "ok": true,
+      "ms": 123,
+      "detail": {
+        "httpRequests": 1
+      }
+    },
+    {
+      "name": "optional enrichment timeout cancels its native child subscription",
+      "ok": true,
+      "ms": 73,
+      "detail": {
+        "deadlineMs": 40
+      }
+    },
+    {
+      "name": "installed updater targets the user repository",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "pluginVersion": "11.0.0",
+        "updateURL": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json"
+      }
+    }
+  ],
+  "finished": "2026-10-08T17:07:46.116Z",
+  "passed": 12,
+  "failed": 0
+}

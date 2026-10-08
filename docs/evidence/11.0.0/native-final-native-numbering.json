@@ -1,0 +1,70 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T17:07:43.313Z",
+  "tests": [
+    {
+      "name": "native production version and visible source numbers",
+      "ok": true,
+      "detail": {
+        "addonVersion": "11.0.0",
+        "numbers": [
+          "1.",
+          "2.",
+          "12.",
+          "1000."
+        ]
+      }
+    },
+    {
+      "name": "numeric gutter fits four digits and retains state dots",
+      "ok": true,
+      "detail": {
+        "rows": 4,
+        "gutter": "5ch"
+      }
+    },
+    {
+      "name": "recency/reversed display preserves source reference numbers",
+      "ok": true,
+      "detail": {
+        "numbers": [
+          "1000.",
+          "12.",
+          "2.",
+          "1."
+        ]
+      }
+    },
+    {
+      "name": "search retains the original number instead of resetting to one",
+      "ok": true,
+      "detail": {
+        "visible": 1,
+        "number": "12."
+      }
+    },
+    {
+      "name": "missing and invalid numbers fall back to source positions before sorting",
+      "ok": true,
+      "detail": {
+        "numbers": [
+          "4.",
+          "3.",
+          "2.",
+          "1."
+        ]
+      }
+    },
+    {
+      "name": "number clicks still select a card and accessibility includes the number",
+      "ok": true,
+      "detail": {
+        "selected": true,
+        "sourceNumber": "4"
+      }
+    }
+  ],
+  "finished": "2026-10-08T17:07:43.767Z",
+  "passed": 6,
+  "failed": 0
+}

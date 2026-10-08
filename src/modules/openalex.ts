@@ -21,19 +21,19 @@ export class OpenAlexProvider {
     this.requests = requests || new Requests();
   }
 
-  private get(url:string) {
+  private get(url:string,signal?:AbortSignal) {
     const key=String(Zotero.Prefs.get("refnexus.openAlexKey")||"").trim();
-    return this.requests.get(url,"json",key?{Authorization:`Bearer ${key}`} : {});
+    return this.requests.get(url,"json",key?{Authorization:`Bearer ${key}`} : {},signal);
   }
 
   /**
    * 通过 DOI 获取 OpenAlex Work 对象及其引用的文献列表 (referenced_works)
    */
-  async getWorkByDOI(doi: string): Promise<{ work: any; referencedWorks: string[] } | undefined> {
+  async getWorkByDOI(doi: string,signal?:AbortSignal): Promise<{ work: any; referencedWorks: string[] } | undefined> {
     const cleanDoi = doi.trim().toLowerCase().replace(/^https?:\/\/doi\.org\//i, "").replace(/^doi:\s*/i, "");
     const selectFields = "id,doi,title,authorships,publication_year,primary_location,open_access,best_oa_location,cited_by_count,is_retracted,referenced_works,related_works";
     const url = `https://api.openalex.org/works/doi:${encodeURIComponent(cleanDoi)}?select=${selectFields}`;
-    const data = await this.get(url);
+    const data = await this.get(url,signal);
     if (!data || !data.id) return undefined;
 
     return {
@@ -44,14 +44,16 @@ export class OpenAlexProvider {
 
   /** Bounded citation/related snapshots. A truncated list is explicitly identified. */
   async getNeighborhood(doi:string,kind:"Citations"|"Related",signal?:AbortSignal):Promise<{references:ItemBaseInfo[];total:number;truncated:boolean}> {
-    if(signal?.aborted)throw new Error("Cancelled");
-    const base=await this.getWorkByDOI(doi);
+    const checkCancelled=()=>{if(signal?.aborted){const error=new Error("Cancelled");error.name="AbortError";throw error;}};
+    checkCancelled();
+    const base=await this.getWorkByDOI(doi,signal);
+    checkCancelled();
     if(!base)throw new Error("OpenAlex work lookup failed"+(this.requests.lastFailure?`: HTTP ${this.requests.lastFailure.status} ${this.requests.lastFailure.message}`:""));
-    if(signal?.aborted)throw new Error("Cancelled");
     let works:any[]=[],total=0;
     const fields="id,doi,title,authorships,publication_year,primary_location,open_access,best_oa_location,cited_by_count,is_retracted";
     if(kind==="Related") {
-      const summaries=await this.hydrateBatch((base.work.related_works||[]).slice(0,100));
+      const summaries=await this.hydrateBatch((base.work.related_works||[]).slice(0,100),signal);
+      checkCancelled();
       total=(base.work.related_works||[]).length;
       if(total && !summaries.length)throw new Error("OpenAlex related metadata unavailable"+(this.requests.lastFailure?`: HTTP ${this.requests.lastFailure.status} ${this.requests.lastFailure.message}`:""));
       const references=summaries.map(work=>({title:work.title,text:work.title,authors:work.authors,year:work.year,publicationVenue:work.venue,identifiers:work.doi?{DOI:work.doi}:{},url:work.doi?`https://doi.org/${work.doi}`:work.openalexId,oaUrl:work.oaUrl,isOA:work.isOA,citationCount:work.citationCount,sources:["OpenAlex"],retraction:work.isRetracted?{isRetracted:true,checked:true,reason:"OpenAlex retraction flag"}:undefined} as ItemBaseInfo));
@@ -60,7 +62,8 @@ export class OpenAlexProvider {
     const id=String(base.work.id).split("/").pop();let cursor="*";
     const deadline=Date.now()+25000;
     for(let page=0;page<5 && !signal?.aborted && Date.now()<deadline;page++) {
-      const result=await this.get(`https://api.openalex.org/works?filter=${encodeURIComponent(`cites:${id}`)}&per_page=100&cursor=${encodeURIComponent(cursor)}&select=${fields}`);
+      const result=await this.get(`https://api.openalex.org/works?filter=${encodeURIComponent(`cites:${id}`)}&per_page=100&cursor=${encodeURIComponent(cursor)}&select=${fields}`,signal);
+      checkCancelled();
       if(!Array.isArray(result?.results)){if(!works.length)throw new Error("OpenAlex citation request failed"+(this.requests.lastFailure?`: HTTP ${this.requests.lastFailure.status} ${this.requests.lastFailure.message}`:""));break;}
       total=Number(result.meta?.count||0);works.push(...result.results);cursor=result.meta?.next_cursor;
       if(!cursor || !result.results.length || works.length>=total)break;
@@ -76,8 +79,8 @@ export class OpenAlexProvider {
   /**
    * Batch ID hydration uses the current 100-ID API limit and selected fields.
    */
-  async hydrateBatch(workUrls: string[]): Promise<OpenAlexWorkSummary[]> {
-    if (!workUrls || workUrls.length === 0) return [];
+  async hydrateBatch(workUrls: string[],signal?:AbortSignal): Promise<OpenAlexWorkSummary[]> {
+    if (!workUrls || workUrls.length === 0 || signal?.aborted) return [];
 
     const cleanIds = [...new Set(workUrls
       .map(url => url.replace(/^https?:\/\/openalex\.org\//i, "").trim())
@@ -96,7 +99,7 @@ export class OpenAlexProvider {
       chunks.map(chunk => {
         const filter = encodeURIComponent(`openalex:${chunk.join("|")}`);
         const url = `https://api.openalex.org/works?filter=${filter}&per_page=100&select=${selectFields}`;
-        return this.get(url);
+        return this.get(url,signal);
       })
     );
 
@@ -145,12 +148,12 @@ export class OpenAlexProvider {
   /**
    * 基于标题、作者与年份评分检索，低置信候选不自动采纳
    */
-  async searchWorkByTitle(title: string, author?: string, year?: string): Promise<OpenAlexWorkSummary | undefined> {
-    if (!title || title.trim().length < 5) return undefined;
+  async searchWorkByTitle(title: string, author?: string, year?: string,signal?:AbortSignal): Promise<OpenAlexWorkSummary | undefined> {
+    if (!title || title.trim().length < 5 || signal?.aborted) return undefined;
     const cleanQuery = title.trim().slice(0, 100);
     const selectFields = "id,doi,title,authorships,publication_year,primary_location,open_access,best_oa_location,cited_by_count,is_retracted";
     const url = `https://api.openalex.org/works?search=${encodeURIComponent(cleanQuery)}&per-page=3&select=${selectFields}`;
-    const response = await this.get(url);
+    const response = await this.get(url,signal);
 
     if (response && Array.isArray(response.results) && response.results.length > 0) {
       for (const item of response.results) {

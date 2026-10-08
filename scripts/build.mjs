@@ -15,6 +15,7 @@ import { env, exit } from "process";
 import replaceInFile from "replace-in-file";
 const { replaceInFileSync } = replaceInFile;
 import { fileURLToPath } from "url";
+import {validateReleaseConfig,prepareRelease} from './release-artifacts.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const details = JSON.parse(readFileSync(path.join(__dirname, "../package.json"), "utf-8"));
 
@@ -63,6 +64,7 @@ function copyFolderRecursiveSync(source, target) {
 }
 
 function clearFolder(target) {
+  if(path.resolve(target)!==path.resolve(__dirname,'../build'))throw new Error('Build cleanup target escaped the workspace build directory');
   if (existsSync(target)) {
     rmSync(target, { recursive: true, force: true });
   }
@@ -149,7 +151,7 @@ function replaceString() {
   };
 
   if (!isPreRelease) {
-    optionsAddon.files.push("update.json");
+    optionsAddon.files.push(`${buildDir}/update.json`);
   }
 
   const replaceResult = replaceInFileSync(optionsAddon);
@@ -236,6 +238,7 @@ async function esbuild() {
 }
 
 async function main() {
+  validateReleaseConfig(details);
   console.log(
     `[Build] BUILD_DIR=${buildDir}, VERSION=${version}, BUILD_TIME=${buildTime}, ENV=${[
       env.NODE_ENV,
@@ -251,7 +254,7 @@ async function main() {
       "[Build] [Warn] Running in pre-release mode. update.json will not be replaced.",
     );
   } else {
-    copyFileSync("update-template.json", "update.json");
+    copyFileSync("update-template.json", path.join(buildDir,"update.json"));
   }
 
   await esbuild();
@@ -276,6 +279,7 @@ async function main() {
   );
 
   console.log("[Build] Addon pack OK");
+  if(!isPreRelease)prepareRelease(details,buildDir,env.NODE_ENV==='production');
   console.log(
     `[Build] Finished in ${(new Date().getTime() - t.getTime()) / 1000} s.`,
   );
