@@ -1,0 +1,306 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T16:43:43.423Z",
+  "tests": [
+    {
+      "name": "synthetic native HTML layout: Nature / Springer",
+      "ok": true,
+      "ms": 2,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: Elsevier",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: Wiley",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: ACS",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: RSC",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: APS",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: AIP / IOP",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: Taylor & Francis",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: PLOS",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: MDPI",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: Frontiers",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: eLife",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "synthetic native HTML layout: Science / PNAS",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "fixture": true,
+        "references": 3
+      }
+    },
+    {
+      "name": "native JATS parses mixed and element citations and rejects parent mismatch",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "references": 2
+      }
+    },
+    {
+      "name": "native publisher PDF layout: science-notes",
+      "ok": true,
+      "ms": 2086,
+      "detail": {
+        "fixture": true,
+        "references": 2,
+        "diagnostics": {
+          "pagesRead": 1,
+          "totalPages": 1,
+          "headingFound": true,
+          "scanLimited": false,
+          "elapsedMs": 1890
+        }
+      }
+    },
+    {
+      "name": "native publisher PDF layout: nature-methods",
+      "ok": true,
+      "ms": 1826,
+      "detail": {
+        "fixture": true,
+        "references": 4,
+        "diagnostics": {
+          "pagesRead": 3,
+          "totalPages": 3,
+          "headingFound": true,
+          "scanLimited": false,
+          "elapsedMs": 1566
+        }
+      }
+    },
+    {
+      "name": "native automatic and publisher source options have translated visible labels",
+      "ok": true,
+      "ms": 112,
+      "detail": {
+        "options": 4
+      }
+    },
+    {
+      "name": "native main PDF is preferred over the first supplementary attachment",
+      "ok": true,
+      "ms": 464,
+      "detail": {
+        "mainPreferred": true,
+        "attachments": 2
+      }
+    },
+    {
+      "name": "native Auto uses a saved publisher snapshot without network and persists its source",
+      "ok": true,
+      "ms": 516,
+      "detail": {
+        "references": 3,
+        "networkCalls": 0,
+        "source": "PLOS HTML snapshot",
+        "fileCacheInvalidation": true
+      }
+    },
+    {
+      "name": "native Auto and PDF modes fall back without a PDF and retain cached results offline",
+      "ok": true,
+      "ms": 231,
+      "detail": {
+        "auto": true,
+        "pdf": true,
+        "offlineCache": true
+      }
+    },
+    {
+      "name": "live PLOS HTML bibliography",
+      "ok": true,
+      "ms": 3403,
+      "detail": {
+        "references": 37,
+        "source": "PLOS HTML"
+      }
+    },
+    {
+      "name": "live Nature through publisher or PMC JATS fallback",
+      "ok": true,
+      "ms": 5685,
+      "detail": {
+        "references": 84,
+        "source": "Nature / Springer HTML"
+      }
+    },
+    {
+      "name": "live PMC JATS DOI lookup and XML references",
+      "ok": true,
+      "ms": 3365,
+      "detail": {
+        "references": 84,
+        "source": "PMC JATS"
+      }
+    },
+    {
+      "name": "live publisher metadata references: Elsevier",
+      "ok": true,
+      "ms": 5082,
+      "detail": {
+        "doi": "10.1016/j.cell.2012.11.027",
+        "references": 40,
+        "source": [
+          "Crossref",
+          "OpenAlex"
+        ],
+        "expected": 40,
+        "partial": false
+      }
+    },
+    {
+      "name": "live publisher metadata references: ACS",
+      "ok": true,
+      "ms": 3174,
+      "detail": {
+        "doi": "10.1021/acsnano.7b05743",
+        "references": 59,
+        "source": [
+          "Crossref",
+          "OpenAlex"
+        ],
+        "expected": 59,
+        "partial": false
+      }
+    },
+    {
+      "name": "live publisher metadata references: APS",
+      "ok": true,
+      "ms": 1517,
+      "detail": {
+        "doi": "10.1103/PhysRevLett.105.136805",
+        "references": 31,
+        "source": [
+          "Crossref"
+        ],
+        "expected": 31,
+        "partial": false
+      }
+    },
+    {
+      "name": "live publisher metadata references: RSC",
+      "ok": true,
+      "ms": 3250,
+      "detail": {
+        "doi": "10.1039/C4CS00265B",
+        "references": 50,
+        "source": [
+          "Crossref",
+          "OpenAlex"
+        ],
+        "expected": 50,
+        "partial": false
+      }
+    },
+    {
+      "name": "live publisher metadata references: Wiley",
+      "ok": true,
+      "ms": 3120,
+      "detail": {
+        "doi": "10.1002/adpr.202400014",
+        "references": 36,
+        "source": [
+          "Crossref",
+          "OpenAlex"
+        ],
+        "expected": 36,
+        "partial": false
+      }
+    }
+  ],
+  "scope": "Real native DOM/Reader/SQLite; synthetic publisher layouts labeled separately from live services",
+  "finished": "2026-10-08T16:44:17.322Z",
+  "passed": 28,
+  "failed": 0
+}

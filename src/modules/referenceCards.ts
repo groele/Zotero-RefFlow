@@ -17,14 +17,16 @@ export default class ReferenceCards {
   private matchedRows=new WeakSet<HTMLElement>();
   private hoverTimer?:number;
   private tip?:TipUI;
+  private empty?:HTMLElement;
 
   constructor(private views:Views,private body:HTMLElement,private grid:HTMLElement,private search:HTMLInputElement) {
     search.addEventListener("input",()=>{window.clearTimeout(this.searchTimer);this.searchTimer=window.setTimeout(()=>this.filter(),80);});
+    search.addEventListener("keydown",event=>{if(event.key==="Escape"){event.preventDefault();window.clearTimeout(this.searchTimer);search.value="";this.filter();}});
     grid.setAttribute("role","listbox");grid.setAttribute("aria-multiselectable","true");
     grid.addEventListener("contextmenu",event=>{event.preventDefault();this.menu(event);});
   }
   dispose(){this.disposed=true;window.clearTimeout(this.searchTimer);this.clear();}
-  clear(){this.observer?.disconnect();this.matchQueue=[];window.clearTimeout(this.hoverTimer);this.tip?.clear();this.tip=undefined;this.selected.clear();this.refs=[];this.rows=[];this.grid.replaceChildren();this.search.value="";}
+  clear(){this.observer?.disconnect();this.matchQueue=[];window.clearTimeout(this.searchTimer);window.clearTimeout(this.hoverTimer);this.tip?.clear();this.tip=undefined;this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
   private drainMatches(){while(this.matchActive<4&&this.matchQueue.length){const match=this.matchQueue.shift()!;this.matchActive++;void match().catch(error=>ztoolkit.log(error)).finally(()=>{this.matchActive--;if(!this.disposed)this.drainMatches();});}}
   private queueLibraryMatch(row:HTMLElement,parent:Zotero.Item,current:()=>boolean){
     if(this.matchedRows.has(row))return;
@@ -36,6 +38,7 @@ export default class ReferenceCards {
       if(!current()||!row.isConnected||!found)return;
       row.querySelector(".reference-action")!.textContent="↗";
       (row.querySelector(".reference-action") as HTMLElement).title=getString("cards-show-library");
+      row.querySelector(".reference-action")!.setAttribute("aria-label",getString("cards-show-library"));
       (row.querySelector(".reference-state") as HTMLElement).style.backgroundColor="var(--color-accent, #3678b5)";
       row.style.opacity="1";
     });
@@ -57,9 +60,11 @@ export default class ReferenceCards {
     const tokens=this.search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     for(const row of this.rows){const ref=(row as any).reference as ItemBaseInfo;const hay=[ref.text,ref.title,...(ref.authors||[]),ref.year,ref.publicationVenue,ref.identifiers?.DOI].join(" ").toLocaleLowerCase();row.hidden=!tokens.every(token=>hay.includes(token));if(row.hidden)this.selected.delete(ref);}
     this.updateSelection();this.label().textContent=`${this.visible().length} / ${this.rows.length} · ${this.body.getAttribute("data-refnexus-result-source")||""}`;
+    if(this.empty)this.empty.hidden=this.visible().length>0||this.rows.length===0;
   }
   async render(refs:ItemBaseInfo[],current:()=>boolean){
-    this.clear();this.refs=refs;this.disposed=false;
+    const query=this.search.value;
+    this.clear();this.search.value=query;this.refs=refs;this.disposed=false;
     const fragment=this.body.ownerDocument.createDocumentFragment();
     const parent=this.parent();
     const original:ItemBaseInfo[]=(this.body as any).references||refs;
@@ -94,9 +99,10 @@ export default class ReferenceCards {
           const parent=this.parent();const found=await this.views.utils.searchLibraryItem(ref,parent.libraryID);
           if(found)this.views.utils.selectItemInLibrary(found);
           else await this.views.importReferences(parent,[ref],{downloadOA:false,createSubCollection:false,createManifestNote:false});
-          if(ref._item){action.textContent="↗";action.title=getString("cards-show-library");dot.style.backgroundColor="var(--color-accent, #3678b5)";}
+          if(ref._item){action.textContent="↗";action.title=getString("cards-show-library");action.setAttribute("aria-label",action.title);dot.style.backgroundColor="var(--color-accent, #3678b5)";}
         }catch(error){if(row.isConnected)this.label().textContent=String(error);ztoolkit.log(error);}finally{action.disabled=false;}
       });
+      action.setAttribute("aria-label",action.title);
       row.style.opacity=ref._item?"1":String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`)||"1");
       title.addEventListener("mouseenter",()=>{if(!Zotero.Prefs.get(`${config.addonRef}.isShowTip`))return;window.clearTimeout(this.hoverTimer);this.hoverTimer=window.setTimeout(()=>{if(!current()||!row.isConnected)return;this.tip=this.views.showTipUI(title.getBoundingClientRect() as any,{...ref,primaryVenue:ref.publicationVenue,identifiers:ref.identifiers||{}} as any,"left",ref.identifiers?.DOI,true);},Math.max(100,Math.min(2000,Number(Zotero.Prefs.get(`${config.addonRef}.showTipAfterMillisecond`))||233)));});
       title.addEventListener("mouseleave",()=>{window.clearTimeout(this.hoverTimer);if(this.tip){window.clearTimeout(this.tip.tipTimer);this.tip.tipTimer=window.setTimeout(()=>this.tip?.clear(),500);}});
@@ -105,8 +111,12 @@ export default class ReferenceCards {
       row.addEventListener("dblclick",()=>this.open(ref));
       row.addEventListener("contextmenu",event=>{if(!this.selected.has(ref))this.select(index,event);});
       row.addEventListener("keydown",event=>{
+        // A focused action button must retain native Enter/Space activation.
+        if(event.target!==row)return;
         if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="a"){event.preventDefault();for(const node of this.visible())this.selected.add((node as any).reference);this.updateSelection();}
         else if(event.key==="Enter"){event.preventDefault();this.open(ref);}
+        else if(event.key==="Escape"){event.preventDefault();this.selected.clear();this.updateSelection();}
+        else if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="c"){event.preventDefault();this.views.utils.copyText(this.subset().map(ref=>ref.text||ref.title).join("\n"),false);}
         else if(["ArrowUp","ArrowDown"].includes(event.key)){event.preventDefault();const visible=this.visible();const next=visible[Math.max(0,Math.min(visible.length-1,visible.indexOf(row)+(event.key==="ArrowDown"?1:-1)))];if(next){next.focus();this.select(this.rows.indexOf(next),event);}}
       });
       this.rows.push(row);fragment.append(row);
@@ -114,6 +124,8 @@ export default class ReferenceCards {
     }
     if(current()&&!this.disposed){
       this.grid.append(fragment);
+      this.empty=this.body.ownerDocument.createElement("p");this.empty.className="refnexus-empty-result";this.empty.setAttribute("role","status");this.empty.textContent=getString("cards-no-search-results");this.empty.hidden=true;this.grid.after(this.empty);
+      if(query)this.filter();
       // Native background windows may delay intersection callbacks. Match only
       // the first screen's bounded rows eagerly; keep long lists lazy.
       for(const [index,row] of this.rows.entries()){
@@ -126,20 +138,21 @@ export default class ReferenceCards {
   private open(ref:ItemBaseInfo){if(ref._item)this.views.utils.selectItemInLibrary(ref._item);else{const url=ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:undefined);if(url&&/^https?:\/\//i.test(url))Zotero.launchURL(url);}}
   menu(event?:MouseEvent){
     const parentAtOpen=this.parent(),refsAtOpen=this.subset(),allAtOpen=[...this.refs];
+    const samePanel=()=>!this.disposed&&this.body.isConnected&&Number(this.body.getAttribute("data-refnexus-item-id"))===parentAtOpen.id;
     const doc:any=this.body.ownerDocument,popup=doc.createXULElement("menupopup") as any;popup.setAttribute("data-refnexus-menu","references");
     const add=(key:string,action:()=>any,checked?:boolean)=>{const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(checked!==undefined){item.setAttribute("type","checkbox");item.setAttribute("checked",String(checked));}item.addEventListener("command",()=>Promise.resolve(action()).catch(error=>{this.label().textContent=String(error);ztoolkit.log(error);}));popup.append(item);};
     const separator=()=>popup.append(doc.createXULElement("menuseparator"));
-    add("cards-copy-text",()=>this.views.utils.copyText(this.subset().map(ref=>ref.text||ref.title).join("\n"),false));
-    add("cards-copy-doi",()=>this.views.utils.copyText(this.subset().map(ref=>ref.identifiers?.DOI).filter(Boolean).join("\n"),false));
-    add("cards-copy-url",()=>this.views.utils.copyText(this.subset().map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean).join("\n"),false));
-    add("cards-open",()=>this.subset().slice(0,20).forEach(ref=>this.open(ref)));
+    add("cards-copy-text",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.text||ref.title).join("\n"),false));
+    add("cards-copy-doi",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.identifiers?.DOI).filter(Boolean).join("\n"),false));
+    add("cards-copy-url",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean).join("\n"),false));
+    add("cards-open",()=>refsAtOpen.slice(0,20).forEach(ref=>this.open(ref)));
     separator();
     const importRefs=async(all:boolean)=>{const parent=parentAtOpen,id=parent.id;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;await this.views.importReferences(parent,refs,{downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true});if(Number(this.body.getAttribute("data-refnexus-item-id"))===id)await this.views.refreshReferences(this.body as any,true,false,false,parent);};
     add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
     add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const matches=[...String(parent.getField("extra")||"").matchAll(/^refnexus_batch_parent: (refnexus_batch_\w+)$/gm)];const id=matches[matches.length-1]?.[1];if(id){await this.views.rollbackReferences(parent,id);if(Number(this.body.getAttribute("data-refnexus-item-id"))===parent.id)await this.views.refreshReferences(this.body as any,true,false,false,parent);}});
     separator();
-    for(const source of ["Auto","PDF","Web","API"])add(source==="Auto"?"cards-source-auto":source==="Web"?"cards-source-web":source==="PDF"?"cards-source-pdf":"cards-source-online",()=>{this.body.querySelector<HTMLSelectElement>("select")!.value=source;this.body.querySelector("select")!.dispatchEvent(new (window as any).Event("change"));},this.body.getAttribute("source")===source);
-    for(const sort of ["Original","Recency","Cited Count"])add(sort==="Original"?"cards-sort-original":sort==="Recency"?"cards-sort-recency":"cards-sort-cited",async()=>{Zotero.Prefs.set(`${config.addonRef}.sortBy`,sort);await this.views.refreshReferences(this.body as any,true);},Zotero.Prefs.get(`${config.addonRef}.sortBy`)===sort);
+    for(const source of ["Auto","PDF","Web","API"])add(source==="Auto"?"cards-source-auto":source==="Web"?"cards-source-web":source==="PDF"?"cards-source-pdf":"cards-source-online",()=>{if(!samePanel())return;this.body.querySelector<HTMLSelectElement>("select")!.value=source;this.body.querySelector("select")!.dispatchEvent(new (window as any).Event("change"));},this.body.getAttribute("source")===source);
+    for(const sort of ["Original","Recency","Cited Count"])add(sort==="Original"?"cards-sort-original":sort==="Recency"?"cards-sort-recency":"cards-sort-cited",async()=>{if(!samePanel())return;Zotero.Prefs.set(`${config.addonRef}.sortBy`,sort);await this.views.refreshReferences(this.body as any,true);},Zotero.Prefs.get(`${config.addonRef}.sortBy`)===sort);
     add("relatedbox-download-oa",()=>Zotero.Prefs.set(`${config.addonRef}.downloadOA`,!Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)));
     popup.addEventListener("popuphidden",()=>popup.remove(),{once:true});doc.documentElement.append(popup);
     if(event)popup.openPopupAtScreen(event.screenX,event.screenY,true);else popup.openPopup(this.body.closest("item-pane-custom-section"),"after_end",0,0,false,false);

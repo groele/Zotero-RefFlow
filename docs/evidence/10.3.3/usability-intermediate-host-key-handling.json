@@ -1,0 +1,114 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T16:40:23.505Z",
+  "scope": "native Zotero DOM, cache and loopback XHR; explicitly controlled provider faults",
+  "tests": [
+    {
+      "name": "search query survives refresh and Escape restores all stable numbered cards",
+      "ok": true,
+      "ms": 135,
+      "detail": {
+        "retained": true,
+        "escape": true
+      }
+    },
+    {
+      "name": "empty search displays a localized recovery hint",
+      "ok": true,
+      "ms": 131,
+      "detail": {
+        "text": "没有匹配的参考文献，按 Esc 清除搜索"
+      }
+    },
+    {
+      "name": "Ctrl+C copies selection and Escape clears selection without changing references",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "copied": "Alpha citation"
+      }
+    },
+    {
+      "name": "action buttons retain native Enter handling and accessible labels",
+      "ok": false,
+      "ms": 1,
+      "error": "Error: Row intercepted action button Enter",
+      "stack": "check@jar:file:///C:/Users/gro_e/AppData/Local/Temp/refnexus-z10-release-20261009-004020-f9ba85/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:8:41\nanonymous/<@jar:file:///C:/Users/gro_e/AppData/Local/Temp/refnexus-z10-release-20261009-004020-f9ba85/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:32:173\ntest@jar:file:///C:/Users/gro_e/AppData/Local/Temp/refnexus-z10-release-20261009-004020-f9ba85/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:10:75\nanonymous@jar:file:///C:/Users/gro_e/AppData/Local/Temp/refnexus-z10-release-20261009-004020-f9ba85/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:31:7\n"
+    },
+    {
+      "name": "an open context menu copies its original snapshot after the list changes",
+      "ok": true,
+      "ms": 38,
+      "detail": {
+        "snapshotPreserved": true
+      }
+    },
+    {
+      "name": "automatic retrieval prefers a complete smaller source over partial PDF extraction",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "count": 6,
+        "source": "JATS controlled fixture",
+        "faultInjection": true
+      }
+    },
+    {
+      "name": "modern PathUtils cache persists under the native data directory",
+      "ok": true,
+      "ms": 43,
+      "detail": {
+        "persisted": true
+      }
+    },
+    {
+      "name": "real 429 suppresses repeated paths and a new credential can request immediately",
+      "ok": true,
+      "ms": 16,
+      "detail": {
+        "requests": 2,
+        "cooldownHits": 1
+      }
+    },
+    {
+      "name": "disposal promptly settles active native XHR and queued requests",
+      "ok": true,
+      "ms": 174,
+      "detail": {
+        "settledMs": 0
+      }
+    },
+    {
+      "name": "disposal cancels a ten-second native retry backoff",
+      "ok": true,
+      "ms": 14,
+      "detail": {
+        "settledMs": 0
+      }
+    },
+    {
+      "name": "native queue waiting reduces the remaining HTTP deadline",
+      "ok": true,
+      "ms": 252,
+      "detail": {
+        "timeouts": [
+          350,
+          226
+        ]
+      }
+    },
+    {
+      "name": "100 OpenAlex IDs use one selected-field batch request",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "requests": 1,
+        "works": 100,
+        "controlledProvider": true
+      }
+    }
+  ],
+  "finished": "2026-10-08T16:40:24.810Z",
+  "passed": 11,
+  "failed": 1
+}

@@ -1,0 +1,116 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T16:44:17.792Z",
+  "scope": "native Zotero DOM, cache and loopback XHR; explicitly controlled provider faults",
+  "tests": [
+    {
+      "name": "search query survives refresh and Escape restores all stable numbered cards",
+      "ok": true,
+      "ms": 145,
+      "detail": {
+        "retained": true,
+        "escape": true
+      }
+    },
+    {
+      "name": "empty search displays a localized recovery hint",
+      "ok": true,
+      "ms": 133,
+      "detail": {
+        "text": "没有匹配的参考文献，按 Esc 清除搜索"
+      }
+    },
+    {
+      "name": "Ctrl+C copies selection and Escape clears selection without changing references",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "copied": "Alpha citation"
+      }
+    },
+    {
+      "name": "action buttons retain native Enter handling and accessible labels",
+      "ok": true,
+      "ms": 0,
+      "detail": {
+        "rowNavigationCalls": 0,
+        "accessibleLabel": true
+      }
+    },
+    {
+      "name": "an open context menu copies its original snapshot after the list changes",
+      "ok": true,
+      "ms": 245,
+      "detail": {
+        "snapshotPreserved": true
+      }
+    },
+    {
+      "name": "automatic retrieval prefers a complete smaller source over partial PDF extraction",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "count": 6,
+        "source": "JATS controlled fixture",
+        "faultInjection": true
+      }
+    },
+    {
+      "name": "modern PathUtils cache persists under the native data directory",
+      "ok": true,
+      "ms": 8,
+      "detail": {
+        "persisted": true
+      }
+    },
+    {
+      "name": "real 429 suppresses repeated paths and a new credential can request immediately",
+      "ok": true,
+      "ms": 6,
+      "detail": {
+        "requests": 2,
+        "cooldownHits": 1
+      }
+    },
+    {
+      "name": "disposal promptly settles active native XHR and queued requests",
+      "ok": true,
+      "ms": 115,
+      "detail": {
+        "settledMs": 0
+      }
+    },
+    {
+      "name": "disposal cancels a ten-second native retry backoff",
+      "ok": true,
+      "ms": 18,
+      "detail": {
+        "settledMs": 0
+      }
+    },
+    {
+      "name": "native queue waiting reduces the remaining HTTP deadline",
+      "ok": true,
+      "ms": 246,
+      "detail": {
+        "timeouts": [
+          350,
+          228
+        ]
+      }
+    },
+    {
+      "name": "100 OpenAlex IDs use one selected-field batch request",
+      "ok": true,
+      "ms": 1,
+      "detail": {
+        "requests": 1,
+        "works": 100,
+        "controlledProvider": true
+      }
+    }
+  ],
+  "finished": "2026-10-08T16:44:19.082Z",
+  "passed": 12,
+  "failed": 0
+}

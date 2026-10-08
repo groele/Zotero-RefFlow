@@ -24,6 +24,7 @@ cards-source-auto = Automatico (consigliato)
 cards-source-web = Editore HTML / XML
 cards-auto-empty = Nessun elenco; controllare PDF, DOI o connessione
 cards-number-label = Numero nella lista di origine
+cards-no-search-results = Nessun riferimento corrispondente. Premi Esc per cancellare la ricerca.
 
 graph-pane-title =
     .label = Grafo delle citazioni

@@ -23,7 +23,7 @@ export async function retrieveReferenceList(providers:ReferenceProvider[],signal
       const partial=Boolean(result?.partial || (result?.expected && refs.length<result.expected) || referenceGaps(refs));
       const candidate={...result!,partial};
       if(!best.references.length || refs.length>best.references.length)best=candidate;
-      if(!partial)return {...best,attempts};
+      if(!partial)return {...candidate,attempts};
     } catch(error:any) {
       if(error?.name==="AbortError"||signal?.aborted)throw error;
       attempts.push(`${provider.name}: ${String(error?.message||error).slice(0,160)}`);

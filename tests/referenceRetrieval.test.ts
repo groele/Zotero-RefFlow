@@ -19,6 +19,11 @@ test("service failure preserves the best available incomplete list",async()=>{
  const result=await retrieveReferenceList([{name:"PDF",run:async()=>({references:refs(5,2),source:"PDF"})},{name:"Online",run:async()=>{throw new Error("HTTP 429");}}]);
  assert.equal(result.references.length,5);assert.equal(result.partial,true);assert.ok(result.attempts?.[1].includes("429"));
 });
+
+test("a smaller complete list wins over a larger incomplete list",async()=>{
+ const result=await retrieveReferenceList([{name:"PDF",run:async()=>({references:refs(8,2),source:"PDF"})},{name:"JATS",run:async()=>({references:refs(6),source:"JATS"})}]);
+ assert.equal(result.source,"JATS");assert.equal(result.references.length,6);assert.equal(result.partial,false);
+});
 test("cancellation prevents downstream provider invocation",async()=>{
  const controller=new AbortController();let calls=0;
  await assert.rejects(retrieveReferenceList([{name:"PDF",run:async()=>{controller.abort();return;}},{name:"Online",run:async()=>{calls++;return;}}],controller.signal),{name:"AbortError"});assert.equal(calls,0);

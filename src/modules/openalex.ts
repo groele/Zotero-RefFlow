@@ -46,7 +46,7 @@ export class OpenAlexProvider {
   async getNeighborhood(doi:string,kind:"Citations"|"Related",signal?:AbortSignal):Promise<{references:ItemBaseInfo[];total:number;truncated:boolean}> {
     if(signal?.aborted)throw new Error("Cancelled");
     const base=await this.getWorkByDOI(doi);
-    if(!base)throw new Error("OpenAlex work lookup failed");
+    if(!base)throw new Error("OpenAlex work lookup failed"+(this.requests.lastFailure?`: HTTP ${this.requests.lastFailure.status} ${this.requests.lastFailure.message}`:""));
     if(signal?.aborted)throw new Error("Cancelled");
     let works:any[]=[],total=0;
     const fields="id,doi,title,authorships,publication_year,primary_location,open_access,best_oa_location,cited_by_count,is_retracted";
@@ -74,7 +74,7 @@ export class OpenAlexProvider {
   }
 
   /**
-   * 批量高效水合 (Batch Hydration): 并发请求，单批50篇，并添加 select 字段瘦身 90%
+   * Batch ID hydration uses the current 100-ID API limit and selected fields.
    */
   async hydrateBatch(workUrls: string[]): Promise<OpenAlexWorkSummary[]> {
     if (!workUrls || workUrls.length === 0) return [];
@@ -84,7 +84,7 @@ export class OpenAlexProvider {
       .filter(id=>/^W\d+$/i.test(id)))];
 
     const chunks: string[][] = [];
-    const chunkSize = 50;
+    const chunkSize = 100;
     for (let i = 0; i < cleanIds.length; i += chunkSize) {
       chunks.push(cleanIds.slice(i, i + chunkSize));
     }
@@ -95,7 +95,7 @@ export class OpenAlexProvider {
     const responses = await Promise.allSettled(
       chunks.map(chunk => {
         const filter = encodeURIComponent(`openalex:${chunk.join("|")}`);
-        const url = `https://api.openalex.org/works?filter=${filter}&per-page=50&select=${selectFields}`;
+        const url = `https://api.openalex.org/works?filter=${filter}&per_page=100&select=${selectFields}`;
         return this.get(url);
       })
     );

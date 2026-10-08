@@ -26,29 +26,11 @@ class LocalStorage {
 
   async init(filename: string) {
     try {
-      // 优先使用 Zotero 永久数据目录或 Profile 目录，彻底避免 OS Temp 清理导致缓存丢失
-      let basePath = "";
-      if (Zotero.DataDirectory?.dir) {
-        basePath = Zotero.DataDirectory.dir;
-      } else if (typeof Zotero.getProfileDirectory === "function" && Zotero.getProfileDirectory()?.path) {
-        basePath = Zotero.getProfileDirectory().path;
-      } else {
-        try {
-          const temp = Zotero.getTempDirectory();
-          basePath = temp.path.replace(temp.leafName, "");
-        } catch {
-          basePath = "";
-        }
-      }
-
-      const win: any = Zotero.getMainWindow();
-      if (typeof (globalThis as any).PathUtils !== "undefined" && (globalThis as any).PathUtils.join) {
-        this.filename = (globalThis as any).PathUtils.join(basePath, `${filename}-v2.json`);
-      } else if (win?.OS?.Path?.join) {
-        this.filename = win.OS.Path.join(basePath, `${filename}-v2.json`);
-      } else {
-        this.filename = `${basePath}/${filename}-v2.json`;
-      }
+      // Zotero 10 exposes PathUtils. Persist only in its data directory;
+      // if unavailable, keep an in-memory cache instead of guessing a path.
+      const basePath = Zotero.DataDirectory.dir;
+      if (!basePath) throw new Error("Zotero data directory unavailable");
+      this.filename = (globalThis as any).PathUtils.join(basePath, `${filename}-v2.json`);
 
       try {
         const exists=(Zotero.File as any).pathToFile?.(this.filename)?.exists();
@@ -129,6 +111,7 @@ class LocalStorage {
     const itemKey = this.cacheKey(item);
     if (!itemKey) return;
     await this.lock.promise;
+    if(this.disposed) return;
     if (this.cache[itemKey]) {
       delete this.cache[itemKey][key];
       if (Object.keys(this.cache[itemKey]).length === 0) delete this.cache[itemKey];
@@ -140,6 +123,7 @@ class LocalStorage {
     const itemKey = this.cacheKey(item);
     if (!itemKey) return;
     await this.lock.promise;
+    if(this.disposed) return;
     delete this.cache[itemKey];
     this.scheduleSave(250);
   }

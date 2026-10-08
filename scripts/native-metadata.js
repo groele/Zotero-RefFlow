@@ -3,7 +3,7 @@ const report={version:Zotero.version,tests:[]},check=(ok,message)=>{if(!ok)throw
 const test=async(name,fn)=>{try{report.tests.push({name,ok:true,detail:await fn()});}catch(error){report.tests.push({name,ok:false,error:String(error)});}};
 const {AddonManager}=ChromeUtils.importESModule('resource://gre/modules/AddonManager.sys.mjs');
 await test('installed production XPI exposes derivative maintainer and homepage',async()=>{
- const addon=await AddonManager.getAddonByID('refnexus@polygon.org');check(addon.isActive&&addon.version==='10.3.2','Wrong active version');
+ const addon=await AddonManager.getAddonByID('refnexus@polygon.org');const expected=JSON.parse(await Zotero.File.getContentsAsync(cfg.workspace+'\\package.json')).version;check(addon.isActive&&addon.version===expected,'Wrong active version');
  check(addon.creator?.name==='groele','Wrong addon maintainer: '+addon.creator?.name);check(addon.homepageURL==='https://github.com/groele/Zotero-diy/tree/main/RefNexus-Zotero10','Wrong addon homepage');
  return {version:addon.version,maintainer:addon.creator.name,homepage:addon.homepageURL};
 });

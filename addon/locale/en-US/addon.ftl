@@ -88,6 +88,7 @@ cards-source-auto = Automatic (recommended)
 cards-source-web = Publisher HTML / XML
 cards-auto-empty = No usable list; check PDF text, DOI or connection
 cards-number-label = Source list number
+cards-no-search-results = No matching references. Press Esc to clear the search.
 
 graph-pane-title =
     .label = Citation graph

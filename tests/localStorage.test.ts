@@ -4,6 +4,13 @@ import assert from "node:assert";
 import LocalStorage from "../src/modules/localStorage";
 
 describe("LocalStorage Suite", () => {
+  test("missing data directory retains memory without guessing a legacy or temporary path",async()=>{
+    const directory=Zotero.DataDirectory.dir;Zotero.DataDirectory.dir="";
+    try{const storage=new LocalStorage("no-directory");await storage.set({key:"MEMORY",libraryID:1},"data",1);assert.equal(storage.filename,undefined);assert.equal(storage.get({key:"MEMORY",libraryID:1},"data"),1);await storage.dispose();}finally{Zotero.DataDirectory.dir=directory;}
+  });
+  test("disposed stores reject late delete and clear operations",async()=>{
+    const storage=new LocalStorage("disposed-cache");const item={key:"KEPT",libraryID:1};await storage.set(item,"data",1);await storage.dispose();await storage.delete(item,"data");await storage.clear(item);assert.equal(storage.get(item,"data"),1);
+  });
   test("persistent cache evicts old items and keeps recently read entries",async()=>{
     const storage=new LocalStorage("capacity-test");for(let i=0;i<250;i++)await storage.set({key:"K"+i,libraryID:1},"data",i);await storage.getAsync({key:"K0",libraryID:1},"data");await storage.set({key:"K250",libraryID:1},"data",250);assert.equal(Object.keys(storage.cache).length,250);assert.equal(storage.get({key:"K1",libraryID:1},"data"),undefined);assert.equal(storage.get({key:"K0",libraryID:1},"data"),0);await storage.dispose();
   });

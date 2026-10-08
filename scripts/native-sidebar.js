@@ -23,7 +23,7 @@ const checkLayout=win=>{
 const graphSection=win=>win.document.querySelector('#zotero-item-details item-pane-custom-section[data-pane$="-refnexus-graph"]');
 const graphButton=win=>win.document.getElementById('refnexus-show-hide-graph-view');
 await test('cold production startup retains Zotero native sidebar geometry',async()=>{
- const addon=await AddonManager.getAddonByID('refnexus@polygon.org');check(addon?.version==='10.3.2'&&addon.isActive,'Wrong production XPI');
+ const addon=await AddonManager.getAddonByID('refnexus@polygon.org');const expected=JSON.parse(await Zotero.File.getContentsAsync(cfg.workspace+'\\package.json')).version;check(addon?.version===expected&&addon.isActive,'Wrong production XPI');
  check(graphSection(window)?.hidden,'Graph section should be hidden by default');return {addonVersion:addon.version,...checkLayout(window)};
 });
 await test('reference icon uses a tooltip without a visible label',async()=>{

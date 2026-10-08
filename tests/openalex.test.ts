@@ -4,6 +4,11 @@ import assert from "node:assert/strict";
 import OpenAlexProvider from "../src/modules/openalex";
 const work=(id:string)=>({id:"https://openalex.org/"+id,title:"Title "+id,doi:"https://doi.org/10.1234/"+id,authorships:[{author:{display_name:"A Smith"}}],publication_year:2024,primary_location:{source:{display_name:"Journal"}},open_access:{is_oa:true},cited_by_count:4});
 describe("OpenAlex literature modes",()=>{
+ test("100 unique IDs require one hydration request with the modern limit",async()=>{
+  const urls:string[]=[];const provider=new OpenAlexProvider({get:async(url:string)=>{urls.push(url);return {results:Array.from({length:100},(_,i)=>work('W'+(i+1)))}}} as any);
+  const result=await provider.hydrateBatch(Array.from({length:100},(_,i)=>'https://openalex.org/W'+(i+1)));
+  assert.equal(urls.length,1);assert.match(urls[0],/per_page=100/);assert.equal(result.length,100);
+ });
  test("optional key is sent in a header and absent from request URLs",async()=>{
   const get=Zotero.Prefs.get;let received:any;Zotero.Prefs.get=()=>"private-test-token";
   try{const provider=new OpenAlexProvider({get:async(url:string,_type:string,headers:any)=>{received={url,headers};return work("W1");}} as any);await provider.getWorkByDOI("10.1234/base");assert.equal(received.headers.Authorization,"Bearer private-test-token");assert.ok(!received.url.includes("private-test-token"));}finally{Zotero.Prefs.get=get;}

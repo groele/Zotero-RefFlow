@@ -9,13 +9,8 @@ var chromeHandle;
 
 function install(data, reason) {}
 
-async function startup({ id, version, resourceURI, rootURI }, reason) {
+async function startup({ id, version, rootURI }, reason) {
   await Zotero.initializationPromise;
-
-  // String 'rootURI' introduced in Zotero 7
-  if (!rootURI) {
-    rootURI = resourceURI.spec;
-  }
 
   var aomStartup = Components.classes[
     "@mozilla.org/addons/addon-manager-startup;1"
@@ -34,6 +29,7 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
   const ctx = {
     rootURI,
     Zotero,
+    PathUtils,
   };
   ctx._globalThis = ctx;
 

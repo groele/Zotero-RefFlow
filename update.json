@@ -3,7 +3,7 @@
     "refnexus@polygon.org": {
       "updates": [
         {
-          "version": "10.3.2",
+          "version": "10.3.3",
           "update_link": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/zotero-refnexus.xpi",
           "applications": {
             "zotero": {

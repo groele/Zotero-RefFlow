@@ -3,6 +3,7 @@
  */
 
 // Mock Zotero global environment
+(globalThis as any).PathUtils = {join: (...parts: string[]) => parts.join("/")};
 (globalThis as any).Zotero = (globalThis as any).Zotero || {
   Promise: {
     defer: () => {

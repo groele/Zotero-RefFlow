@@ -88,6 +88,7 @@ cards-source-auto = 自动获取（推荐）
 cards-source-web = 出版社网页 / XML
 cards-auto-empty = 未找到可用列表；请检查 PDF 文本层、DOI 或网络
 cards-number-label = 来源列表编号
+cards-no-search-results = 没有匹配的参考文献，按 Esc 清除搜索
 
 graph-pane-title =
     .label = 文献关系图

@@ -1,0 +1,52 @@
+{
+  "version": "10.3.3",
+  "zoteroVersion": "10.0.6",
+  "unitTests": 144,
+  "unitFailed": 0,
+  "nativeFunctional": 97,
+  "nativeMetadata": 2,
+  "nativeUsability": 12,
+  "nativeFailed": 0,
+  "skippedOnline": true,
+  "bytes": 258409,
+  "sha256": "9a7a66756c14433b40ef5645d5508a910e74970978fd1dbe908ea89f033b721b",
+  "manifest": {
+    "manifest_version": 2,
+    "name": "Zotero RefNexus",
+    "version": "10.3.3",
+    "description": "Zotero 10 reference retrieval and citation graphs, derived from Zotero Reference / Ethereal Reference by Polygon / MuiseDestiny.",
+    "homepage_url": "https://github.com/groele/Zotero-diy/tree/main/RefNexus-Zotero10",
+    "author": "groele",
+    "icons": {
+      "48": "chrome/content/icons/favicon@0.5x.png",
+      "96": "chrome/content/icons/favicon.png"
+    },
+    "applications": {
+      "zotero": {
+        "id": "refnexus@polygon.org",
+        "update_url": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json",
+        "strict_min_version": "10.0.0",
+        "strict_max_version": "10.*"
+      }
+    }
+  },
+  "update": {
+    "addons": {
+      "refnexus@polygon.org": {
+        "updates": [
+          {
+            "version": "10.3.3",
+            "update_link": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/zotero-refnexus.xpi",
+            "applications": {
+              "zotero": {
+                "strict_min_version": "10.0.0",
+                "strict_max_version": "10.*"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "scope": "isolated Zotero 10.0.6; no user-profile installation; loopback HTTP faults and provider substitutions explicitly identified"
+}
