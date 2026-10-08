@@ -1,5 +1,4 @@
 import Utils from "./utils";
-var xml2js = require("xml2js");
 import { config } from "../../package.json";
 import Requests from "./requests";
 import OpenAlexProvider from "./openalex";
@@ -7,6 +6,11 @@ import RetractionChecker from "./retraction";
 import CitationVerifier from "./verifier";
 
 class API {
+  private async optional<T>(work:Promise<T>,timeoutMs:number,fallback:T):Promise<T> {
+    let timer:any;
+    try{return await Promise.race([work,new Promise<T>(resolve=>{timer=window.setTimeout(()=>resolve(fallback),timeoutMs);})]);}
+    finally{window.clearTimeout(timer);}
+  }
   public utils: Utils;
   public requests: Requests;
   public openAlex: OpenAlexProvider;
@@ -240,8 +244,7 @@ class API {
   // For DOI
   async getDOIBaseInfo(DOI: string): Promise<ItemBaseInfo | undefined> {
     const routes: any = {
-      semanticscholar: `https://api.semanticscholar.org/graph/v1/paper/${DOI}?fields=title,year,authors`,
-      unpaywall: `https://api.unpaywall.org/v2/${DOI}?email=refnexus@polygon.org`
+      semanticscholar: `https://api.semanticscholar.org/graph/v1/paper/${DOI}?fields=title,year,authors`
     }
     for (let route in routes) {
       let response = await this.requests.get(routes[route])
@@ -313,10 +316,10 @@ class API {
 
     // 1. 并发请求 Crossref Polite API 与 OpenAlex (保留 DOI 斜杠路径，符合 RFC 规范)
     const doiPath = cleanDOI.split("/").map(seg => encodeURIComponent(seg)).join("/");
-    const crossrefUrl = `https://api.crossref.org/works/${doiPath}?mailto=polite@zotero-ref.org`;
+    const crossrefUrl = `https://api.crossref.org/works/${doiPath}`;
     const [crossrefRes, openalexRes] = await Promise.allSettled([
       this.requests.get(crossrefUrl),
-      this.openAlex.getWorkByDOI(cleanDOI)
+      this.optional(this.openAlex.getWorkByDOI(cleanDOI),5000,undefined)
     ]);
 
     let crossrefData = crossrefRes.status === "fulfilled" ? crossrefRes.value?.message : undefined;
@@ -339,7 +342,7 @@ class API {
     let openalexHydrated: any[] = [];
     if (openalexWork && openalexWork.referencedWorks && openalexWork.referencedWorks.length > 0) {
       try {
-        openalexHydrated = await this.openAlex.hydrateBatch(openalexWork.referencedWorks);
+        openalexHydrated = await this.optional(this.openAlex.hydrateBatch(openalexWork.referencedWorks),references.length?4000:10000,[]);
       } catch (e) {
         ztoolkit.log("OpenAlex hydration error:", e);
       }
@@ -370,9 +373,11 @@ class API {
       for (const ref of references) {
         const refDoi = CitationVerifier.normalizeDOI(ref.identifiers?.DOI);
         const match = openalexHydrated.find(oa => {
-          if (refDoi && oa.doi && CitationVerifier.normalizeDOI(oa.doi) === refDoi) return true;
+          const oaDOI=CitationVerifier.normalizeDOI(oa.doi);
+          if (refDoi && oaDOI) return refDoi===oaDOI;
           if (ref.title && oa.title && CitationVerifier.tokenJaccard(ref.title, oa.title) >= 0.80) return true;
-          if (ref.text && oa.title && CitationVerifier.cleanTitle(ref.text).includes(CitationVerifier.cleanTitle(oa.title).slice(0, 30))) return true;
+          const titleKey=CitationVerifier.cleanTitle(oa.title);
+          if (ref.text && titleKey.length>=20 && CitationVerifier.cleanTitle(ref.text).includes(titleKey)) return true;
           return false;
         });
 
@@ -394,7 +399,7 @@ class API {
             ref.retraction = { isRetracted: true, reason: "Retracted work flagged by OpenAlex" };
           }
           ref.sources = Array.from(new Set([...(ref.sources || ["Crossref"]), "OpenAlex"]));
-          ref.confidence = 0.99; // 双源交叉印证，置信度达到 99%
+          ref.confidence = 0.95; // Heuristic matching score, not a calibrated probability.
         }
       }
 
@@ -425,7 +430,7 @@ class API {
     // 5. 执行撤稿观察与学术诚信检查 (基于 Zotero 本地库极速匹配，0 网络时延)
     for (const ref of references) {
       if (ref.identifiers?.DOI && !ref.retraction?.isRetracted) {
-        const retStatus = this.retractionChecker.checkLocal(ref.identifiers.DOI);
+        const retStatus = this.retractionChecker.checkLocal(ref.identifiers.DOI,ref._item);
         if (retStatus.isRetracted) {
           ref.retraction = retStatus;
         }
@@ -526,18 +531,17 @@ class API {
   }
   // For arXiv
   async getArXivInfo(arXiv: string) {
-    const api = `https://export.arxiv.org/api/query?id_list=${arXiv}`
-    let response = await this.requests.get(
-      api,
-      "application/xhtml+xml"
-    )
-    if (response) {
-      let data = (await xml2js.parseStringPromise(response))?.feed?.entry[0]
-      if (data) {
-        data.arXiv = arXiv
-        return this.Info.arXiv(data)
-      }
-    }
+    const response = await this.requests.get(`https://export.arxiv.org/api/query?id_list=${encodeURIComponent(arXiv)}`, "text");
+    if (!response) return;
+    const xml = ztoolkit.getDOMParser().parseFromString(String(response), "application/xml");
+    if (xml.querySelector("parsererror")) throw new Error("Invalid arXiv metadata response");
+    const entry = xml.getElementsByTagNameNS("http://www.w3.org/2005/Atom", "entry")[0];
+    if (!entry || entry.querySelector("id")?.textContent?.includes("/errors")) return;
+    const text = (name: string) => entry.getElementsByTagNameNS("http://www.w3.org/2005/Atom", name)[0]?.textContent?.replace(/\s+/g, " ").trim() || "";
+    const published = text("published");
+    return this.Info.arXiv({ arXiv, title: text("title"), summary: text("summary"), published, year:published.slice(0,4),
+      author: [...entry.getElementsByTagNameNS("http://www.w3.org/2005/Atom", "author")].map(author => ({name:author.getElementsByTagNameNS("http://www.w3.org/2005/Atom", "name")[0]?.textContent || ""})),
+      category: [...entry.getElementsByTagNameNS("http://www.w3.org/2005/Atom", "category")].map(category => ({"$":{term:category.getAttribute("term")}})) });
   }
 
   // For title
@@ -549,7 +553,7 @@ class API {
   async getTitleInfoByCrossref(title: string, author?: string, year?: string): Promise<ItemInfo | undefined> {
     if (!title || title.trim().length < 5) return undefined;
     const cleanTitle = title.trim();
-    const api = `https://api.crossref.org/works?query.bibliographic=${encodeURIComponent(cleanTitle)}&rows=3&mailto=polite@zotero-ref.org`;
+    const api = `https://api.crossref.org/works?query.bibliographic=${encodeURIComponent(cleanTitle)}&rows=3`;
     let response = await this.requests.get(api);
     if (response && response.message?.items) {
       const skipTypes = ["component", "dataset"];
@@ -593,7 +597,7 @@ class API {
   }
 
   /**
-   * 联邦解析器：结合 Crossref 与 OpenAlex，通过多维校验矩阵确保零假阳性
+   * 联邦解析器：结合 Crossref 与 OpenAlex，通过多维校验矩阵拒绝低置信匹配
    */
   async resolveWork(title: string, author?: string, year?: string): Promise<{ doi?: string; oaUrl?: string; info?: ItemInfo } | undefined> {
     if (!title) return undefined;
@@ -655,23 +659,6 @@ class API {
     ztoolkit.log("getCNKIURL", title, author)
     let cnkiURL
     let oldFunc = Zotero.Jasminum.Scrape.getItemFromSearch
-    ztoolkit.patch(
-      Zotero.Jasminum.Scrape,
-      "createPostData",
-      config.addonRef,
-      (original) => 
-        (arg: any) => {
-          let text = original.call(Zotero.Jasminum.Scrape, arg)
-          ztoolkit.log(text)
-          try {
-            text = encodeURIComponent(decodeURIComponent(text).replace(/SCDB/g, "CFLS"));
-          } catch {
-            text = text.replace(/SCDB/g, "CFLS");
-          }
-          ztoolkit.log(text)
-          return text
-        }
-    )
     Zotero.Jasminum.Scrape.getItemFromSearch = function (htmlString: string) {
       try {
         let res = htmlString.match(/href='(.+FileName=.+?&DbName=.+?)'/i) as any[]

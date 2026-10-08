@@ -1,11 +1,14 @@
 **/builds
 node_modules
-package-lock.json
 zotero-cmd.json
 *-ignore.ts
 
 /node_modules/
 /build/
 /tests/dist/
-/package-lock.json
 /zotero-cmd.json
+
+/tests/native-*.json
+/tests/native-fixtures/*.pdf
+/tests/unit-results.txt
+/zotero-reference-zotero10.xpi

@@ -2,6 +2,9 @@ export interface ReferenceTextLine {
   text: string;
   page: number;
   y: number;
+  x?: number;
+  /** Reading order reconstructed by the PDF layout pass (including columns). */
+  order?: number;
 }
 
 export interface ExtractedReference {
@@ -9,11 +12,13 @@ export interface ExtractedReference {
   number?: number;
   page: number;
   y: number;
+  x?: number;
 }
 
-const BIBLIOGRAPHY_HEADING = /^(?:references?|bibliography|works\s+cited|literature\s+cited|参考文献|引用文献|文献)$/i;
+const BIBLIOGRAPHY_HEADING = /^(?:(?:\d+(?:\.\d+)*\.?|[IVX]+\.)\s+)?(?:references?|bibliography|works\s+cited|literature\s+cited|参考文献|引用文献|文献)$/i;
 const NUMBERED_START = /^\s*(?:\[(\d{1,4})\]|\((\d{1,4})\)|［(\d{1,4})］|(\d{1,4})\s*[.)、．]|(\d{1,4})\s+)/;
-const AUTHOR_YEAR_START = /^\s*(?:[A-Z][A-Za-z'’.-]+(?:\s+(?:et\s+al\.?|and\s+[A-Z][A-Za-z'’.-]+|&\s*[A-Z][A-Za-z'’.-]+))?\s*[,.(]?\s*(?:18|19|20)\d{2}[a-z]?\b|[\u4e00-\u9fff]{2,8}(?:等|著)?[，,（( ]{0,3}(?:18|19|20)\d{2})/i;
+const AUTHOR_YEAR_START = /^\s*(?:[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]+(?:\s+(?:et\s+al\.?|and\s+[A-Z][A-Za-z'’.-]+|&\s*[A-Z][A-Za-z'’.-]+))?\s*[,.(]?\s*(?:18|19|20)\d{2}[a-z]?\b|[\u4e00-\u9fff]{2,8}(?:等|著)?[，,（( ]{0,3}(?:18|19|20)\d{2})/i;
+const AUTHOR_INITIALS_START = /^(?:[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]{1,30},?\s+[A-Z]\.(?:\s*[A-Z]\.)?|[\u4e00-\u9fff]{2,8}[，,]\s*[\u4e00-\u9fff]{2,8})/;
 const SECTION_HEADING = /^(?:(?:\d+(?:\.\d+)*\s+)?(?:appendix|acknowledg(?:e)?ments?|conclusion|discussion|supplementary)\b|附录|致谢|结论|讨论|补充材料)/i;
 
 function normalizeText(text: string): string {
@@ -27,7 +32,8 @@ function normalizeText(text: string): string {
 function getNumber(text: string): number | undefined {
   const match = text.match(NUMBERED_START);
   const value = match && match.slice(1).find(Boolean);
-  return value ? Number(value) : undefined;
+  // A continuation line beginning with a year is not a reference-number boundary.
+  return value && (!match?.[4] && !match?.[5] || Number(value) < 1800 || Number(value) > 2100) ? Number(value) : undefined;
 }
 
 function stripNumber(text: string): string {
@@ -39,44 +45,54 @@ function isHeading(text: string): boolean {
   return clean.length < 50 && (BIBLIOGRAPHY_HEADING.test(clean) || SECTION_HEADING.test(clean));
 }
 
+export function isBibliographyHeading(text: string): boolean {
+  return BIBLIOGRAPHY_HEADING.test(normalizeText(text).replace(/[.:：]$/, ""));
+}
+
+export function isReferenceStart(text: string): boolean {
+  return getNumber(text) !== undefined || AUTHOR_YEAR_START.test(text) || AUTHOR_INITIALS_START.test(text);
+}
+
 /** Extract a bibliography section from page-ordered PDF text lines. */
 export function extractReferencesFromLines(input: ReferenceTextLine[]): ExtractedReference[] {
   const lines = input
     .map(line => ({ ...line, text: normalizeText(line.text) }))
-    .filter(line => line.text.length > 0)
-    .sort((a, b) => a.page - b.page || b.y - a.y);
+    .filter(line => line.text.length > 0 && !/^\d{1,4}$/.test(line.text))
+    .sort((a, b) => a.page - b.page || (a.order !== undefined && b.order !== undefined ? a.order - b.order : b.y - a.y));
   if (!lines.length) return [];
 
-  const headingIndex = lines.findIndex(line => BIBLIOGRAPHY_HEADING.test(line.text.replace(/[.:：]$/, "")));
+  const headingIndex = lines.findIndex(line => isBibliographyHeading(line.text));
   let start = headingIndex;
   if (start >= 0) start += 1;
 
   const collected: ExtractedReference[] = [];
   let current: ExtractedReference | undefined;
   let sawReference = false;
+  let numberedStyle = false;
   for (let i = start >= 0 ? start : 0; i < lines.length; i++) {
     const line = lines[i];
     if (headingIndex >= 0 && sawReference && SECTION_HEADING.test(line.text) && !BIBLIOGRAPHY_HEADING.test(line.text)) break;
-    if (BIBLIOGRAPHY_HEADING.test(line.text)) continue;
+    if (isBibliographyHeading(line.text)) continue;
 
     const numbered = getNumber(line.text);
-    const authorYear = AUTHOR_YEAR_START.test(line.text);
-    const referenceStart = numbered !== undefined || (headingIndex >= 0 && authorYear);
+    const authorYear = AUTHOR_YEAR_START.test(line.text) || AUTHOR_INITIALS_START.test(line.text);
+    const referenceStart = numbered !== undefined || (headingIndex >= 0 && authorYear && !numberedStyle);
     if (referenceStart) {
       if (current && current.text.length >= 12) collected.push(current);
       const text = numbered !== undefined ? stripNumber(line.text) : line.text;
-      current = { text, number: numbered, page: line.page, y: line.y };
+      current = { text, number: numbered, page: line.page, y: line.y, x: line.x };
       sawReference = true;
+      if(numbered!==undefined) numberedStyle=true;
       continue;
     }
 
     if (current) {
       // A new unnumbered author/year entry is a boundary even when its style is not numeric.
-      if (authorYear && current.text.length > 30) {
+      if (authorYear && !numberedStyle && current.text.length > 30) {
         collected.push(current);
         current = { text: line.text, page: line.page, y: line.y };
       } else if (!isHeading(line.text) && line.text.length > 1) {
-        current.text = `${current.text}${current.text.endsWith("-") ? "" : " "}${line.text}`;
+        current.text = `${current.text.replace(/-$/, "")}${current.text.endsWith("-") ? "" : " "}${line.text}`;
       }
       continue;
     }
@@ -91,6 +107,11 @@ export function extractReferencesFromLines(input: ReferenceTextLine[]): Extracte
 
   // Without a heading, require a coherent block of at least three entries. This avoids
   // returning numbered equations/steps from the article body as a bibliography.
-  if (headingIndex < 0 && collected.length < 3) return [];
+  if (headingIndex < 0) {
+    if (collected.length < 3) return [];
+    const evidence = collected.filter(ref => /\b(?:18|19|20)\d{2}\b|10\.\d{4,9}\//.test(ref.text));
+    const orderedNumbers = collected.every((ref, i) => i === 0 || ref.number === (collected[i - 1].number || 0) + 1);
+    if (evidence.length < Math.ceil(collected.length * 0.6) || !orderedNumbers) return [];
+  }
   return collected.filter(ref => ref.text.length >= 12);
 }

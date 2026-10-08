@@ -1,0 +1,14 @@
+{
+  "version": "10.2.0",
+  "zotero": "10.0.6",
+  "xpiBytes": 249309,
+  "sha256": "e888b7f7974032d1acdd517082ae6a1e292986153e90194825b946ac6bad5cab",
+  "unitTests": 110,
+  "unitFailed": 0,
+  "nativeScenarios": 46,
+  "nativeFailed": 0,
+  "published10_1XpiBytes": 309896,
+  "xpiReductionPercent": 19.6,
+  "knownStartupDiagnostic": "uncaught exception: undefined; unattributed; retained in evidence",
+  "mainProfileObservedVersion": "10.1.0"
+}

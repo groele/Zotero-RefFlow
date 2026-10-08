@@ -61,3 +61,7 @@ caption-match = 匹配
 notInLibarayOpacity-start = 匹配本地条目，并且以透明度
 notInLibarayOpacity-end = 显示不在我的文库的条目
 
+
+caption-online = 在线服务
+openAlexKey-label = OpenAlex API Key（可选）
+openAlexKey-description = 匿名获取仍可使用；高频获取时可填入自己的免费密钥。密钥仅存放在本机 Zotero 配置中。

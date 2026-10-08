@@ -1,8 +1,3 @@
-/**
- * 稳健型批量导入与事务回滚引擎 (Robust Batch Importer & Rollback Engine)
- * 具备幂等性写入、一键撤回 (Rollback) 快照、OA 全文下载与引文存根笔记 (Manifest Note) 生成
- */
-
 import CitationVerifier from "./verifier";
 import Utils from "./utils";
 
@@ -10,439 +5,240 @@ export interface BatchImportOptions {
   downloadOA?: boolean;
   createSubCollection?: boolean;
   createManifestNote?: boolean;
+  translatorTimeoutMs?: number;
+  collections?: number[];
 }
-
 export interface BatchImportResult {
-  batchId: string;
-  total: number;
-  importedCount: number;
-  existingCount: number;
-  failedCount: number;
-  subCollection?: any;
+  batchId: string; total: number; importedCount: number; existingCount: number; failedCount: number;
+  downloadCount: number; downloadFailedCount: number; subCollection?: any;
+}
+interface BatchRecord {
+  version: 1; parentID: number; libraryID: number; createdIDs: number[]; noteID?: number; collectionID?: number;
+  relations: Array<{id:number;parentAdded:boolean;itemAdded:boolean}>;
+  memberships: Array<{id:number;collectionID:number}>;
+  attachments: Array<{id:number;parentID:number}>;
 }
 
 export class BatchImporter {
-  private static utils: Utils = new Utils();
+  private static _utils?:Utils;
+  private static get utils(){return this._utils ??= new Utils();}
+  private static queues=new Map<number,Promise<any>>();
+  private static sequence=0;
 
-  /**
-   * 生成全局唯一的批次指纹 ID
-   */
   public static generateBatchId(): string {
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-    return `refnexus_batch_${ts}`;
+    const date=new Date();const pad=(n:number,w=2)=>String(n).padStart(w,"0");
+    return `refnexus_batch_${date.getFullYear()}${pad(date.getMonth()+1)}${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}_${pad(date.getMilliseconds(),3)}_${++this.sequence}`;
   }
 
-  /**
-   * 一键批量安全导入
-   */
-  public static async importAll(
-    parentItem: Zotero.Item,
-    references: ItemBaseInfo[],
-    options: BatchImportOptions = { downloadOA: true, createSubCollection: true, createManifestNote: true }
-  ): Promise<BatchImportResult> {
-    const libraryID = parentItem.libraryID;
-    const batchId = this.generateBatchId();
-    const parentTitle = (parentItem.getField("title") as string) || "Paper";
+  private static serial<T>(libraryID:number,job:()=>Promise<T>):Promise<T> {
+    const task=(this.queues.get(libraryID)||Promise.resolve()).catch(()=>{}).then(job);
+    this.queues.set(libraryID,task);
+    task.then(()=>{if(this.queues.get(libraryID)===task)this.queues.delete(libraryID);},()=>{if(this.queues.get(libraryID)===task)this.queues.delete(libraryID);});
+    return task;
+  }
 
-    let subCollection: any = null;
-    let targetCollectionIds: number[] = [];
+  private static transaction<T>(job:()=>Promise<T>):Promise<T> {return (Zotero as any).DB.executeTransaction(job);}
+  private static escape(value:any):string {return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]!));}
+  private static marker(batchID:string):string {return `import_batch: ${batchID}`;}
+  private static recordPrefix(batchID:string):string {return `refnexus_record_${batchID}: `;}
+  private static storeRecord(parent:Zotero.Item,batchID:string,record:BatchRecord):void {
+    const lines=String(parent.getField("extra")||"").split(/\r?\n/).filter(line=>!line.startsWith(this.recordPrefix(batchID)));
+    if(!lines.includes(`refnexus_batch_parent: ${batchID}`)) lines.push(`refnexus_batch_parent: ${batchID}`);
+    lines.push(this.recordPrefix(batchID)+JSON.stringify(record));
+    parent.setField("extra",lines.filter(Boolean).join("\n"));
+  }
 
-    // 1. 创建专用子分类 (Sub-Collection)
-    if (options.createSubCollection) {
-      try {
-        subCollection = new (Zotero as any).Collection();
-        const shortTitle = parentTitle.length > 25 ? parentTitle.slice(0, 25) + "..." : parentTitle;
-        subCollection.name = `📁 [Refs] ${shortTitle}`;
-        subCollection.libraryID = libraryID;
-        const parentCols = parentItem.getCollections();
-        if (parentCols && parentCols.length > 0) {
-          subCollection.parentID = parentCols[0];
-        }
-        await subCollection.saveTx();
-        targetCollectionIds = [subCollection.id];
-      } catch (e) {
-        ztoolkit.log("Error creating sub-collection:", e);
-      }
-    } else {
-      targetCollectionIds = parentItem.getCollections() || [];
+  private static async translatedMetadata(doi:string,timeoutMs:number):Promise<any|undefined> {
+    let timer:any;
+    // Translator results are metadata only. A late result cannot save an extra
+    // item after the timeout has already caused the fallback to save one.
+    const job=(async()=>{
+      const translate=new (Zotero as any).Translate.Search();translate.setIdentifier({DOI:doi});
+      const translators=await translate.getTranslators();if(!translators?.length)return;
+      translate.setTranslator(translators);
+      return (await translate.translate({libraryID:false,saveAttachments:false}))?.[0];
+    })();
+    try {return await Promise.race([job,new Promise<undefined>(resolve=>{timer=window.setTimeout(()=>resolve(undefined),Math.max(1,timeoutMs));})]);}
+    catch(error){ztoolkit.log("DOI metadata lookup failed",error);return undefined;}
+    finally {window.clearTimeout(timer);}
+  }
+
+  private static makeItem(ref:ItemBaseInfo,metadata:any,libraryID:number):Zotero.Item {
+    const native=Zotero as any;
+    const candidateType=metadata?.itemType||ref.type||"journalArticle";
+    const type=native.ItemTypes.getID(candidateType)?candidateType:"journalArticle";
+    const item=new Zotero.Item(type);item.libraryID=libraryID;
+    const data=metadata||{title:ref.title||ref.text||"Untitled",DOI:ref.identifiers?.DOI,date:ref.year,publicationTitle:ref.publicationVenue};
+    for(const [field,value] of Object.entries(data)) {
+      if(typeof value!=="string" && typeof value!=="number")continue;
+      const fieldID=native.ItemFields.getID(field);
+      if(fieldID && native.ItemFields.isValidForType(fieldID,item.itemTypeID)) item.setField(field as any,String(value));
     }
+    if(!item.getField("title")) item.setField("title",ref.title||ref.text||"Untitled");
+    if(ref.identifiers?.DOI && native.ItemFields.isValidForType(native.ItemFields.getID("DOI"),item.itemTypeID)) item.setField("DOI",ref.identifiers.DOI);
+    const creators=metadata?.creators || (ref.authors||[]).map(name=>this.utils.splitCreator(name));
+    if(creators.length)item.setCreators(creators);
+    return item;
+  }
 
-    let importedCount = 0;
-    let existingCount = 0;
-    let failedCount = 0;
-    const existingRelatedIds: number[] = [];
-    const itemRecords: { index: number; title: string; doi?: string; item?: any; isNew: boolean }[] = [];
+  public static importAll(parent:Zotero.Item,refs:ItemBaseInfo[],options:BatchImportOptions={}):Promise<BatchImportResult> {
+    return this.serial(parent.libraryID,()=>this.importBatch(parent,refs,{downloadOA:true,createSubCollection:true,createManifestNote:true,...options}));
+  }
 
-    const progressWin = new (Zotero as any).ProgressWindow({ closeTime: -1 });
-    progressWin.changeHeadline(`[${batchId}] 批量导入中...`);
-    progressWin.createLine({ text: `共计 ${references.length} 篇参考文献`, type: "default" });
-    progressWin.show();
-
-    // 批次内内存去重表，防止正文中多次引用同一篇文献时产生重复条目
-    const seenDoiMap = new Map<string, any>();
-    const seenTitleMap = new Map<string, any>();
-    const oaQueue: { url: string; parentItemID: number; libraryID: number }[] = [];
-
-    // 2. 顺序导入以保护 SQLite 事务完整性
-    for (let i = 0; i < references.length; i++) {
-      const ref = references[i];
-      const indexNum = ref.number || (i + 1);
-      const doi = ref.identifiers?.DOI;
-      const normDoi = CitationVerifier.normalizeDOI(doi);
-      const cleanTitleKey = CitationVerifier.cleanTitle(ref.title);
-
-      progressWin.changeLine({
-        text: `[${i + 1}/${references.length}] ${ref.title ? (ref.title.slice(0, 30) + "...") : "处理中"}`,
-        progress: ((i + 1) / references.length) * 100
-      });
-
-      let targetItem = ref._item;
-
-      // 检查批次内内存表
-      if (!targetItem && normDoi && seenDoiMap.has(normDoi)) {
-        targetItem = seenDoiMap.get(normDoi);
-      } else if (!targetItem && cleanTitleKey && seenTitleMap.has(cleanTitleKey)) {
-        targetItem = seenTitleMap.get(cleanTitleKey);
-      }
-
-      // 检查用户本地文库 (防止重复创建库内已有的文献)
-      if (!targetItem) {
-        try {
-          targetItem = await this.utils.searchLibraryItem(ref, libraryID);
-        } catch (searchErr) {
-          ztoolkit.log("Local search check error:", searchErr);
+  private static async importBatch(parent:Zotero.Item,refs:ItemBaseInfo[],options:BatchImportOptions):Promise<BatchImportResult> {
+    if(!parent?.id || !parent.isRegularItem() || parent.deleted)throw new Error("Select a saved, editable parent item");
+    const library=(Zotero as any).Libraries.get(parent.libraryID);
+    if(!library?.editable)throw new Error("This library is read-only");
+    if(!refs.length)throw new Error("No references to import");
+    const batchID=this.generateBatchId();
+    const record:BatchRecord={version:1,parentID:parent.id,libraryID:parent.libraryID,createdIDs:[],relations:[],memberships:[],attachments:[]};
+    const result:BatchImportResult={batchId:batchID,total:refs.length,importedCount:0,existingCount:0,failedCount:0,downloadCount:0,downloadFailedCount:0};
+    const progress=new ztoolkit.ProgressWindow("Import references",{closeTime:-1}).createLine({text:`0 / ${refs.length}`,type:"default"}).show();
+    const collections:number[]=[];
+    this.utils.clearLibraryItemCache();
+    try {
+      await this.transaction(async()=>{this.storeRecord(parent,batchID,record);await parent.save();});
+      if(options.createSubCollection) {
+        await this.transaction(async()=>{
+          const col:any=new Zotero.Collection();col.libraryID=parent.libraryID;
+          col.name=`[Refs] ${String(parent.getField("title")||"Paper").slice(0,60)}`;
+          col.parentID=parent.getCollections()[0]||false;await col.save();
+          collections.push(col.id);record.collectionID=col.id;result.subCollection=col;
+          this.storeRecord(parent,batchID,record);await parent.save();
+        });
+      } else {
+        for(const id of options.collections||parent.getCollections()) {
+          const col=await Zotero.Collections.getAsync(id);
+          if(col?.libraryID===parent.libraryID)collections.push(id);
         }
       }
-
-      // 如果未在库内，执行创建
-      if (!targetItem) {
+      const seen=new Map<string,Zotero.Item>();
+      const downloads=new Map<number,{url:string;item:Zotero.Item}>();
+      for(let index=0;index<refs.length;index++) {
+        const ref=refs[index];const doi=CitationVerifier.normalizeDOI(ref.identifiers?.DOI);
+        const identity=doi?`doi:${doi}`:`title:${CitationVerifier.cleanTitle(ref.title||ref.text)}`;
+        progress.changeLine({text:`${index+1} / ${refs.length}`,progress:100*(index+1)/Math.max(1,refs.length)});
         try {
-          if (doi) {
-            // 通过 Zotero 原生 Translator 获取官方完整元数据
-            try {
-              const translate = new (Zotero as any).Translate.Search();
-              translate.setIdentifier({ DOI: doi });
-              const translators = await translate.getTranslators();
-              if (translators && translators.length > 0) {
-                translate.setTranslator(translators);
-                const translatePromise = translate.translate({
-                  libraryID,
-                  collections: targetCollectionIds,
-                  saveAttachments: false
-                });
-                let timerId: any;
-                const timeoutPromise = new Promise<never>((_, reject) => {
-                  timerId = setTimeout(() => reject(new Error("Translator timeout")), 6000);
-                });
-                const created = await Promise.race([translatePromise, timeoutPromise]).finally(() => {
-                  if (timerId) clearTimeout(timerId);
-                });
-                if (created && created.length > 0) {
-                  targetItem = created[0];
+          if(!doi && !(ref.title||ref.text)?.trim())throw new Error("Reference has no usable metadata");
+          let item=seen.get(identity) || await this.utils.searchLibraryItem({...ref,_item:undefined},parent.libraryID);
+          const isNew=!item;
+          if(!item) {
+            const metadata=doi?await this.translatedMetadata(doi,options.translatorTimeoutMs??10000):undefined;
+            item=this.makeItem(ref,metadata,parent.libraryID);
+            const extra=String(item.getField("extra")||"");item.setField("extra",[extra,this.marker(batchID)].filter(Boolean).join("\n"));
+          }
+          const target=item;
+          const oldCreated=record.createdIDs.length,oldRelations=record.relations.length,oldMemberships=record.memberships.length;
+          try {
+            await this.transaction(async()=>{
+              if(isNew){await target.save();record.createdIDs.push(target.id);}
+              for(const colID of collections) {
+                if(!target.getCollections().includes(colID)) {
+                  target.addToCollection(colID);
+                  if(!isNew)record.memberships.push({id:target.id,collectionID:colID});
                 }
               }
-            } catch (transErr) {
-              ztoolkit.log("Translator fallback to metadata import:", transErr);
-            }
+              if(target.id!==parent.id) {
+                const parentAdded=!parent.relatedItems.includes(target.key),itemAdded=!target.relatedItems.includes(parent.key);
+                if(parentAdded)parent.addRelatedItem(target);if(itemAdded)target.addRelatedItem(parent);
+                if(parentAdded||itemAdded)record.relations.push({id:target.id,parentAdded,itemAdded});
+              }
+              await target.save();this.storeRecord(parent,batchID,record);await parent.save();
+            });
+          } catch(error) {
+            record.createdIDs.length=oldCreated;record.relations.length=oldRelations;record.memberships.length=oldMemberships;
+            await Promise.allSettled([(parent as any).reload(null,true),target.id?(target as any).reload(null,true):Promise.resolve()]);throw error;
           }
-
-          // 降级直接从引文元数据创建
-          if (!targetItem) {
-            targetItem = new (Zotero as any).Item(ref.type || "journalArticle");
-            targetItem.setField("title", ref.title || ref.text || "Untitled");
-            if (doi) targetItem.setField("DOI", doi);
-            if (ref.year) targetItem.setField("date", String(ref.year));
-            if (ref.publicationVenue) targetItem.setField("publicationTitle", ref.publicationVenue);
-            if (ref.authors && ref.authors.length > 0) {
-              targetItem.setCreators(ref.authors.map((name: string) => this.utils.splitCreator(name)));
-            }
-            targetItem.libraryID = libraryID;
-            for (const colId of targetCollectionIds) {
-              targetItem.addToCollection(colId);
-            }
-            const oldExtra = (targetItem.getField("extra") as string) || "";
-            targetItem.setField("extra", oldExtra ? `${oldExtra}\nimport_batch: ${batchId}` : `import_batch: ${batchId}`);
-            if (targetItem.id !== parentItem.id) {
-              try {
-                parentItem.addRelatedItem(targetItem);
-                targetItem.addRelatedItem(parentItem);
-              } catch {}
-            }
-            await targetItem.saveTx(); // 单次原子事务写入
-          } else {
-            // Translator 创建的条目补全集合与关系
-            for (const colId of targetCollectionIds) {
-              targetItem.addToCollection(colId);
-            }
-            const oldExtra = (targetItem.getField("extra") as string) || "";
-            targetItem.setField("extra", oldExtra ? `${oldExtra}\nimport_batch: ${batchId}` : `import_batch: ${batchId}`);
-            if (targetItem.id !== parentItem.id) {
-              try {
-                parentItem.addRelatedItem(targetItem);
-                targetItem.addRelatedItem(parentItem);
-              } catch {}
-            }
-            await targetItem.saveTx();
-          }
-
-          if (targetItem) {
-            importedCount++;
-            ref._item = targetItem;
-            if (normDoi) seenDoiMap.set(normDoi, targetItem);
-            if (cleanTitleKey) seenTitleMap.set(cleanTitleKey, targetItem);
-            itemRecords.push({ index: indexNum, title: ref.title, doi, item: targetItem, isNew: true });
-          } else {
-            failedCount++;
-          }
-        } catch (err) {
-          ztoolkit.log("Import item failed:", ref, err);
-          failedCount++;
-        }
-      } else {
-        // 库内已有文献，加入目标 Collection 并建立双向关联
-        existingCount++;
-        ref._item = targetItem;
-        let modified = false;
-        for (const colId of targetCollectionIds) {
-          targetItem.addToCollection(colId);
-          modified = true;
-        }
-        if (targetItem.id !== parentItem.id) {
-          try {
-            parentItem.addRelatedItem(targetItem);
-            targetItem.addRelatedItem(parentItem);
-            existingRelatedIds.push(targetItem.id);
-            modified = true;
-          } catch {}
-        }
-        if (modified) {
-          await targetItem.saveTx();
-        }
-        itemRecords.push({ index: indexNum, title: ref.title, doi, item: targetItem, isNew: false });
+          if(isNew)result.importedCount++;else result.existingCount++;
+          seen.set(identity,target);ref._item=target;
+          if(options.downloadOA && ref.oaUrl && library.filesEditable && /^https?:\/\//i.test(ref.oaUrl) && !target.getAttachments().length)downloads.set(target.id,{url:ref.oaUrl,item:target});
+        } catch(error) {result.failedCount++;ztoolkit.log("Reference import failed",error);}
       }
-
-      // 3. 收集 Open Access 全文 PDF 下载任务
-      if (options.downloadOA && ref.oaUrl && targetItem) {
-        oaQueue.push({
-          url: ref.oaUrl,
-          parentItemID: targetItem.id,
-          libraryID: targetItem.libraryID
+      if(options.createManifestNote) {
+        await this.transaction(async()=>{
+          const note=new Zotero.Item("note");note.libraryID=parent.libraryID;note.parentID=parent.id;
+          note.setNote(this.manifestHTML(parent,refs,batchID));note.addTag(`refnexus:batch:${batchID}`);await note.save();
+          record.noteID=note.id;this.storeRecord(parent,batchID,record);await parent.save();
         });
       }
-    }
+      // Await downloads under the same library queue. Rollback cannot race a
+      // background download that creates a new attachment after the batch ends.
+      const queue=[...downloads.values()];
+      const worker=async()=>{
+        while(queue.length) {
+          const task=queue.shift()!;
+          try {
+            const attachment=await Zotero.Attachments.importFromURL({url:task.url,parentItemID:task.item.id,libraryID:parent.libraryID,title:"Full Text PDF (Open Access)"});
+            if(attachment){record.attachments.push({id:attachment.id,parentID:task.item.id});result.downloadCount++;}
+          } catch(error) {result.downloadFailedCount++;ztoolkit.log("OA download failed",error);}
+        }
+      };
+      if(queue.length){progress.changeLine({text:"Downloading open-access PDFs…"});await Promise.all([worker(),worker()]);await this.transaction(async()=>{this.storeRecord(parent,batchID,record);await parent.save();});}
+      progress.changeHeadline("Import complete");progress.changeLine({text:`New: ${result.importedCount}; existing: ${result.existingCount}; failed: ${result.failedCount}`,type:result.failedCount?"fail":"success"});
+      return result;
+    } catch(error){progress.changeHeadline("Import stopped; completed changes can be rolled back");throw error;}
+    finally {progress.startCloseTimer(4000);this.utils.clearLibraryItemCache();}
+  }
 
-    // 记录母条目 extra 中的批次信息、集合 ID 与已有文献关联记录 (用于完全干净的回滚)
-    const parentExtra = (parentItem.getField("extra") as string) || "";
-    let extraAppends = `refnexus_batch_parent: ${batchId}`;
-    if (subCollection && subCollection.id) {
-      extraAppends += `\nimport_collection_${batchId}: ${subCollection.id}`;
-    }
-    if (existingRelatedIds.length > 0) {
-      extraAppends += `\nimport_related_existing_${batchId}: ${existingRelatedIds.join(",")}`;
-    }
-    parentItem.setField("extra", parentExtra ? `${parentExtra}\n${extraAppends}` : extraAppends);
-    await parentItem.saveTx();
-
-    // 4. 异步受控并发下载合法 Open Access 全文 PDF (并发限额 2，保护网络资源)
-    if (options.downloadOA && oaQueue.length > 0) {
-      (async () => {
-        const queue = [...oaQueue];
-        const concurrency = 2;
-        const worker = async () => {
-          while (queue.length > 0) {
-            const task = queue.shift();
-            if (!task) break;
-            try {
-              await (Zotero as any).Attachments.importFromURL({
-                url: task.url,
-                parentItemID: task.parentItemID,
-                libraryID: task.libraryID,
-                contentType: "application/pdf",
-                title: "Full Text PDF (Open Access)"
-              });
-            } catch (e) {
-              // 容错处理
-            }
-          }
-        };
-        await Promise.all(Array.from({ length: Math.min(concurrency, queue.length) }, () => worker()));
-      })();
-    }
-
-    // 5. 生成引文存根笔记 (Manifest Note)
-    if (options.createManifestNote) {
-      try {
-        await this.createManifestNote(parentItem, references, batchId);
-      } catch (e) {
-        ztoolkit.log("Error creating manifest note:", e);
-      }
-    }
-
-    // 刷新文库内存缓存，保证新条目与引用立即可用
-    this.utils.clearLibraryItemCache();
-
-    progressWin.changeHeadline(`[${batchId}] 导入完成！`);
-    progressWin.changeLine({
-      text: `新导入: ${importedCount} | 库内已有: ${existingCount} | 失败: ${failedCount}`,
-      type: "success"
+  private static manifestHTML(parent:Zotero.Item,refs:ItemBaseInfo[],batchID:string):string {
+    const rows=refs.map(ref=>{
+      const doi=CitationVerifier.normalizeDOI(ref.identifiers?.DOI);
+      const link=doi?` <a href="https://doi.org/${this.escape(encodeURI(doi))}">DOI: ${this.escape(doi)}</a>`:"";
+      return `<li>${this.escape((ref.authors||[]).join(", "))}. <em>${this.escape(ref.title||ref.text||"Untitled")}</em> (${this.escape(ref.year||"n.d.")})${link}${ref._item?"":" [not imported]"}</li>`;
     });
-    progressWin.startCloseTimer(4000);
-
-    return {
-      batchId,
-      total: references.length,
-      importedCount,
-      existingCount,
-      failedCount,
-      subCollection
-    };
+    return `<h1>Reference manifest</h1><p>${this.escape(parent.getField("title"))}</p><p>Batch: ${this.escape(batchID)}</p><ol>${rows.join("")}</ol>`;
   }
 
-  /**
-   * 生成结构化 Markdown 引文存根笔记 (Manifest Note)
-   */
-  private static async createManifestNote(parentItem: Zotero.Item, references: ItemBaseInfo[], batchId: string) {
-    const parentTitle = (parentItem.getField("title") as string) || "文献";
-    const noteLines: string[] = [
-      `<h1>参考文献清单存根 (Reference Manifest)</h1>`,
-      `<p><strong>来源母篇:</strong> ${parentTitle}</p>`,
-      `<p><strong>导入批次 ID:</strong> <code>${batchId}</code> (可凭此 ID 一键撤回本次操作)</p>`,
-      `<p><strong>总引用数:</strong> ${references.length} 篇</p>`,
-      `<hr/>`,
-      `<ol>`
-    ];
-
-    for (let i = 0; i < references.length; i++) {
-      const r = references[i];
-      const num = r.number || (i + 1);
-      const doi = r.identifiers?.DOI;
-      const title = r.title || r.text || "Untitled";
-      const authors = (r.authors || []).join(", ");
-      const retractionBadge = r.retraction?.isRetracted ? ` <strong style="color:red;">[🚨 已撤稿警示]</strong>` : "";
-      const doiLink = doi ? ` <a href="https://doi.org/${doi}">DOI: ${doi}</a>` : "";
-      const sourcesBadge = (r.sources && r.sources.length > 0) ? ` <span style="background-color:#e0f2fe; color:#0369a1; padding:1px 4px; border-radius:3px; font-size:11px;">[来源: ${r.sources.join(" + ")}]</span>` : "";
-      const confBadge = r.confidence ? ` <span style="color:#16a34a; font-size:11px;">(${(r.confidence * 100).toFixed(0)}% 可信度)</span>` : "";
-      const oaBadge = r.oaUrl ? ` <a href="${r.oaUrl}" style="color:#059669; font-weight:bold;">[🔓 Open Access PDF]</a>` : "";
-
-      noteLines.push(`<li><strong>[${num}]</strong> ${authors ? authors + ". " : ""}<em>${title}</em> (${r.year || "n.d."})${doiLink}${sourcesBadge}${confBadge}${oaBadge}${retractionBadge}</li>`);
-    }
-
-    noteLines.push(`</ol>`);
-
-    const noteItem = new (Zotero as any).Item("note");
-    noteItem.setNote(noteLines.join("\n"));
-    noteItem.parentID = parentItem.id;
-    noteItem.libraryID = parentItem.libraryID;
-    const oldExtra = (noteItem.getField("extra") as string) || "";
-    noteItem.setField("extra", oldExtra ? `${oldExtra}\nimport_batch: ${batchId}` : `import_batch: ${batchId}`);
-    await noteItem.saveTx();
+  public static rollbackBatch(parent:Zotero.Item,batchID:string):Promise<number> {
+    return this.serial(parent.libraryID,()=>this.rollback(parent,batchID));
   }
 
-  /**
-   * ↩️ 一键无损回滚 (1-Click Safe Rollback)
-   * 撤销指定 batchId 创建的所有新条目和笔记，自动清理空子分类，解除双向关联，保护文库整洁
-   */
-  public static async rollbackBatch(parentItem: Zotero.Item, batchId: string): Promise<number> {
-    if (!batchId) return 0;
-    const libraryID = parentItem.libraryID;
-    const s = new (Zotero as any).Search();
-    s.libraryID = libraryID;
-    s.addCondition("extra", "contains", `import_batch: ${batchId}`);
-    const rawIds: number[] = await s.search();
-
-    // 核心安全防线：绝对排除母条目 ID，杜绝误删母篇论文风险！
-    const ids: number[] = rawIds.filter((id) => id !== parentItem.id);
-
-    let deletedCount = 0;
-    if (ids.length > 0) {
-      const items = await (Zotero as any).Items.getAsync(ids);
-      for (const item of items) {
-        if (!item) continue;
-        try {
-          // 解除与母条目的关联
-          await parentItem.removeRelatedItem(item);
-        } catch (e) {
-          ztoolkit.log("Rollback removeRelatedItem error:", e);
-        }
-      }
-
-      try {
-        if (typeof (Zotero as any).Items.trashTx === "function") {
-          await (Zotero as any).Items.trashTx(ids);
-          deletedCount = ids.length;
-        } else {
-          for (const item of items) {
-            if (item && typeof item.eraseTx === "function") {
-              await item.eraseTx();
-              deletedCount++;
-            }
-          }
-        }
-      } catch (err) {
-        ztoolkit.log("Rollback items trash failed:", err);
-      }
+  private static async rollback(parent:Zotero.Item,batchID:string):Promise<number> {
+    if(!/^ref(?:nexus)?_batch_[A-Za-z0-9_]+$/.test(batchID))return 0;
+    if(!(Zotero as any).Libraries.get(parent.libraryID)?.editable)throw new Error("This library is read-only");
+    const lines=String(parent.getField("extra")||"").split(/\r?\n/);
+    if(!lines.some(line=>/^(?:refnexus_batch_parent|ref_batch_parent): /.test(line) && line.split(": ")[1]===batchID))return 0;
+    const encoded=lines.find(line=>line.startsWith(this.recordPrefix(batchID)));
+    if(!encoded)return this.rollbackLegacy(parent,batchID,lines);
+    const record:BatchRecord=JSON.parse(encoded.slice(this.recordPrefix(batchID).length));
+    if(record.version!==1 || record.parentID!==parent.id || record.libraryID!==parent.libraryID)throw new Error("Batch ownership does not match this parent item");
+    const ids:number[]=[];
+    for(const id of [...record.createdIDs,record.noteID||0,...record.attachments.map(a=>a.id)]) {
+      if(!id || id===parent.id)continue;
+      const item=await Zotero.Items.getAsync(id) as Zotero.Item;
+      if(!item || item.libraryID!==parent.libraryID || item.deleted)continue;
+      const attachment=record.attachments.find(a=>a.id===id);
+      if(attachment ? item.isAttachment() && item.parentID===attachment.parentID : (item.isNote()?item.parentID===parent.id && item.getTags().some(tag=>tag.tag===`refnexus:batch:${batchID}`):String(item.getField("extra")||"").split(/\r?\n/).includes(this.marker(batchID))))ids.push(id);
     }
-
-    // 检查并解除库内已有文献在此次导入中建立的双向关联 (彻底防止关联残留)
-    const extra = (parentItem.getField("extra") as string) || "";
-    const relatedRegex = new RegExp(`(?:import_related_existing_${batchId}|import_related_existing):\\s*([0-9,]+)`);
-    const relatedMatch = extra.match(relatedRegex);
-    if (relatedMatch) {
-      const existingIds = relatedMatch[1].split(",").map(id => parseInt(id.trim())).filter(Boolean);
-      for (const exId of existingIds) {
-        try {
-          let item = (Zotero as any).Items.get ? (Zotero as any).Items.get(exId) : undefined;
-          if (!item && typeof (Zotero as any).Items.getAsync === "function") {
-            const arr = await (Zotero as any).Items.getAsync([exId]);
-            item = arr && arr[0];
-          }
-          if (item) {
-            await parentItem.removeRelatedItem(item);
-            if (typeof item.removeRelatedItem === "function") {
-              await item.removeRelatedItem(parentItem);
-            }
-            await item.saveTx();
-          }
-        } catch (e) {
-          ztoolkit.log("Rollback existing item un-relation error:", e);
-        }
+    await this.transaction(async()=>{
+      for(const change of record.relations) {
+        const item=await Zotero.Items.getAsync(change.id) as Zotero.Item;
+        if(!item || item.libraryID!==parent.libraryID)continue;
+        if(change.parentAdded)parent.removeRelatedItem(item);if(change.itemAdded)item.removeRelatedItem(parent);
+        await item.save();
       }
-    }
-
-    // 检查并删除本次创建的专用子分类
-    const colRegex = new RegExp(`(?:import_collection_${batchId}|import_collection):\\s*(\\d+)`);
-    const colMatch = extra.match(colRegex);
-    if (colMatch) {
-      try {
-        const colId = parseInt(colMatch[1]);
-        let col = (Zotero as any).Collections.get ? (Zotero as any).Collections.get(colId) : undefined;
-        if (!col && typeof (Zotero as any).Collections.getAsync === "function") {
-          col = await (Zotero as any).Collections.getAsync(colId);
-        }
-        if (col && typeof col.eraseTx === "function") {
-          await col.eraseTx();
-        }
-      } catch (e) {
-        ztoolkit.log("Rollback collection failed:", e);
+      for(const change of record.memberships) {
+        const item=await Zotero.Items.getAsync(change.id) as Zotero.Item;
+        if(item && item.libraryID===parent.libraryID){item.removeFromCollection(change.collectionID);await item.save();}
       }
-    }
+      if(ids.length)await Zotero.Items.trash(ids);
+      parent.setField("extra",lines.filter(line=>line!==`refnexus_batch_parent: ${batchID}` && !line.startsWith(this.recordPrefix(batchID))).join("\n"));await parent.save();
+      if(record.collectionID) {
+        const col=await Zotero.Collections.getAsync(record.collectionID) as Zotero.Collection;
+        if(col && col.libraryID===parent.libraryID && !col.hasChildItems() && !col.hasChildCollections())await col.erase();
+      }
+    });
+    this.utils.clearLibraryItemCache();return ids.length;
+  }
 
-    // 清理母条目 extra 中的批次标记与分类记录
-    const cleanedExtra = extra
-      .replace(new RegExp(`\\n?(?:refnexus_batch_parent|ref_batch_parent|import_batch):\\s*${batchId}`, "g"), "")
-      .replace(new RegExp(`\\n?import_collection_${batchId}:\\s*\\d+`, "g"), "")
-      .replace(new RegExp(`\\n?import_related_existing_${batchId}:\\s*[0-9,]+`, "g"), "")
-      .replace(/\n?import_collection:\s*\d+/g, "")
-      .replace(/\n?import_related_existing:\s*[0-9,]+/g, "")
-      .trim();
-    parentItem.setField("extra", cleanedExtra);
-    await parentItem.saveTx();
-
-    this.utils.clearLibraryItemCache();
-
-    return deletedCount;
+  /** Old journals identify created items but cannot prove which old relations were added. */
+  private static async rollbackLegacy(parent:Zotero.Item,batchID:string,lines:string[]):Promise<number> {
+    const search:any=new Zotero.Search();search.libraryID=parent.libraryID;search.addCondition("extra","contains",this.marker(batchID));
+    const items=await (Zotero.Items as any).getAsync(await search.search()) as Zotero.Item[];
+    const ids=items.filter(item=>item && item.id!==parent.id && item.libraryID===parent.libraryID && !item.deleted && item.isRegularItem() && String(item.getField("extra")||"").split(/\r?\n/).includes(this.marker(batchID))).map(item=>item.id);
+    if(ids.length)await Zotero.Items.trashTx(ids);
+    parent.setField("extra",lines.filter(line=>!line.endsWith(`: ${batchID}`) && !line.startsWith(`import_collection_${batchID}:`) && !line.startsWith(`import_related_existing_${batchID}:`)).join("\n"));await parent.saveTx();
+    this.utils.clearLibraryItemCache();return ids.length;
   }
 }
 export default BatchImporter;

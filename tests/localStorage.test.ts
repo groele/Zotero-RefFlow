@@ -4,6 +4,14 @@ import assert from "node:assert";
 import LocalStorage from "../src/modules/localStorage";
 
 describe("LocalStorage Suite", () => {
+  test("persistent cache evicts old items and keeps recently read entries",async()=>{
+    const storage=new LocalStorage("capacity-test");for(let i=0;i<250;i++)await storage.set({key:"K"+i,libraryID:1},"data",i);await storage.getAsync({key:"K0",libraryID:1},"data");await storage.set({key:"K250",libraryID:1},"data",250);assert.equal(Object.keys(storage.cache).length,250);assert.equal(storage.get({key:"K1",libraryID:1},"data"),undefined);assert.equal(storage.get({key:"K0",libraryID:1},"data"),0);await storage.dispose();
+  });
+  test("shutdown flush saves the latest update before the debounce fires",async()=>{
+    const original=Zotero.File.putContentsAsync;let content='';
+    Zotero.File.putContentsAsync=async (_file:string,snapshot:string)=>{content=snapshot;};
+    try{const storage=new LocalStorage('shutdown-test');await storage.set({key:'FINAL',libraryID:2},'data',{title:'last update'});await storage.dispose();assert.equal(JSON.parse(content)['2:FINAL'].data.title,'last update');}finally{Zotero.File.putContentsAsync=original;}
+  });
   test("should prioritize Zotero.DataDirectory.dir over temporary directory", async () => {
     const storage = new LocalStorage("test-cache");
     await storage.lock.promise;

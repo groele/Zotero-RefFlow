@@ -33,24 +33,25 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
    */
   const ctx = {
     rootURI,
+    Zotero,
   };
   ctx._globalThis = ctx;
 
   Services.scriptloader.loadSubScript(
-    `${rootURI}/chrome/content/scripts/__addonRef__.js`,
+    `${rootURI}chrome/content/scripts/__addonRef__.js`,
     ctx,
   );
 }
 
 async function onMainWindowLoad({ window }, reason) {
-  Zotero.__addonInstance__?.hooks.onMainWindowLoad(window);
+  await Zotero.__addonInstance__?.hooks.onMainWindowLoad(window);
 }
 
 async function onMainWindowUnload({ window }, reason) {
-  Zotero.__addonInstance__?.hooks.onMainWindowUnload(window);
+  await Zotero.__addonInstance__?.hooks.onMainWindowUnload(window);
 }
 
-function shutdown({ id, version, resourceURI, rootURI }, reason) {
+async function shutdown({ id, version, resourceURI, rootURI }, reason) {
   if (reason === APP_SHUTDOWN) {
     return;
   }
@@ -60,13 +61,11 @@ function shutdown({ id, version, resourceURI, rootURI }, reason) {
       Components.interfaces.nsISupports,
     ).wrappedJSObject;
   }
-  Zotero.__addonInstance__?.hooks.onShutdown();
+  await Zotero.__addonInstance__?.hooks.onShutdown();
 
   Cc["@mozilla.org/intl/stringbundle;1"]
     .getService(Components.interfaces.nsIStringBundleService)
     .flushBundles();
-
-  Cu.unload(`${rootURI}/chrome/content/scripts/__addonRef__.js`);
 
   if (chromeHandle) {
     chromeHandle.destruct();

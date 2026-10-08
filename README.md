@@ -1,54 +1,71 @@
 # RefNexus for Zotero 10
 
-RefNexus 是一个面向 **Zotero 10.0.x** 的参考文献获取与管理插件。
+**10.2.0** · 参考文献获取、文献卡片与引用关系浏览。
 
-## 项目来源与二次开发声明
+本项目以用户提供的 `zotero-reference-zotero10.xpi` 的功能组织和使用习惯为基准，对获取流程、稳定性、性能和交互进行二次开发。该 XPI 的实际清单名称是 **Ethereal Reference**，版本 **1.8.17**；文件名中的“zotero10”不代表插件版本号。
 
-本项目由 [MuiseDestiny/zotero-reference](https://github.com/MuiseDestiny/zotero-reference) 原有 Zotero 插件二次开发而来，并非独立原创项目。我们保留了原项目的基础功能与开源许可，在此基础上重构参考文献抽取、Zotero 10 条目侧栏入口、缓存隔离、在线数据源合并和错误提示。原项目作者、贡献者及其著作权仍归原作者与相应贡献者所有。
+## 来源与二次开发声明
 
-本项目遵循原项目的 **GNU AGPL-3.0-or-later** 许可；请一并阅读本目录中的 [LICENSE](LICENSE)。本仓库与原项目作者没有官方隶属或背书关系。
+本项目基于 [MuiseDestiny/zotero-reference](https://github.com/MuiseDestiny/zotero-reference) 二次开发，并参考上述 XPI 的紧凑卡片、原生面板按钮、搜索、多选和菜单布局。原作者 Polygon / MuiseDestiny 与原贡献者的署名、著作权及开源许可均保留。本项目与原作者没有官方隶属或背书关系。
 
-- 原项目：<https://github.com/MuiseDestiny/zotero-reference>
-- 二次开发：<https://github.com/groele/Zotero-diy/tree/main/RefNexus-Zotero10>
+采用 **GNU AGPL-3.0-or-later**，详见 [LICENSE](LICENSE)。本目录提供修改后的源代码、构建脚本、测试和安装包。`reference.svg`、`reference-sidenav.svg`、`refresh.svg`、`type.svg` 来源于用户提供的原 XPI；其余新增实现请同时遵循本项目许可。原插件的付费服务、AI 服务与账户权益没有被复刻或绕过。
 
-## Zotero 10 支持范围
+## 安装与使用
 
-插件目标版本为 Zotero `10.0.*`。清理了旧的单选集合 API 用法，改用 Zotero 10 的多选 API；不再承诺 Zotero 6、7、8 或 9 兼容。
+下载本目录的 [zotero-refnexus.xpi](zotero-refnexus.xpi)，在 Zotero 中打开 **工具 → 插件 → 齿轮 → 从文件安装插件**。
 
-## 使用方式
+1. 选中文献，在右侧图标栏进入 **参考文献**。
+2. 点击面板标题旁的刷新图标获取列表。默认读取 PDF，必要时在 **更多 → 来源** 切换为在线数据。
+3. 文献类型按钮可切换 **参考文献 / 施引文献 / 相关文献**；后两项使用在线服务。
+4. 输入关键词过滤；`Ctrl / Cmd` 点选、`Shift` 连选，方向键导航，双击卡片打开已有条目或文献网址。
+5. 卡片右侧 `+` 导入文库，`↗` 定位已有条目。更多菜单提供复制、批量导入、排序、OA 下载开关和撤回上次导入。双击数量状态可复制整份列表。
+6. 标题悬浮详情优先显示已有元数据，不额外联网。可在插件设置中调整悬浮行为和自动获取。
 
-1. 在 Zotero 10 中选中一条文献。
-2. 在条目详情侧栏点击 **参考文献** 图标。
-3. 选择 `PDF` 或 `Online` 来源，然后点击 **获取参考文献**。
-4. PDF 模式会优先使用已打开的 PDF；如果没有匹配的阅读器，会在后台打开该文献的 PDF 附件并读取文本层。
+PDF 模式会复用匹配的阅读器，或在后台打开当前文献的 PDF 附件。没有可读取文本层的扫描件需要先做 OCR。
 
-PDF 提取从文末向前扫描，识别中英文参考文献标题并合并跨行条目。扫描件若没有可读取的 PDF 文本层，或文献没有可识别的参考文献区段，插件会返回空结果并显示状态。Online 模式通过 DOI 或题名查询 Crossref、OpenAlex 和 Semantic Scholar；Crossref 或 OpenAlex 提供的列表顺序会保留，其他来源只用于补全缺失列表或丰富匹配条目，避免把不同来源的条目误拼成一份“完整”书目。
+## 本次改进
 
-## 主要改进
+- 保留原 XPI 的紧凑功能布局：原生标题图标、搜索框、原始引文、题名、作者、年份、期刊与卡片操作。
+- 面向 Zotero 10 的 `ItemPaneManager`、原生 PDF Reader、偏好设置和撤稿接口；升级工具库至 6.0.0，移除旧 Reader 注入、轮询布局与 RDF 更新配置。
+- 修复双栏读取顺序、作者年份格式识别、编号正文误识别及 DOI 吞入后续文本。
+- 合并重复任务，隔离条目、文库、附件、来源和文献类型，阻止旧请求覆盖新列表。
+- HTTP 有超时、有限重试、并发与排队上限，遵守 `Retry-After`；避免 Zotero 默认重试策略造成长时间等待。
+- 缓存使用原子写入、串行保存和退出刷新；持久缓存保留最近 250 个条目，HTTP 缓存最多 500 项。
+- 在线列表保留主来源顺序；部分列表显示数量比例。有效缓存可在刷新失败时恢复，施引文献增加备用来源。
+- 批量导入按文库串行处理、去重，等待 OA 下载完成；撤回只移除该批次产生的数据与关系，保留已有关系和集合成员。
+- 修复 Zotero 10 关系图入口，图形应用首次打开时加载；不同主窗口分别维护界面资源。
 
-- 使用 Zotero 10 `ItemPaneManager` 注册原生条目侧栏图标和入口。
-- 使用 Zotero Reader 中 PDF.js 文本对象读取内容，移除旧的私有 Reader 页面数组扫描逻辑。
-- 扫描包含第 1 页，并在发现参考文献标题后停止继续读取前文页面。
-- 对页文本按坐标分行，降低多页、跨行和不同字号对解析的影响。
-- PDF 缓存按“文库 ID + 条目 key”隔离，并写入新版本缓存文件，避免个人库与群组库串数据。
-- 在线参考文献以主数据源顺序为准；不再把未匹配的 OpenAlex 结果追加到书目列表。
-- 增加 Zotero 10 条目选择、PDF 缺失和提取失败的可见反馈。
+OpenAlex 的匿名使用存在预算限制，可在设置中填写自己的免费 API Key。密钥通过请求头发送，保存在本机 Zotero 偏好配置中；密码输入框只隐藏显示，不表示配置文件被加密。参见 [OpenAlex 官方认证说明](https://help.openalex.org/api/authentication/)。
 
-## 安装
+## 兼容范围与验证边界
 
-从本项目目录中的 `zotero-refnexus.xpi` 安装：在 Zotero 中打开 **工具 → 插件 → 齿轮菜单 → 从文件安装插件**。开发环境也可按 Zotero 插件开发方式将构建目录加载到独立测试配置。
+声明支持 Zotero `10.*`，最低 `10.0.0`；本次实际验证的是 **Windows / Zotero 10.0.6**。不保留 Zotero 6–9 兼容分支，不声明尚未测试的未来版本已通过实机验证。
 
-## 开发与验证
+详细结果、修复理由、性能数据和未覆盖项目见 [AUDIT.md](AUDIT.md)。测试使用独立配置、真实 Reader、真实 SQLite 和真实 HTTP；故障场景另有明确标注的注入测试。功能测试通过不等于任何 PDF 或第三方服务都能得到完整结果。原插件的全部服务功能不在本次等价性承诺范围内。
+
+## 开发与重现实机测试
 
 ```powershell
-npm install
+npm ci
 npm run tsc
 npm test
 npm run build-prod
+npm run native:fixtures
+Invoke-WebRequest https://arxiv.org/pdf/1706.03762 -OutFile tests/native-fixtures/real-arxiv-1706.03762.pdf
 ```
 
-当前回归覆盖参考文献解析、缓存库隔离、HTTP 请求去重、在线数据源列表顺序和批量导入基础逻辑。Zotero 10.0.6 隔离实机验证包括：插件启动、原生侧栏图标注册、侧栏按钮调用、PDF Reader 文本读取及带跨行条目的参考文献列表渲染。测试文库和 PDF 夹具均与个人主文库隔离。
+在另一个终端启动故障测试服务器：
 
-## 许可与贡献
+```powershell
+python scripts/native-http-server.py
+```
 
-提交修改时请保留原项目署名、许可与本 README 中的二次开发说明。欢迎提交 Zotero 10 实机反馈、可复现 PDF 样例及修复建议。
+再运行生产包的实机测试：
+
+```powershell
+pwsh -NoProfile -File scripts/run-isolated-native.ps1 -Wait -CloseWhenDone
+```
+
+脚本使用临时独立配置和数据目录。结果位于 `tests/native-final.json` 及同名分组报告；需要查看 `finished` 和 `failed` 字段。临时测试驱动不在生产包中，生产包不启用调试协议。外部服务测试会实际联网，网络故障需结合报告中的 HTTP 状态判断。
+
+提交修改时请保留原项目署名、许可和二次开发说明。

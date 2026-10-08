@@ -7,6 +7,8 @@ import buildGraphData from "./GraphData";
 import { hsl } from "d3";
 
 export default class ConnectedPapers {
+  private doc: Document;
+  private win: any;
   private requests!: Requests;
   private frame!: HTMLIFrameElement;
   private views!: Views
@@ -16,7 +18,10 @@ export default class ConnectedPapers {
   private boxAfter!: XUL.Box;
   private itemIDs: number[] = []
   private zoteroColor: boolean = true
-  constructor(views: Views) {
+  private cleanup: Array<()=>void> = [];
+  private selectListener=()=>this.updateAddOrRemove();
+  constructor(views: Views, win: Window = window) {
+    this.win=win;this.doc=win.document;
     this.requests = new Requests()
     this.views = views
   }
@@ -25,9 +30,9 @@ export default class ConnectedPapers {
     this.addStyle()
     this.registerButton()
     this.initOnSelect()
-    document.querySelectorAll("#graph").forEach(e => e.remove());
+    this.doc.querySelectorAll("#graph").forEach(e => e.remove());
     let waitCount = 0;
-    while (!document.querySelector("#item-tree-main-default")) {
+    while (!this.doc.querySelector("#item-tree-main-default")) {
       await Zotero.Promise.delay(100)
       if (++waitCount > 50) break;
     }
@@ -35,11 +40,20 @@ export default class ConnectedPapers {
     this.initEditPane()
   }
 
+  public shutdown() {
+    this.requests.dispose();
+    (this.win.ZoteroPane.itemsView as any)?.onSelect?.removeListener(this.selectListener);
+    this.cleanup.forEach(fn=>fn());this.cleanup=[];
+    this.graphContainer?.remove();this.boxAfter?.remove();
+    this.doc.getElementById(`${config.addonRef}-show-hide-graph-view`)?.remove();
+    this.doc.getElementById(`${config.addonRef}-graph-style`)?.remove();
+  }
+
   private addStyle() {
     const id = `${config.addonRef}-related-container`
     ztoolkit.UI.appendElement({
       tag: "style",
-      id: `${config.addonRef}-style`,
+      id: `${config.addonRef}-graph-style`,
       namespace: "html",
       properties: {
         innerHTML: `
@@ -89,19 +103,17 @@ export default class ConnectedPapers {
         `) 
       },
       // #output-container div.streaming span:after,  
-    }, document.documentElement);
+    }, this.doc.documentElement);
   }
 
   private initOnSelect() {
-    (ZoteroPane.itemsView as any)?.onSelect?.addListener(() => {
-      this.updateAddOrRemove()
-    })
+    (this.win.ZoteroPane.itemsView as any)?.onSelect?.addListener(this.selectListener)
   }
 
   private updateAddOrRemove() {
     const removeNode = this.relatedContainer?.querySelector("#remove-origin") as HTMLDivElement
     const addNode = this.relatedContainer?.querySelector("#add-origin") as HTMLDivElement
-    if (this.itemIDs.indexOf(ZoteroPane.getSelectedItems()[0]?.id as number) >= 0) {
+    if (this.itemIDs.indexOf(this.win.ZoteroPane.getSelectedItems()[0]?.id as number) >= 0) {
       if (removeNode) {
         removeNode.style.display = "flex"
       }
@@ -119,43 +131,45 @@ export default class ConnectedPapers {
   }
 
   private registerButton() {
-    document.querySelectorAll(`#${config.addonRef}-show-hide-graph-view`).forEach(e => e.remove());
-    const node = document.querySelector("#zotero-tb-advanced-search")
-    if (!node) return;
-    let newNode = node.cloneNode(true) as XUL.ToolBarButton
-    newNode.setAttribute("id", `${config.addonRef}-show-hide-graph-view`)
-    newNode.setAttribute("tooltiptext", "show/hide")
-    newNode.setAttribute("command", "")
-    newNode.setAttribute("oncommand", "")
+    this.doc.querySelectorAll(`#${config.addonRef}-show-hide-graph-view`).forEach(e => e.remove());
+    const toolbar = this.doc.getElementById("zotero-items-toolbar");
+    if (!toolbar) return;
+    const newNode = (this.doc as any).createXULElement("toolbarbutton") as XUL.ToolBarButton;
+    newNode.setAttribute("id", `${config.addonRef}-show-hide-graph-view`);
+    newNode.setAttribute("class", "zotero-tb-button");
+    newNode.setAttribute("tooltiptext", Zotero.locale.startsWith("zh") ? "显示 / 隐藏文献关系图" : "Show / hide citation graph");
+    newNode.setAttribute("aria-label", newNode.getAttribute("tooltiptext")!);
+    newNode.setAttribute("tabindex", "0");
     newNode.addEventListener("click", async () => {
       let node = this.graphContainer;
       if (!node) {return }
       if (node.style.display == "none") {
+        if(!this.frame.getAttribute("src")) this.frame.setAttribute("src",`chrome://${config.addonRef}/content/dist/index.html`);
         // this.splitterAfter.style.display = ""
         node.style.display = ""
-        this.boxAfter.style.display = "block"
+        if(this.boxAfter) this.boxAfter.style.display = "block"
         Zotero.Prefs.set(`${config.addonRef}.graphView.enable`, true)
       } else {
         // this.splitterAfter.style.display = "none"
         node.style.display = "none"
-        this.boxAfter.style.display = "none"
+        if(this.boxAfter) this.boxAfter.style.display = "none"
         Zotero.Prefs.set(`${config.addonRef}.graphView.enable`, false)
       }
     })
     newNode.style.listStyleImage = `url(chrome://${config.addonRef}/content/icons/connectedpapers.png)`
-    document.querySelector("#zotero-items-toolbar")?.insertBefore(newNode, node.nextElementSibling)
+    toolbar.insertBefore(newNode, this.doc.getElementById("zotero-tb-search"));
   }
 
   /**
    * 注册右侧面板
    */
   private initEditPane() {
-    document.querySelectorAll("#connected-papers-relatedsplit-after").forEach(e => e.remove());
-    // let relatedbox = (document.querySelector("#zotero-editpane-related") as Element);
-    let beforeBox = (document.querySelector("#zotero-item-pane-content") as Element);
+    this.doc.querySelectorAll("#connected-papers-relatedsplit-after").forEach(e => e.remove());
+    // let relatedbox = (this.doc.querySelector("#zotero-editpane-related") as Element);
+    let beforeBox = (this.doc.querySelector("#zotero-item-pane-content") as Element);
     if (!beforeBox) return;
     beforeBox.parentElement?.setAttribute("orient", "vertical");
-    const boxAfter = this.boxAfter = document.createElement("div") as any;
+    const boxAfter = this.boxAfter = this.doc.createElement("div") as any;
     boxAfter.id = "connected-papers-relatedsplit-after";
     boxAfter.style.overflow = "hidden"
     boxAfter.style.backgroundColor = "var(--material-background, #ffffff)"
@@ -235,7 +249,7 @@ export default class ConnectedPapers {
                 {
                   type: "click",
                   listener: async () => {
-                    const items = ZoteroPane.getSelectedItems();
+                    const items = this.win.ZoteroPane.getSelectedItems();
                     if (!items || items.length === 0 || !items[0]) {
                       return;
                     }
@@ -312,7 +326,7 @@ export default class ConnectedPapers {
                 {
                   type: "click",
                   listener: () => {
-                    const items = ZoteroPane.getSelectedItems();
+                    const items = this.win.ZoteroPane.getSelectedItems();
                     if (!items || items.length === 0 || !items[0]) return;
                     const itemID = items[0].id;
                     this.itemIDs = this.itemIDs.filter(i => i != itemID)
@@ -384,6 +398,7 @@ export default class ConnectedPapers {
                 relatedContainer.querySelectorAll(".prior-items .item")?.forEach(e => e.remove())
                 relatedContainer.querySelectorAll(".deriv-items .item")?.forEach(e => e.remove())
                 const graphdata = await this.refresh(items)
+                if(!graphdata) return;
                 ztoolkit.log("graphdata", graphdata)
                 // @ts-ignore
                 const app = this.frame.contentWindow.app
@@ -766,7 +781,7 @@ export default class ConnectedPapers {
                 let timeout = rawTipTimeout !== undefined ? parseInt(String(rawTipTimeout)) : 233;
                 if (isNaN(timeout)) timeout = 233;
                 const position = Zotero.Prefs.get("extensions.zotero.layout", true) == "stacked" ? "top center" : "left"
-                timer = window.setTimeout(async () => {
+                timer = this.win.setTimeout(async () => {
                   const rect = itemNode.getBoundingClientRect() as any
                   tipUI = this.views.showTipUI(rect, info, position, info.identifiers.DOI)
                   if (!itemNode.classList.contains("active")) {
@@ -780,10 +795,10 @@ export default class ConnectedPapers {
               type: "mouseleave",
               listener: () => {
                 itemNode.classList.remove("active")
-                window.clearTimeout(timer);
+                this.win.clearTimeout(timer);
                 if (!tipUI) { return }
                 const timeout = tipUI.removeTipAfterMillisecond
-                tipUI.tipTimer = window.setTimeout(async () => {
+                tipUI.tipTimer = this.win.setTimeout(async () => {
                   for (let i = 0; i < timeout / 2; i++) {
                     if (this.relatedContainer!.querySelector(".active")) { return }
                     await Zotero.Promise.delay(1 / 1000)
@@ -829,7 +844,7 @@ export default class ConnectedPapers {
           type: "click",
           listener: async (event: any) => {
             if (info._itemID) {
-              ZoteroPane.selectItem(info._itemID as number)
+              this.win.ZoteroPane.selectItem(info._itemID as number)
             } else {
               const DOI = info.identifiers.DOI
               const originItems = this.itemIDs.map(id => Zotero.Items.get(id))
@@ -844,24 +859,24 @@ export default class ConnectedPapers {
                   item.addRelatedItem(newItem)
                   await item.saveTx({ skipSelect: true, skipNotifier: true })
                   await newItem.saveTx({ skipSelect: true, skipNotifier: true });
-                  // ZoteroPane.selectItem(item.id);
-                  // (document.querySelector("#zotero-editpane-related-tab") as HTMLDivElement).click()
+                  // this.win.ZoteroPane.selectItem(item.id);
+                  // (this.doc.querySelector("#zotero-editpane-related-tab") as HTMLDivElement).click()
                 })
                 popupWin.changeHeadline("[Done] Adding")
                 popupWin.changeLine({ type: "success" })
                 popupWin.startCloseTimer(3000);
-                (document.querySelector("#build-graph") as HTMLDivElement).click()
+                (this.doc.querySelector("#build-graph") as HTMLDivElement).click()
               }
               // 获取分类
-              const selectedCollections = (ZoteroPane as any).getSelectedCollections?.() || [];
+              const selectedCollections = (this.win.ZoteroPane as any).getSelectedCollections?.() || [];
               const collections: number[] = selectedCollections
                 .filter((collection: any) => collection && Number.isFinite(Number(collection.id)))
                 .map((collection: any) => Number(collection.id));
               if (event.ctrlKey || event.metaKey) {
                 let rect = itemNode.getBoundingClientRect()
                 // 构建分类选择
-                let menuPopup = document.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", 'menupopup') as XUL.MenuPopup;
-                document.querySelector("#browser")!.append(menuPopup);
+                let menuPopup = this.doc.createElementNS("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul", 'menupopup') as XUL.MenuPopup;
+                this.doc.querySelector("#browser")!.append(menuPopup);
                 const libId = originItems[0]?.libraryID || 1;
                 let collections = Zotero.Collections.getByLibrary(libId);
                 for (let col of collections) {
@@ -944,10 +959,11 @@ export default class ConnectedPapers {
   }
 
   private initItemsPane() {
-    const mainNode = document.querySelector("#item-tree-main-default")!
+    const mainNode = this.doc.querySelector("#item-tree-main-default")!
+    if(!mainNode) return;
     // 图形容器
     const minHeight = 200
-    const graphContainer = ztoolkit.UI.createElement(document, "div", {
+    const graphContainer = ztoolkit.UI.createElement(this.doc, "div", {
       id: "graph-view",
       styles: {
         width: "100%",
@@ -957,8 +973,8 @@ export default class ConnectedPapers {
       }
     })
     this.graphContainer = graphContainer
-    const frame = this.frame = ztoolkit.UI.createElement(document, "iframe", {namespace: "html"}) as HTMLIFrameElement
-    frame.setAttribute("src", `chrome://${config.addonRef}/content/dist/index.html`)
+    const frame = this.frame = ztoolkit.UI.createElement(this.doc, "iframe", {namespace: "html"}) as HTMLIFrameElement
+    // The graph application is expensive; load it on the first visible request.
     frame.style.border = "none"
     frame.style.outline = "none"
     frame.style.width = "100%"
@@ -967,7 +983,7 @@ export default class ConnectedPapers {
     frame.style.backgroundColor = "#ffffff"
     graphContainer.append(frame)
     mainNode.append(graphContainer)
-    const resizer = ztoolkit.UI.createElement(document, "div", {
+    const resizer = ztoolkit.UI.createElement(this.doc, "div", {
       styles: {
         height: `1px`,
         width: "100%",
@@ -978,15 +994,15 @@ export default class ConnectedPapers {
     graphContainer.insertBefore(resizer, frame)
     let y = 0, x = 0;
     let h = 0, w = 0;
-    const mouseDownHandler = function (e: MouseEvent) {
+    const mouseDownHandler = (e: MouseEvent) => {
       frame.style.display = "none"
       y = e.clientY;
       x = e.clientX;
       const rect = graphContainer.getBoundingClientRect()
       h = rect.height;
       w = rect.width;
-      document.addEventListener('mousemove', mouseMoveHandler);
-      document.addEventListener('mouseup', mouseUpHandler);
+      this.doc.addEventListener('mousemove', mouseMoveHandler);
+      this.doc.addEventListener('mouseup', mouseUpHandler);
     };
     const mouseMoveHandler = (e: MouseEvent) => {
       const dy = e.clientY - y;
@@ -999,10 +1015,11 @@ export default class ConnectedPapers {
     };
     const mouseUpHandler = () => {
       frame.style.display = ""
-      document.removeEventListener('mousemove', mouseMoveHandler);
-      document.removeEventListener('mouseup', mouseUpHandler);
+      this.doc.removeEventListener('mousemove', mouseMoveHandler);
+      this.doc.removeEventListener('mouseup', mouseUpHandler);
     };
     resizer.addEventListener('mousedown', mouseDownHandler);
+    this.cleanup.push(()=>{resizer.removeEventListener('mousedown',mouseDownHandler);this.doc.removeEventListener('mousemove',mouseMoveHandler);this.doc.removeEventListener('mouseup',mouseUpHandler);});
   }
 
   private paper2Info(paper: any) {
@@ -1023,8 +1040,12 @@ export default class ConnectedPapers {
   private async refresh(items: Zotero.Item[]) {
     ztoolkit.log("refresh", items)
     const graphData = await this.buildGraphData(items) as  Graph
+    if(!graphData?.nodes) return;
+    const readyDeadline=Date.now()+10000;
+    while(!(this.frame.contentWindow as any)?.app && Date.now()<readyDeadline)await Zotero.Promise.delay(100);
     ztoolkit.log(graphData)
     const app = (this.frame.contentWindow! as any).app as any
+    if(!app)throw new Error("Graph view did not finish loading");
     app.graphdata = graphData;
     app.$route.params.origin_id = graphData.start_id || (graphData as any).start_ids?.join("+");
     app._paper_to_color = app._paper_to_color || app.paper_to_color
@@ -1042,7 +1063,7 @@ export default class ConnectedPapers {
     app.refresh_graph()
     // scrollToSelected
     let scrollToNode = (className: "selected" | "hover") => {
-      const parent = document.querySelector(".normal-items") as HTMLDivElement;
+      const parent = this.doc.querySelector(".normal-items") as HTMLDivElement;
       if (!parent) return;
       const target = parent.querySelector(`.${className}`) as HTMLDivElement;
       const firstChild = parent.firstChild as HTMLDivElement;

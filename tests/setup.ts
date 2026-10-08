@@ -50,14 +50,6 @@
     },
     trashTx: async (ids: number[]) => true
   },
-  RetractionWatch: {
-    checkDOI: (doi: string) => {
-      if (doi === "10.1016/j.cell.retracted") {
-        return { reason: "Data falsification", date: "2023-01-01" };
-      }
-      return null;
-    }
-  },
   ItemTypes: {
     getName: (id: number) => {
       const map: Record<number, string> = { 1: "journalArticle", 2: "book", 3: "conferencePaper" };

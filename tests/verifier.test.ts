@@ -213,6 +213,11 @@ describe("CitationVerifier Suite", () => {
       assert.strictEqual(result.score, 1.0);
     });
 
+    test("conflicting DOIs reject otherwise identical metadata", () => {
+      const result=CitationVerifier.evaluate({title:"Same paper title",doi:"10.1234/one",author:"Smith",year:2024},{title:"Same paper title",doi:"10.1234/two",authors:["Smith"],year:2024});
+      assert.equal(result.status,"REJECT");
+    });
+
     test("should ACCEPT high quality metadata match (score >= 0.85)", () => {
       const extracted = {
         title: "Deep Residual Learning for Image Recognition",

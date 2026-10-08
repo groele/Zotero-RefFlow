@@ -1,0 +1,214 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T12:37:43.528Z",
+  "tests": [
+    {
+      "name": "native fetch button and force refresh render six PDF rows",
+      "ok": true,
+      "ms": 334,
+      "detail": {
+        "label": "6 条参考文献： [PDF]"
+      }
+    },
+    {
+      "name": "PDF cache hit avoids reopening and rescanning the reader",
+      "ok": true,
+      "ms": 115,
+      "detail": {
+        "ms": 5,
+        "scans": 0,
+        "opens": 0
+      }
+    },
+    {
+      "name": "file modification invalidates the PDF cache",
+      "ok": true,
+      "ms": 102,
+      "detail": {
+        "scans": 1
+      }
+    },
+    {
+      "name": "a second PDF attachment has a distinct cache identity",
+      "ok": true,
+      "ms": 1058,
+      "detail": {
+        "distinct": true,
+        "count": 4
+      }
+    },
+    {
+      "name": "native PDF deadline covers a promise that never settles",
+      "ok": true,
+      "ms": 88,
+      "detail": {
+        "ms": 88,
+        "name": "TimeoutError"
+      }
+    },
+    {
+      "name": "native PDF cancellation handles a stalled text layer",
+      "ok": true,
+      "ms": 38,
+      "detail": {
+        "name": "AbortError"
+      }
+    },
+    {
+      "name": "twenty simultaneous fetches coalesce into one operation",
+      "ok": true,
+      "ms": 216,
+      "detail": {
+        "calls": 1
+      }
+    },
+    {
+      "name": "thirty rapid item switches never commit stale results",
+      "ok": true,
+      "ms": 11819,
+      "detail": {
+        "iterations": 30
+      }
+    },
+    {
+      "name": "cancel button releases native busy state and ignores late responses",
+      "ok": true,
+      "ms": 292,
+      "detail": {
+        "label": "已取消获取"
+      }
+    },
+    {
+      "name": "one thousand native rows yield to the UI event loop",
+      "ok": true,
+      "ms": 129,
+      "detail": {
+        "rows": 1000,
+        "ms": 42,
+        "eventLoopTicks": 8
+      }
+    },
+    {
+      "name": "real SQLite batch import deduplicates and rollback preserves existing data",
+      "ok": true,
+      "ms": 1263,
+      "detail": {
+        "imported": 1,
+        "existing": 2,
+        "removed": 2,
+        "originalRelationsPreserved": true
+      }
+    },
+    {
+      "name": "rollback preserves a preexisting one-way relation",
+      "ok": true,
+      "ms": 106
+    },
+    {
+      "name": "late translator results and concurrent imports cannot create duplicate database items",
+      "ok": true,
+      "ms": 471,
+      "detail": {
+        "databaseItemsBeforeRollback": 1,
+        "metadataOnly": true,
+        "batches": 2
+      }
+    },
+    {
+      "name": "real native XHR deduplication and cache hit issue one request",
+      "ok": true,
+      "ms": 8,
+      "detail": {
+        "requests": 1,
+        "cacheHits": 1,
+        "deduplicated": 19,
+        "retries": 0,
+        "timeouts": 0
+      }
+    },
+    {
+      "name": "native XHR retries transient 503 exactly twice",
+      "ok": true,
+      "ms": 73,
+      "detail": {
+        "requests": 3,
+        "cacheHits": 0,
+        "deduplicated": 0,
+        "retries": 2,
+        "timeouts": 0
+      }
+    },
+    {
+      "name": "native 404 is not retried",
+      "ok": true,
+      "ms": 3,
+      "detail": {
+        "requests": 1,
+        "cacheHits": 0,
+        "deduplicated": 0,
+        "retries": 0,
+        "timeouts": 0
+      }
+    },
+    {
+      "name": "Retry-After longer than the budget exits without an early retry",
+      "ok": true,
+      "ms": 3,
+      "detail": {
+        "ms": 2,
+        "requests": 1,
+        "cacheHits": 0,
+        "deduplicated": 0,
+        "retries": 0,
+        "timeouts": 0
+      }
+    },
+    {
+      "name": "native XHR timeout returns promptly and does not cache late responses",
+      "ok": true,
+      "ms": 1751,
+      "detail": {
+        "requests": 1,
+        "cacheSize": 0
+      }
+    },
+    {
+      "name": "actual network requests never exceed concurrency two",
+      "ok": true,
+      "ms": 508,
+      "detail": {
+        "requests": 8,
+        "maximumActive": 2
+      }
+    },
+    {
+      "name": "real open-access PDF download is awaited and recorded for rollback",
+      "ok": true,
+      "ms": 702,
+      "detail": {
+        "downloadCount": 1
+      }
+    },
+    {
+      "name": "graph UI initializes lazily and its application loads in Zotero",
+      "ok": true,
+      "ms": 112,
+      "detail": {
+        "appLoaded": true
+      }
+    },
+    {
+      "name": "cache flush persists an immediate shutdown-style write",
+      "ok": true,
+      "ms": 5,
+      "detail": {
+        "persisted": true
+      }
+    }
+  ],
+  "metrics": {},
+  "scope": "isolated native Zotero; loopback HTTP faults; metadata translator fault injection",
+  "finished": "2026-10-08T12:38:04.090Z",
+  "passed": 22,
+  "failed": 0
+}

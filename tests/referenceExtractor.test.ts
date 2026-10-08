@@ -3,6 +3,25 @@ import assert from "node:assert";
 import { extractReferencesFromLines } from "../src/modules/referenceExtractor";
 
 describe("Reference text extraction", () => {
+  test("recognizes author initials and numbered bibliography headings",()=>{
+    const refs=extractReferencesFromLines([
+      {page:1,y:720,text:'6. References'},
+      {page:1,y:700,text:'Smith, J., Doe, A. (2024). First citation title.'},
+      {page:1,y:680,text:'Journal A, 10, 100-120.'},
+      {page:1,y:640,text:'Brown, A. B. (2023). Second citation title.'},
+      {page:1,y:620,text:'2023. Journal B continuation.'},
+      {page:1,y:600,text:'12'}
+    ]);
+    assert.equal(refs.length,2);assert.ok(refs[1].text.includes('continuation'));assert.ok(!refs[1].text.endsWith('12'));
+  });
+  test("rejects three numbered instructions without bibliographic evidence",()=>{
+    const refs=extractReferencesFromLines(['1. Heat the sample for two minutes.','2. Cool the sample and measure current.','3. Record the observations and repeat steps.'].map((text,i)=>({text,page:1,y:700-i*30})));
+    assert.deepEqual(refs,[]);
+  });
+  test("recognizes a coherent no-heading bibliography without merging subsequent sections",()=>{
+    const refs=extractReferencesFromLines(['[1] Smith, J. First title. Journal, 2024.','[2] Lee, K. Second title. Journal, 2023.','[3] Doe, A. Third title. Journal, 2022.'].map((text,i)=>({text,page:1,y:700-i*30})));
+    assert.equal(refs.length,3);
+  });
   test("extracts numbered bibliography entries and joins wrapped lines", () => {
     const refs = extractReferencesFromLines([
       { page: 1, y: 800, text: "Introduction" },

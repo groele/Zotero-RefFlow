@@ -1,31 +1,17 @@
-import { BasicTool } from "zotero-plugin-toolkit/dist/basic";
 import Addon from "./addon";
-import { config } from "../package.json";
+import {config} from "../package.json";
 
-const basicTool = new BasicTool();
-
-if (!basicTool.getGlobal("Zotero")[config.addonInstance]) {
-  // Set global variables
-  _globalThis.Zotero = basicTool.getGlobal("Zotero");
-  defineGlobal("window");
-  defineGlobal("document");
-  defineGlobal("ZoteroPane");
-  defineGlobal("Zotero_Tabs");
+if (!Zotero[config.addonInstance]) {
+  defineGlobal("window", () => Zotero.getMainWindow());
+  defineGlobal("document", () => Zotero.getMainWindow().document);
+  defineGlobal("ZoteroPane", () => Zotero.getActiveZoteroPane());
+  defineGlobal("Zotero_Tabs", () => (Zotero.getMainWindow() as any).Zotero_Tabs);
   _globalThis.addon = new Addon();
-  defineGlobal("ztoolkit", () => {
-    return _globalThis.addon.data.ztoolkit;
-  });
+  defineGlobal("ztoolkit", () => _globalThis.addon.data.ztoolkit);
   Zotero[config.addonInstance] = addon;
-  // Trigger addon hook for initialization
-  addon.hooks.onStartup();
+  addon.hooks.onStartup().catch(error => Zotero.logError(error || new Error("RefNexus startup failed without error details")));
 }
 
-function defineGlobal(name: Parameters<BasicTool["getGlobal"]>[0]): void;
-function defineGlobal(name: string, getter: () => any): void;
-function defineGlobal(name: string, getter?: () => any) {
-  Object.defineProperty(_globalThis, name, {
-    get() {
-      return getter ? getter() : basicTool.getGlobal(name);
-    },
-  });
+function defineGlobal(name:string,getter:()=>any) {
+  Object.defineProperty(_globalThis,name,{get:getter});
 }

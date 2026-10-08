@@ -1,0 +1,744 @@
+
+> zotero-refnexus@10.2.0 test
+> node scripts/test.mjs
+
+[Test Runner] Found 13 test suites: api-reference-merge.test.ts, batchImporter.test.ts, gbt7714.test.ts, localStorage.test.ts, openalex.test.ts, pdf.test.ts, referenceCache.test.ts, referenceExtractor.test.ts, referenceTasks.test.ts, requests.test.ts, retraction.test.ts, utils.test.ts, verifier.test.ts
+[Test Runner] Bundled into D:\Dev Studio\Reference in zotero\zotero-reference\tests\dist\all.tests.cjs. Executing test runner...
+
+TAP version 13
+# Subtest: API reference provider ordering
+    # Subtest: does not enrich a reference with a conflicting DOI even when titles match
+    ok 1 - does not enrich a reference with a conflicting DOI even when titles match
+      ---
+      duration_ms: 1.4905
+      ...
+    # Subtest: enriches matching OpenAlex entries without appending unmatched records
+    ok 2 - enriches matching OpenAlex entries without appending unmatched records
+      ---
+      duration_ms: 1.02
+      ...
+    1..2
+ok 1 - API reference provider ordering
+  ---
+  duration_ms: 3.1029
+  type: 'suite'
+  ...
+# Subtest: rapid batch IDs cannot collide in the same second
+ok 2 - rapid batch IDs cannot collide in the same second
+  ---
+  duration_ms: 3.2346
+  ...
+# Subtest: manifest note escapes imported titles and authors
+ok 3 - manifest note escapes imported titles and authors
+  ---
+  duration_ms: 0.238
+  ...
+# Subtest: legacy rollback checks exact ownership and keeps the parent, other libraries, and prefix matches
+ok 4 - legacy rollback checks exact ownership and keeps the parent, other libraries, and prefix matches
+  ---
+  duration_ms: 0.7395
+  ...
+# Subtest: rollback refuses a journal belonging to another parent
+ok 5 - rollback refuses a journal belonging to another parent
+  ---
+  duration_ms: 0.4402
+  ...
+# Subtest: GBT7714Parser Suite
+    # Subtest: isGBT7714
+        # Subtest: should detect standard document type markers
+        ok 1 - should detect standard document type markers
+          ---
+          duration_ms: 0.3127
+          ...
+        # Subtest: should return false for references without GB/T markers
+        ok 2 - should return false for references without GB/T markers
+          ---
+          duration_ms: 0.3523
+          ...
+        1..2
+    ok 1 - isGBT7714
+      ---
+      duration_ms: 0.8861
+      type: 'suite'
+      ...
+    # Subtest: parse
+        # Subtest: should parse standard Journal article [J]
+        ok 1 - should parse standard Journal article [J]
+          ---
+          duration_ms: 0.817
+          ...
+        # Subtest: should parse Monograph / Book [M]
+        ok 2 - should parse Monograph / Book [M]
+          ---
+          duration_ms: 0.4349
+          ...
+        # Subtest: should parse Conference proceedings [C]
+        ok 3 - should parse Conference proceedings [C]
+          ---
+          duration_ms: 0.2675
+          ...
+        # Subtest: should parse Dissertation / Thesis [D]
+        ok 4 - should parse Dissertation / Thesis [D]
+          ---
+          duration_ms: 0.1441
+          ...
+        # Subtest: should parse Electronic Bulletin / Webpage [EB/OL]
+        ok 5 - should parse Electronic Bulletin / Webpage [EB/OL]
+          ---
+          duration_ms: 0.0988
+          ...
+        # Subtest: should extract embedded DOI from citation text
+        ok 6 - should extract embedded DOI from citation text
+          ---
+          duration_ms: 0.1881
+          ...
+        # Subtest: should parse Western author with initial dots in GB/T format
+        ok 7 - should parse Western author with initial dots in GB/T format
+          ---
+          duration_ms: 0.4931
+          ...
+        # Subtest: should parse Chinese reference with Chinese full stop delimiter without space
+        ok 8 - should parse Chinese reference with Chinese full stop delimiter without space
+          ---
+          duration_ms: 0.2436
+          ...
+        # Subtest: should cleanly extract journal venue, book publisher, and thesis university
+        ok 9 - should cleanly extract journal venue, book publisher, and thesis university
+          ---
+          duration_ms: 0.1872
+          ...
+        # Subtest: should parseLoose references without explicit [J]/[M] markers
+        ok 10 - should parseLoose references without explicit [J]/[M] markers
+          ---
+          duration_ms: 0.2774
+          ...
+        1..10
+    ok 2 - parse
+      ---
+      duration_ms: 3.3937
+      type: 'suite'
+      ...
+    1..2
+ok 6 - GBT7714Parser Suite
+  ---
+  duration_ms: 4.4633
+  type: 'suite'
+  ...
+# Subtest: LocalStorage Suite
+    # Subtest: persistent cache evicts old items and keeps recently read entries
+    ok 1 - persistent cache evicts old items and keeps recently read entries
+      ---
+      duration_ms: 4.1127
+      ...
+    # Subtest: shutdown flush saves the latest update before the debounce fires
+    ok 2 - shutdown flush saves the latest update before the debounce fires
+      ---
+      duration_ms: 0.1791
+      ...
+    # Subtest: should prioritize Zotero.DataDirectory.dir over temporary directory
+    ok 3 - should prioritize Zotero.DataDirectory.dir over temporary directory
+      ---
+      duration_ms: 0.0728
+      ...
+    # Subtest: should get and set cache items correctly
+    ok 4 - should get and set cache items correctly
+      ---
+      duration_ms: 0.1773
+      ...
+    # Subtest: should isolate items with identical keys in different libraries
+    ok 5 - should isolate items with identical keys in different libraries
+      ---
+      duration_ms: 0.1451
+      ...
+    # Subtest: should flush debounced save cleanly
+    ok 6 - should flush debounced save cleanly
+      ---
+      duration_ms: 0.1275
+      ...
+    1..6
+ok 7 - LocalStorage Suite
+  ---
+  duration_ms: 4.942
+  type: 'suite'
+  ...
+# Subtest: OpenAlex literature modes
+    # Subtest: optional key is sent in a header and absent from request URLs
+    ok 1 - optional key is sent in a header and absent from request URLs
+      ---
+      duration_ms: 0.2552
+      ...
+    # Subtest: citations use cursor pagination, deduplicate and mark incomplete snapshots
+    ok 2 - citations use cursor pagination, deduplicate and mark incomplete snapshots
+      ---
+      duration_ms: 0.6174
+      ...
+    # Subtest: failed later pages preserve partial results and identify them
+    ok 3 - failed later pages preserve partial results and identify them
+      ---
+      duration_ms: 0.1519
+      ...
+    # Subtest: related works preserve provider order after hydration
+    ok 4 - related works preserve provider order after hydration
+      ---
+      duration_ms: 0.5009
+      ...
+    # Subtest: lookup failure is visible rather than a fabricated empty list
+    ok 5 - lookup failure is visible rather than a fabricated empty list
+      ---
+      duration_ms: 0.1109
+      ...
+    # Subtest: already aborted requests never launch a lookup
+    ok 6 - already aborted requests never launch a lookup
+      ---
+      duration_ms: 0.1706
+      ...
+    1..6
+ok 8 - OpenAlex literature modes
+  ---
+  duration_ms: 1.9238
+  type: 'suite'
+  ...
+# Subtest: two-column continuations retain sequential citation order
+ok 9 - two-column continuations retain sequential citation order
+  ---
+  duration_ms: 1.9755
+  ...
+# Subtest: glyph fragments within words are joined without inventing spaces
+ok 10 - glyph fragments within words are joined without inventing spaces
+  ---
+  duration_ms: 0.1957
+  ...
+# Subtest: PDF deadlines cover a stalled text-content promise
+ok 11 - PDF deadlines cover a stalled text-content promise
+  ---
+  duration_ms: 34.9746
+  ...
+# Subtest: PDF cancellation settles a pending read and closes its timer
+ok 12 - PDF cancellation settles a pending read and closes its timer
+  ---
+  duration_ms: 0.2733
+  ...
+# Subtest: closed readers stop before accessing their text document
+ok 13 - closed readers stop before accessing their text document
+  ---
+  duration_ms: 0.103
+  ...
+# Subtest: reference caches reject changed PDFs, stale metadata, and malformed rows
+ok 14 - reference caches reject changed PDFs, stale metadata, and malformed rows
+  ---
+  duration_ms: 0.1731
+  ...
+# Subtest: cached reference metadata drops live Zotero objects and returns fresh identity objects
+ok 15 - cached reference metadata drops live Zotero objects and returns fresh identity objects
+  ---
+  duration_ms: 0.1471
+  ...
+# Subtest: Reference text extraction
+    # Subtest: recognizes author initials and numbered bibliography headings
+    ok 1 - recognizes author initials and numbered bibliography headings
+      ---
+      duration_ms: 0.1529
+      ...
+    # Subtest: rejects three numbered instructions without bibliographic evidence
+    ok 2 - rejects three numbered instructions without bibliographic evidence
+      ---
+      duration_ms: 0.2743
+      ...
+    # Subtest: recognizes a coherent no-heading bibliography without merging subsequent sections
+    ok 3 - recognizes a coherent no-heading bibliography without merging subsequent sections
+      ---
+      duration_ms: 0.1282
+      ...
+    # Subtest: extracts numbered bibliography entries and joins wrapped lines
+    ok 4 - extracts numbered bibliography entries and joins wrapped lines
+      ---
+      duration_ms: 0.1322
+      ...
+    # Subtest: recognizes Chinese references and the first numeric item
+    ok 5 - recognizes Chinese references and the first numeric item
+      ---
+      duration_ms: 0.4318
+      ...
+    # Subtest: does not interpret a short numbered body as a bibliography
+    ok 6 - does not interpret a short numbered body as a bibliography
+      ---
+      duration_ms: 0.0742
+      ...
+    1..6
+ok 16 - Reference text extraction
+  ---
+  duration_ms: 1.3001
+  type: 'suite'
+  ...
+# Subtest: a superseded pane request cannot commit after the new request
+ok 17 - a superseded pane request cannot commit after the new request
+  ---
+  duration_ms: 0.2386
+  ...
+# Subtest: identical repeated pane requests share one operation
+ok 18 - identical repeated pane requests share one operation
+  ---
+  duration_ms: 0.078
+  ...
+# Subtest: invalidate and dispose abort active jobs and release pane references
+ok 19 - invalidate and dispose abort active jobs and release pane references
+  ---
+  duration_ms: 0.2036
+  ...
+# Subtest: Requests Suite
+    # Subtest: does not retry permanent 404 errors or enable Zotero's nested hour-long retries
+    ok 1 - does not retry permanent 404 errors or enable Zotero's nested hour-long retries
+      ---
+      duration_ms: 0.6567
+      ...
+    # Subtest: honors a Retry-After that exceeds the operation budget without retrying early
+    ok 2 - honors a Retry-After that exceeds the operation budget without retrying early
+      ---
+      duration_ms: 0.1721
+      ...
+    # Subtest: a timed-out request is physically cancelled and is not cached
+    ok 3 - a timed-out request is physically cancelled and is not cached
+      ---
+      duration_ms: 12.3184
+      ...
+    # Subtest: distinct requests have bounded concurrency
+    ok 4 - distinct requests have bounded concurrency
+      ---
+      duration_ms: 62.5229
+      ...
+    # Subtest: should promote cache hits before evicting the least recently used entry
+    ok 5 - should promote cache hits before evicting the least recently used entry
+      ---
+      duration_ms: 0.445
+      ...
+    # Subtest: should properly format DOI path for content negotiation
+    ok 6 - should properly format DOI path for content negotiation
+      ---
+      duration_ms: 0.1433
+      ...
+    # Subtest: should retrieve cached value without re-querying
+    ok 7 - should retrieve cached value without re-querying
+      ---
+      duration_ms: 0.1013
+      ...
+    # Subtest: should deduplicate concurrent identical GET requests
+    ok 8 - should deduplicate concurrent identical GET requests
+      ---
+      duration_ms: 15.1974
+      ...
+    # Subtest: should keep POST response types and headers isolated in the cache
+    ok 9 - should keep POST response types and headers isolated in the cache
+      ---
+      duration_ms: 0.384
+      ...
+    1..9
+ok 20 - Requests Suite
+  ---
+  duration_ms: 92.2061
+  type: 'suite'
+  ...
+# Subtest: scheduler bounds queued requests and expires waiting work
+ok 21 - scheduler bounds queued requests and expires waiting work
+  ---
+  duration_ms: 62.5863
+  ...
+# Subtest: RetractionChecker Suite
+    # Subtest: uses Zotero 10's native Retractions API for an actual library item
+    ok 1 - uses Zotero 10's native Retractions API for an actual library item
+      ---
+      duration_ms: 0.1551
+      ...
+    # Subtest: returns unchecked rather than pretending a DOI-only local lookup is authoritative
+    ok 2 - returns unchecked rather than pretending a DOI-only local lookup is authoritative
+      ---
+      duration_ms: 0.0418
+      ...
+    # Subtest: should handle empty or undefined DOI defensively
+    ok 3 - should handle empty or undefined DOI defensively
+      ---
+      duration_ms: 0.0306
+      ...
+    # Subtest: does not misclassify a retraction notice as a retracted article
+    ok 4 - does not misclassify a retraction notice as a retracted article
+      ---
+      duration_ms: 0.1616
+      ...
+    # Subtest: should detect retraction from Crossref is-retracted-by relation via checkDOI
+    ok 5 - should detect retraction from Crossref is-retracted-by relation via checkDOI
+      ---
+      duration_ms: 0.0769
+      ...
+    # Subtest: recognizes updated-by Retraction Watch records without confusing corrections with retractions
+    ok 6 - recognizes updated-by Retraction Watch records without confusing corrections with retractions
+      ---
+      duration_ms: 0.1128
+      ...
+    1..6
+ok 22 - RetractionChecker Suite
+  ---
+  duration_ms: 0.6767
+  type: 'suite'
+  ...
+# Subtest: Utils Suite
+    # Subtest: splitCreator
+        # Subtest: should split Western names 'First Last'
+        ok 1 - should split Western names 'First Last'
+          ---
+          duration_ms: 0.1697
+          ...
+        # Subtest: should split Western names 'Last, First'
+        ok 2 - should split Western names 'Last, First'
+          ---
+          duration_ms: 0.0536
+          ...
+        # Subtest: should keep single name / Chinese name as lastName
+        ok 3 - should keep single name / Chinese name as lastName
+          ---
+          duration_ms: 0.0609
+          ...
+        # Subtest: should handle empty string defensively
+        ok 4 - should handle empty string defensively
+          ---
+          duration_ms: 0.0326
+          ...
+        1..4
+    ok 1 - splitCreator
+      ---
+      duration_ms: 0.3741
+      type: 'suite'
+      ...
+    # Subtest: isDOI
+        # Subtest: should identify valid DOI strings in various formats
+        ok 1 - should identify valid DOI strings in various formats
+          ---
+          duration_ms: 0.137
+          ...
+        # Subtest: should reject non-DOI strings and ISSN/CNKI tokens
+        ok 2 - should reject non-DOI strings and ISSN/CNKI tokens
+          ---
+          duration_ms: 0.0416
+          ...
+        1..2
+    ok 2 - isDOI
+      ---
+      duration_ms: 0.2115
+      type: 'suite'
+      ...
+    # Subtest: URL Regex & extractURL
+        # Subtest: should extract URL without truncating at domain dots
+        ok 1 - should extract URL without truncating at domain dots
+          ---
+          duration_ms: 0.1466
+          ...
+        # Subtest: should clean trailing semicolons or brackets from extracted URL
+        ok 2 - should clean trailing semicolons or brackets from extracted URL
+          ---
+          duration_ms: 0.0904
+          ...
+        1..2
+    ok 3 - URL Regex & extractURL
+      ---
+      duration_ms: 0.3092
+      type: 'suite'
+      ...
+    # Subtest: isChinese
+        # Subtest: should accurately detect Chinese text
+        ok 1 - should accurately detect Chinese text
+          ---
+          duration_ms: 0.0951
+          ...
+        1..1
+    ok 4 - isChinese
+      ---
+      duration_ms: 0.1263
+      type: 'suite'
+      ...
+    # Subtest: refText2Info
+        # Subtest: does not consume journal text after a DOI
+        ok 1 - does not consume journal text after a DOI
+          ---
+          duration_ms: 0.183
+          ...
+        # Subtest: should parse GB/T 7714 references into structured ItemBaseInfo
+        ok 2 - should parse GB/T 7714 references into structured ItemBaseInfo
+          ---
+          duration_ms: 0.2702
+          ...
+        # Subtest: should detect arXiv identifiers in reference text
+        ok 3 - should detect arXiv identifiers in reference text
+          ---
+          duration_ms: 0.5451
+          ...
+        1..3
+    ok 5 - refText2Info
+      ---
+      duration_ms: 1.0573
+      type: 'suite'
+      ...
+    # Subtest: getItemType
+        # Subtest: should return itemType when available as property
+        ok 1 - should return itemType when available as property
+          ---
+          duration_ms: 0.0775
+          ...
+        # Subtest: should resolve itemType from itemTypeID via Zotero.ItemTypes
+        ok 2 - should resolve itemType from itemTypeID via Zotero.ItemTypes
+          ---
+          duration_ms: 0.0451
+          ...
+        # Subtest: should handle undefined item gracefully
+        ok 3 - should handle undefined item gracefully
+          ---
+          duration_ms: 0.0263
+          ...
+        1..3
+    ok 6 - getItemType
+      ---
+      duration_ms: 0.1957
+      type: 'suite'
+      ...
+    # Subtest: Html2Text
+        # Subtest: should strip HTML tags correctly
+        ok 1 - should strip HTML tags correctly
+          ---
+          duration_ms: 0.1787
+          ...
+        # Subtest: should handle empty or null string
+        ok 2 - should handle empty or null string
+          ---
+          duration_ms: 0.0375
+          ...
+        1..2
+    ok 7 - Html2Text
+      ---
+      duration_ms: 0.2491
+      type: 'suite'
+      ...
+    1..7
+ok 23 - Utils Suite
+  ---
+  duration_ms: 2.6723
+  type: 'suite'
+  ...
+# Subtest: CitationVerifier Suite
+    # Subtest: normalizeDOI
+        # Subtest: should normalize standard lowercase DOI
+        ok 1 - should normalize standard lowercase DOI
+          ---
+          duration_ms: 0.0567
+          ...
+        # Subtest: should normalize uppercase DOI to lowercase
+        ok 2 - should normalize uppercase DOI to lowercase
+          ---
+          duration_ms: 0.0451
+          ...
+        # Subtest: should strip https://doi.org/ and http://dx.doi.org/ prefixes
+        ok 3 - should strip https://doi.org/ and http://dx.doi.org/ prefixes
+          ---
+          duration_ms: 0.0303
+          ...
+        # Subtest: should strip doi: prefix and whitespace
+        ok 4 - should strip doi: prefix and whitespace
+          ---
+          duration_ms: 0.0227
+          ...
+        # Subtest: should strip trailing periods, commas, and spaces
+        ok 5 - should strip trailing periods, commas, and spaces
+          ---
+          duration_ms: 0.025
+          ...
+        # Subtest: should strip trailing parentheses and brackets from citation references
+        ok 6 - should strip trailing parentheses and brackets from citation references
+          ---
+          duration_ms: 0.0274
+          ...
+        # Subtest: should decode URI encoded characters in DOI
+        ok 7 - should decode URI encoded characters in DOI
+          ---
+          duration_ms: 0.0218
+          ...
+        # Subtest: should return undefined for invalid DOI strings
+        ok 8 - should return undefined for invalid DOI strings
+          ---
+          duration_ms: 0.0239
+          ...
+        1..8
+    ok 1 - normalizeDOI
+      ---
+      duration_ms: 0.3351
+      type: 'suite'
+      ...
+    # Subtest: cleanTitle
+        # Subtest: should strip HTML and XML tags
+        ok 1 - should strip HTML and XML tags
+          ---
+          duration_ms: 0.1627
+          ...
+        # Subtest: should unescape common XML entities
+        ok 2 - should unescape common XML entities
+          ---
+          duration_ms: 0.1185
+          ...
+        # Subtest: should remove LaTeX math and symbols
+        ok 3 - should remove LaTeX math and symbols
+          ---
+          duration_ms: 0.0453
+          ...
+        # Subtest: should sanitize Chinese quotation marks and punctuation
+        ok 4 - should sanitize Chinese quotation marks and punctuation
+          ---
+          duration_ms: 0.1344
+          ...
+        1..4
+    ok 2 - cleanTitle
+      ---
+      duration_ms: 0.5129
+      type: 'suite'
+      ...
+    # Subtest: tokenize
+        # Subtest: should extract clean English words and filter stopwords
+        ok 1 - should extract clean English words and filter stopwords
+          ---
+          duration_ms: 0.1792
+          ...
+        # Subtest: should extract Chinese characters and 2-grams
+        ok 2 - should extract Chinese characters and 2-grams
+          ---
+          duration_ms: 0.0938
+          ...
+        1..2
+    ok 3 - tokenize
+      ---
+      duration_ms: 0.3083
+      type: 'suite'
+      ...
+    # Subtest: tokenJaccard
+        # Subtest: should return 1.0 for identical titles
+        ok 1 - should return 1.0 for identical titles
+          ---
+          duration_ms: 0.1435
+          ...
+        # Subtest: should return high score for titles differing only by subtitle
+        ok 2 - should return high score for titles differing only by subtitle
+          ---
+          duration_ms: 0.9081
+          ...
+        # Subtest: should accurately calculate Chinese title similarity (2-gram enabled)
+        ok 3 - should accurately calculate Chinese title similarity (2-gram enabled)
+          ---
+          duration_ms: 0.0959
+          ...
+        # Subtest: should return low score for completely different titles
+        ok 4 - should return low score for completely different titles
+          ---
+          duration_ms: 0.1231
+          ...
+        1..4
+    ok 4 - tokenJaccard
+      ---
+      duration_ms: 1.3357
+      type: 'suite'
+      ...
+    # Subtest: authorMatch
+        # Subtest: should match exact surname token
+        ok 1 - should match exact surname token
+          ---
+          duration_ms: 0.2272
+          ...
+        # Subtest: should match Chinese author name
+        ok 2 - should match Chinese author name
+          ---
+          duration_ms: 0.0802
+          ...
+        # Subtest: should match space-separated single-character Chinese surname
+        ok 3 - should match space-separated single-character Chinese surname
+          ---
+          duration_ms: 0.0539
+          ...
+        # Subtest: should prevent 2-letter surname false positives (e.g. Li vs Williams)
+        ok 4 - should prevent 2-letter surname false positives (e.g. Li vs Williams)
+          ---
+          duration_ms: 0.0428
+          ...
+        # Subtest: should return neutral 0.5 score when author is missing
+        ok 5 - should return neutral 0.5 score when author is missing
+          ---
+          duration_ms: 0.0317
+          ...
+        1..5
+    ok 5 - authorMatch
+      ---
+      duration_ms: 0.4969
+      type: 'suite'
+      ...
+    # Subtest: yearMatch
+        # Subtest: should return 1.0 for exact year match
+        ok 1 - should return 1.0 for exact year match
+          ---
+          duration_ms: 0.0842
+          ...
+        # Subtest: should return 0.75 for preprint/publication 1-year discrepancy
+        ok 2 - should return 0.75 for preprint/publication 1-year discrepancy
+          ---
+          duration_ms: 0.0335
+          ...
+        # Subtest: should return 0.0 for year difference >= 2
+        ok 3 - should return 0.0 for year difference >= 2
+          ---
+          duration_ms: 0.0221
+          ...
+        # Subtest: should return neutral 0.6 when either year is missing
+        ok 4 - should return neutral 0.6 when either year is missing
+          ---
+          duration_ms: 0.0218
+          ...
+        1..4
+    ok 6 - yearMatch
+      ---
+      duration_ms: 0.2049
+      type: 'suite'
+      ...
+    # Subtest: evaluate matrix
+        # Subtest: should immediately ACCEPT on exact DOI match
+        ok 1 - should immediately ACCEPT on exact DOI match
+          ---
+          duration_ms: 0.1244
+          ...
+        # Subtest: conflicting DOIs reject otherwise identical metadata
+        ok 2 - conflicting DOIs reject otherwise identical metadata
+          ---
+          duration_ms: 0.0447
+          ...
+        # Subtest: should ACCEPT high quality metadata match (score >= 0.85)
+        ok 3 - should ACCEPT high quality metadata match (score >= 0.85)
+          ---
+          duration_ms: 0.0755
+          ...
+        # Subtest: should REJECT when title similarity is below hard threshold 0.65
+        ok 4 - should REJECT when title similarity is below hard threshold 0.65
+          ---
+          duration_ms: 0.0912
+          ...
+        1..4
+    ok 7 - evaluate matrix
+      ---
+      duration_ms: 0.3853
+      type: 'suite'
+      ...
+    1..7
+ok 24 - CitationVerifier Suite
+  ---
+  duration_ms: 3.6866
+  type: 'suite'
+  ...
+1..24
+# tests 110
+# suites 25
+# pass 110
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 369.6025
+
+[Test Runner] All unit tests completed successfully!

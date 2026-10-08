@@ -28,8 +28,9 @@ class Utils {
     if (!text) return identifiers;
 
     // 1. DOI 探测与归一化
-    const noSpaceText = text.replace(/\s+/g, "");
-    const doiMatch = noSpaceText.match(/10\.\d{4,9}\/[-._;()/:A-Za-z0-9><]+/);
+    // Removing every space also absorbs following journal names into the DOI.
+    // Normal PDF line reconstruction already joins wrapped DOI glyph runs.
+    const doiMatch = text.match(/10\.\d{4,9}\/[-._;()/:A-Za-z0-9><]+/);
     if (doiMatch) {
       const clean = CitationVerifier.normalizeDOI(doiMatch[0]);
       if (clean && !/(cnki|issn)/i.test(clean)) {
@@ -374,7 +375,7 @@ class Utils {
 
     var ids = await s.search();
     let items = (await (Zotero as any).Items.getAsync(ids)).filter((i: any) => {
-      return Boolean(i && (i.isRegularItem ? i.isRegularItem() : !i.isAttachment?.() && !i.isNote?.()));
+      return Boolean(i && !i.deleted && (i.isRegularItem ? i.isRegularItem() : !i.isAttachment?.() && !i.isNote?.()));
     });
     if (items.length) {
       // 1. 优先根据精准规范化 DOI 匹配
@@ -419,10 +420,11 @@ class Utils {
    */
   public async searchLibraryItem(info: ItemBaseInfo, libraryID?: number): Promise<Zotero.Item | undefined> {
     await Zotero.Promise.delay(0);
-    const key = `${libraryID || 1}:${info.identifiers?.DOI || ""}:${info.identifiers?.arXiv || ""}:${info.title || info.text || ""}:library-item`;
+    libraryID=libraryID || this.getSelectedLibraryID();
+    const key = `${libraryID}:${info.identifiers?.DOI || ""}:${info.identifiers?.arXiv || ""}:${info.title || info.text || ""}:library-item`;
     if (this.itemCache.has(key)) {
       const cached = this.itemCache.get(key);
-      if (cached) {
+      if (cached && !cached.deleted) {
         info._item = cached;
         return cached;
       }
@@ -436,10 +438,13 @@ class Utils {
     if (item) {
       const itemTitle = (item.getField("title") as string) || "";
       const searchTitle = info.title || info.text || "";
+      const requestedDOI=CitationVerifier.normalizeDOI(info.identifiers?.DOI);
+      const candidateDOI=CitationVerifier.normalizeDOI(item.getField("DOI") as string);
+      if(requestedDOI && candidateDOI && requestedDOI!==candidateDOI) item=undefined;
       // 若无 DOI 则进行 Token 校验
-      if (!info.identifiers?.DOI && searchTitle) {
+      if (item && (!requestedDOI || candidateDOI!==requestedDOI) && searchTitle) {
         const sim = CitationVerifier.tokenJaccard(searchTitle, itemTitle);
-        if (sim < 0.65) {
+        if (sim < (requestedDOI?0.85:0.65)) {
           // 相似度过低，拒绝误认
           item = undefined;
         }

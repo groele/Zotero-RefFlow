@@ -56,3 +56,6 @@ saveAPIReferences =
 caption-match = Match
 notInLibarayOpacity-start = Match items and show items that are not in my library with transparency
 notInLibarayOpacity-end = 
+caption-online = Online services
+openAlexKey-label = OpenAlex API key (optional)
+openAlexKey-description = Anonymous access is available. For frequent requests, enter your free personal key. The key is stored in the local Zotero preferences.

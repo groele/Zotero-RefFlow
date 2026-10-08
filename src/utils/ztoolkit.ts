@@ -1,34 +1,23 @@
-import ZoteroToolkit from "zotero-plugin-toolkit";
-import { config } from "../../package.json";
+import {BasicTool, UITool, ClipboardHelper, ProgressWindowHelper, DialogHelper, makeHelperTool, unregister, DebugBridge} from "zotero-plugin-toolkit";
+import {config} from "../../package.json";
 
-export { createZToolkit };
-
-function createZToolkit() {
-  const _ztoolkit = new ZoteroToolkit();
-  /**
-   * Alternatively, import toolkit modules you use to minify the plugin size.
-   * You can add the modules under the `MyToolkit` class below and uncomment the following line.
-   */
-  // const _ztoolkit = new MyToolkit();
-  initZToolkit(_ztoolkit);
-  return _ztoolkit;
+// Construct only the helpers used by RefNexus. Native Zotero 10 managers own
+// item panes and preferences; no ItemBox/Keyboard/legacy tab patches are loaded.
+class RefNexusToolkit extends BasicTool {
+  UI=new UITool(this);
+  Clipboard=makeHelperTool(ClipboardHelper,this);
+  ProgressWindow=makeHelperTool(ProgressWindowHelper,this);
+  Dialog=makeHelperTool(DialogHelper,this);
+  getDOMParser(): DOMParser {return new (this.getGlobal("window").DOMParser)();}
+  unregisterAll(){unregister(this);if(__env__==="development")DebugBridge.unregister();}
 }
-
-function initZToolkit(_ztoolkit: ReturnType<typeof createZToolkit>) {
-  const env = __env__;
-  _ztoolkit.basicOptions.log.prefix = `[${config.addonName}]`;
-  _ztoolkit.basicOptions.log.disableConsole = env === "production";
-  _ztoolkit.UI.basicOptions.ui.enableElementJSONLog = __env__ === "development" && false;
-  _ztoolkit.UI.basicOptions.ui.enableElementDOMLog = __env__ === "development" && false;
-  _ztoolkit.basicOptions.debug.disableDebugBridgePassword =
-    __env__ === "development";
-  _ztoolkit.basicOptions.api.pluginID = config.addonID;
-  _ztoolkit.ProgressWindow.setIconURI(
-    "default",
-    `chrome://${config.addonRef}/content/icons/favicon.png`,
-  );
-  _ztoolkit.ProgressWindow.setIconURI(
-    "connectedpapers",
-    `chrome://${config.addonRef}/content/icons/connectedpapers.png`
-  );
+export function createZToolkit() {
+  const toolkit=new RefNexusToolkit();
+  toolkit.basicOptions.log.prefix=`[${config.addonName}]`;
+  toolkit.basicOptions.log.disableConsole=__env__==="production";
+  toolkit.basicOptions.api.pluginID=config.addonID;
+  if(__env__==="development")DebugBridge.register({disablePassword:false});
+  toolkit.ProgressWindow.setIconURI("default",`chrome://${config.addonRef}/content/icons/favicon.png`);
+  toolkit.ProgressWindow.setIconURI("connectedpapers",`chrome://${config.addonRef}/content/icons/connectedpapers.png`);
+  return toolkit;
 }

@@ -1,16 +1,17 @@
 import { config } from "../../package.json";
 
 
-export function registerPrefs() {
+export async function registerPrefs() {
   const prefOptions = {
     pluginID: config.addonID,
+    id: `${config.addonRef}-preferences`,
     src: rootURI + "chrome/content/preferences.xhtml",
     label: config.addonName || "RefNexus",
     image: `chrome://${config.addonRef}/content/icons/favicon.png`,
     // extraDTD: [`chrome://${config.addonRef}/locale/overlay.dtd`],
     // defaultXUL: true,
   };
-  ztoolkit.PreferencePane.register(prefOptions);
+  await (Zotero as any).PreferencePanes.register(prefOptions);
 }
 
 export function registerPrefsScripts(_window: Window) {

@@ -4,6 +4,15 @@ import assert from "node:assert";
 import API from "../src/modules/api";
 
 describe("API reference provider ordering", () => {
+  test("does not enrich a reference with a conflicting DOI even when titles match", async () => {
+    const api=new API({refText2Info:(text:string)=>({title:text}),identifiers2URL:()=>undefined} as any);
+    (api.requests as any).get=async()=>({message:{DOI:"10.1000/source",title:["Source"],reference:[{DOI:"10.1000/expected","article-title":"Identical scientific title",author:"Author",year:"2024"}]}});
+    (api.openAlex as any).getWorkByDOI=async()=>({work:{title:"Source"},referencedWorks:["W1"]});
+    (api.openAlex as any).hydrateBatch=async()=>[{doi:"10.1000/wrong",title:"Identical scientific title",authors:["Author"],year:"2024",isOA:true,oaUrl:"https://example.org/wrong.pdf"}];
+    const result=await api.getDOIInfoByCrossref("10.1000/source");
+    assert.equal(result?.references?.[0].identifiers?.DOI,"10.1000/expected");
+    assert.equal(result?.references?.[0].oaUrl,undefined);
+  });
   test("enriches matching OpenAlex entries without appending unmatched records", async () => {
     const api = new API({
       refText2Info: (text: string) => ({ title: text }),

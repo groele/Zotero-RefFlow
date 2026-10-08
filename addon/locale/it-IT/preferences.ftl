@@ -56,3 +56,6 @@ saveAPIReferences =
 caption-match = Abbina
 notInLibarayOpacity-start = Abbina elementi e rendi gli elementi che non sono nella biblioteca trasparenti
 notInLibarayOpacity-end = 
+caption-online = Servizi online
+openAlexKey-label = Chiave API OpenAlex (facoltativa)
+openAlexKey-description = Per richieste frequenti, usa la tua chiave gratuita. La chiave viene salvata nelle preferenze locali di Zotero.

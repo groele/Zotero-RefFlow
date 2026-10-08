@@ -1,0 +1,1 @@
+await Zotero.Promise.delay(5000);await Zotero.File.putContentsAsync(cfg.output,JSON.stringify({version:Zotero.version,hasPlugin:Boolean(Zotero.ZoteroRefNexus),graph:Boolean(window.document.getElementById('graph-view')),errors:Zotero.getErrors(true)},null,2));

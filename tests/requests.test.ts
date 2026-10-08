@@ -4,6 +4,28 @@ import assert from "node:assert";
 import Requests from "../src/modules/requests";
 
 describe("Requests Suite", () => {
+  test("does not retry permanent 404 errors or enable Zotero's nested hour-long retries",async()=>{
+    const original=Zotero.HTTP.request;let calls=0;
+    Zotero.HTTP.request=async (_method:string,_url:string,options:any)=>{
+      calls++;assert.equal(options.errorDelayMax,0);assert.equal(options.successCodes,false);return {status:404};
+    };
+    try{assert.equal(await new Requests().get('https://api.test/missing'),undefined);assert.equal(calls,1);}finally{Zotero.HTTP.request=original;}
+  });
+  test("honors a Retry-After that exceeds the operation budget without retrying early",async()=>{
+    const original=Zotero.HTTP.request;let calls=0;
+    Zotero.HTTP.request=async()=>{calls++;return {status:429,getResponseHeader:()=> '60'};};
+    try{assert.equal(await new Requests({budgetMs:100,retryDelayMs:1}).get('https://api.test/throttle'),undefined);assert.equal(calls,1);}finally{Zotero.HTTP.request=original;}
+  });
+  test("a timed-out request is physically cancelled and is not cached",async()=>{
+    const original=Zotero.HTTP.request;let cancelled=0;
+    Zotero.HTTP.request=async (_method:string,_url:string,options:any)=>{options.cancellerReceiver(()=>cancelled++);return new Promise(()=>{});};
+    try{const client=new Requests({timeoutMs:10,budgetMs:100});assert.equal(await client.get('https://api.test/stall'),undefined);assert.equal(cancelled,1);assert.equal((client as any).cache.size,0);}finally{Zotero.HTTP.request=original;}
+  });
+  test("distinct requests have bounded concurrency",async()=>{
+    const original=Zotero.HTTP.request;let active=0,max=0;
+    Zotero.HTTP.request=async()=>{active++;max=Math.max(max,active);await new Promise(resolve=>setTimeout(resolve,5));active--;return {status:200,response:{ok:true}};};
+    try{const client=new Requests({maxConcurrent:2});await Promise.all(Array.from({length:8},(_,i)=>client.get(`https://api.test/task${i}`)));assert.equal(max,2);}finally{Zotero.HTTP.request=original;}
+  });
   test("should promote cache hits before evicting the least recently used entry", () => {
     const requests = new Requests();
     // Fill cache with MAX_CACHE_ENTRIES
@@ -80,4 +102,11 @@ describe("Requests Suite", () => {
       Zotero.HTTP.request = originalRequest;
     }
   });
+});
+
+
+test("scheduler bounds queued requests and expires waiting work", async()=>{
+  const original=Zotero.HTTP.request;let release:any;Zotero.HTTP.request=async()=>new Promise(resolve=>{release=resolve;});
+  const requests=new Requests({maxConcurrent:1,maxQueued:1,budgetMs:30,timeoutMs:30});
+  try{const active=requests.get("https://fixture/queue-a");const queued=requests.get("https://fixture/queue-b");const overflow=await requests.get("https://fixture/queue-c");assert.equal(overflow,undefined);assert.equal((requests as any).queue.length,1);assert.equal(await queued,undefined);assert.equal((requests as any).queue.length,0);release?.({status:200,response:{ok:true}});await active;}finally{requests.dispose();Zotero.HTTP.request=original;}
 });

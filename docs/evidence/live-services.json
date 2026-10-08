@@ -1,0 +1,66 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T12:38:04.094Z",
+  "tests": [
+    {
+      "name": "live multi-provider reference list includes bibliographic metadata",
+      "ok": true,
+      "detail": {
+        "doi": "10.1038/nphys1170",
+        "count": 10,
+        "first": "Lundeen, J. S. et al. Nature Phys. 5, 27–30 (2009)."
+      },
+      "ms": 4315
+    },
+    {
+      "name": "live OpenAlex Citations and native mode cache",
+      "ok": true,
+      "detail": {
+        "doi": "10.1038/nphys1170",
+        "count": 12,
+        "source": "OpenAlex Citations"
+      },
+      "ms": 1592
+    },
+    {
+      "name": "live OpenAlex Related and native mode cache",
+      "ok": true,
+      "detail": {
+        "doi": "10.1038/nphys1170",
+        "count": 7,
+        "source": "OpenAlex Related (7/10)"
+      },
+      "ms": 2323
+    },
+    {
+      "name": "real arXiv metadata uses the native XML parser",
+      "ok": true,
+      "detail": {
+        "title": "Attention Is All You Need",
+        "authors": 8,
+        "year": "2017"
+      },
+      "ms": 905
+    },
+    {
+      "name": "real public paper PDF is extracted by native Zotero Reader",
+      "ok": true,
+      "detail": {
+        "source": "https://arxiv.org/pdf/1706.03762",
+        "references": 40,
+        "diagnostics": {
+          "pagesRead": 6,
+          "totalPages": 15,
+          "headingFound": true,
+          "scanLimited": false,
+          "elapsedMs": 1923
+        }
+      },
+      "ms": 2496
+    }
+  ],
+  "scope": "Live public Crossref and OpenAlex APIs; no service responses mocked",
+  "finished": "2026-10-08T12:38:15.750Z",
+  "passed": 5,
+  "failed": 0
+}

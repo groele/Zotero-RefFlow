@@ -68,6 +68,9 @@ describe("Utils Suite", () => {
   });
 
   describe("refText2Info", () => {
+    test("does not consume journal text after a DOI",()=>{
+      assert.equal(utils.getIdentifiers('DOI: 10.1234/example. Journal A 2024').DOI,'10.1234/example');
+    });
     test("should parse GB/T 7714 references into structured ItemBaseInfo", () => {
       const text = "[1] 李德毅, 杜鹢. 不确定性人工智能[J]. 软件学报, 2004, 15(11): 1583-1594.";
       const info = utils.refText2Info(text);

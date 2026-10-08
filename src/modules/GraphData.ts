@@ -1,4 +1,4 @@
-import { ProgressWindowHelper } from "zotero-plugin-toolkit/dist/helpers/progressWindow";
+import { ProgressWindowHelper } from "zotero-plugin-toolkit";
 import { ConnectedPapersClient } from 'connectedpapers-js';
 
 const GraphResponseStatuses = {
@@ -33,7 +33,7 @@ async function askUserAccessToken(update = false) {
       attributes: {
         "data-bind": "inputValue",
         "data-prop": "value",
-        type: "text",
+        type: "password",
       },
     }, true)
     .addButton(update ? "Update" : "Set", update ? "Update" : "Set")
@@ -45,19 +45,19 @@ async function askUserAccessToken(update = false) {
     });
   addon.data.dialog = dialogHelper;
   await dialogData.unloadLock.promise;
-  ztoolkit.log(dialogData)
   if (dialogData.inputValue) {
     Zotero.Prefs.set("ConnectedPapers.accessToken", dialogData.inputValue)
   }
   return dialogData.inputValue 
 }
 
-export default async function buildGraphData(id: string, popupWin: ProgressWindowHelper): Promise<Graph |undefined> {
+export default async function buildGraphData(id: string, popupWin: ProgressWindowHelper, keyRetry=0): Promise<Graph |undefined> {
+  if(!id || !id.split("+").every(part=>part.trim())){popupWin.changeLine({text:"Paper ID not found",type:"fail"});popupWin.startCloseTimer(3000);return;}
   // 读取密钥
   let accessToken = Zotero.Prefs.get("ConnectedPapers.accessToken") as string
   if (!accessToken) {
     accessToken = await askUserAccessToken() as string
-    if (!accessToken) { return }
+    if (!accessToken) { popupWin.close();return }
   }
   const client = new ConnectedPapersClient({ access_token: accessToken });
   ztoolkit.log("id", id)
@@ -73,8 +73,12 @@ export default async function buildGraphData(id: string, popupWin: ProgressWindo
     loop_until_fresh: true
   }) as AsyncGenerator<GraphResponse>
   let temp
+  const deadline=Date.now()+60000;
+  try {
   while (true) {
-    const nextItem = await iterator.next();
+    let timer:any;
+    const remaining=deadline-Date.now();if(remaining<=0)throw new Error("Graph request timed out");
+    const nextItem = await Promise.race([iterator.next(),new Promise<never>((_,reject)=>{timer=window.setTimeout(()=>reject(new Error("Graph request timed out")),remaining);})]).finally(()=>window.clearTimeout(timer));
     if (nextItem.done || !nextItem.value) break;
     temp = nextItem.value as GraphResponse;
     ztoolkit.log(temp, temp.status)
@@ -97,9 +101,9 @@ export default async function buildGraphData(id: string, popupWin: ProgressWindo
       default:
         isDone = true;
         popupWin.changeLine({ text: temp.status, type: "fail" })
-        const accessToken = await askUserAccessToken(true) as string
+        const accessToken = keyRetry<1 && temp.status==="BAD_TOKEN" ? await askUserAccessToken(true) as string : undefined;
         if (accessToken) {
-          return await buildGraphData(id, popupWin)
+          return await buildGraphData(id, popupWin,keyRetry+1)
         }
         break
     }
@@ -111,4 +115,6 @@ export default async function buildGraphData(id: string, popupWin: ProgressWindo
     const graphData = temp.graph_json
     return graphData
   }
+  } catch(error){ztoolkit.log("Graph fetch failed",error);popupWin.changeLine({text:String(error),type:"fail"});}
+  finally{popupWin.startCloseTimer(4000);}
 }

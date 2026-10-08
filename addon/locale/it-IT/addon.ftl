@@ -1,4 +1,7 @@
 prefs-label = RefNexus
+pane-title =
+    .label = Riferimenti
+    .tooltiptext = Riferimenti
 tabpanel-reader-tab-label = Citazioni RefNexus
 relatedbox-number-label = riferimenti:
 relatedbox-refresh-label = Aggiorna
@@ -13,3 +16,7 @@ relatedbox-no-importable = Nessun riferimento importabile rilevato
 relatedbox-rollback-success = Ripristinati con successo { $count } elementi importati
 relatedbox-no-rollback-batch = Nessun record di lotto di ripristino trovato
 relatedbox-source-tooltip = Fonte corrente: { $source } (Fai clic per cambiare fonte, tieni premuto per forzare l'aggiornamento)
+
+cards-cached-offline = Dati dalla cache offline
+
+cards-partial = elenco parziale

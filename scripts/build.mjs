@@ -225,7 +225,7 @@ async function esbuild() {
       "process.env.CONNECTED_PAPERS_REST_API": '"https://rest.prod.connectedpapers.com"',
     },
     bundle: true,
-    target: "firefox102",
+    target: "firefox140",
     outfile: path.join(
       buildDir,
       `addon/chrome/content/scripts/${config.addonRef}.js`,

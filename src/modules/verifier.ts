@@ -1,6 +1,6 @@
 /**
  * 确定性引文校验与多维加权打分矩阵
- * 杜绝“张冠李戴”，实现零假阳性 (Zero-False-Positive)
+ * 依据 DOI、题名、作者与年份筛选候选；评分不能保证零误匹配
  */
 
 export interface CandidateWork {
@@ -260,6 +260,9 @@ export class CitationVerifier {
         reasons: ["Exact DOI match verified"],
         normalizedTitle: candidate.title
       };
+    }
+    if(normExtDoi && normCandDoi && normExtDoi!==normCandDoi) {
+      return {score:0,status:"REJECT",reasons:["Rejected: conflicting DOI identifiers"],normalizedTitle:candidate.title};
     }
 
     // 1. 标题分 (权重 0.55)

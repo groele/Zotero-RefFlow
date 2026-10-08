@@ -4,6 +4,9 @@ import Views from "./modules/views";
 import ConnectedPapers from "./modules/connectedpapers";
 
 const initializedWindows = new WeakSet<Window>();
+let activeViews: Views | undefined;
+const graphs = new Map<Window, ConnectedPapers>();
+let ownerWindow: Window | undefined;
 
 async function onStartup() {
   await Promise.all([
@@ -19,37 +22,51 @@ async function onMainWindowLoad(win: Window): Promise<void> {
     return;
   }
   initializedWindows.add(win);
-  registerPrefs();
   await Promise.all([
     Zotero.initializationPromise,
     Zotero.unlockPromise,
     Zotero.uiReadyPromise,
   ]);
-  if (!(ztoolkit.ProgressWindow.prototype as any)._showPatched) {
-    const show = ztoolkit.ProgressWindow.prototype.show;
-    ztoolkit.ProgressWindow.prototype.show = function () {
-      Zotero.ProgressWindowSet.closeAll();
-      return show.call(this, ...arguments);
-    };
-    (ztoolkit.ProgressWindow.prototype as any)._showPatched = true;
+  const pane=(win as any).ZoteroPane;
+  const deadline=Date.now()+15000;
+  while((!pane?.itemsView || !pane?.collectionsView?.itemTreeView) && Date.now()<deadline && !win.closed)await Zotero.Promise.delay(50);
+  if(win.closed)return;
+  if(!pane?.itemsView || !pane?.collectionsView?.itemTreeView)throw new Error("RefNexus: native Zotero item tree did not finish initialization");
+  if (activeViews) {
+    const graph = new ConnectedPapers(activeViews, win);
+    graphs.set(win, graph);
+    await graph.init();
+    return;
   }
+  await registerPrefs();
   // 界面
   const views = new Views();
+  activeViews=views;
+  ownerWindow=win;
   await views.onInit();
   Zotero[config.addonInstance].views = views;
-  await new ConnectedPapers(views).init();
+  const graph=new ConnectedPapers(views, win);
+  graphs.set(win, graph);
+  await graph.init();
 }
 
 async function onMainWindowUnload(win: Window): Promise<void> {
   if (win) {
     initializedWindows.delete(win);
   }
-  ztoolkit.unregisterAll();
-  addon.data.dialog?.window?.close();
+  graphs.get(win)?.shutdown();
+  graphs.delete(win);
+  if (win === ownerWindow) ownerWindow = graphs.keys().next().value;
+
 }
 
 
-function onShutdown(): void {
+async function onShutdown(): Promise<void> {
+  await activeViews?.shutdown();
+  for(const graph of graphs.values())graph.shutdown();
+  graphs.clear();
+  activeViews=undefined;
+  ownerWindow=undefined;
   ztoolkit.unregisterAll();
   document
     .querySelectorAll(`#${config.addonRef}-show-hide-graph-view`)
