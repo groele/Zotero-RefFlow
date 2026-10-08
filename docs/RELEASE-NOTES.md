@@ -24,7 +24,7 @@
 
 安装 Release 附件 `zotero-refnexus.xpi`，或在 Zotero 的插件管理中检查更新。此前已经使用 RefNexus 且更新地址指向本仓库的版本可通过该地址升级；原始 Zotero Reference 的不同插件 ID 不会自动迁移。
 
-Windows / Zotero 10.0.6：156 项单元测试、109 项功能实机场景、5 项实时联网及 2 项维护信息检查通过；TypeScript 和生产构建通过。发布后的原生自动升级结果单独记录在 [检验记录](MAJOR-UPDATE.md)。
+Windows / Zotero 10.0.6：156 项单元测试、109 项功能实机场景、5 项实时联网及 2 项维护信息检查通过；TypeScript 和生产构建通过。发布后使用真实 10.3.3 安装包完成原生自动升级至 11.0.0，4 项升级检查通过，详见 [检验记录](https://github.com/groele/Zotero-diy/blob/main/RefNexus-Zotero10/docs/MAJOR-UPDATE.md)。
 
 支持 Zotero 10.0.0–10.*；插件版本 11.0.0 不表示兼容 Zotero 11。其他操作系统、未来主版本、长期内存及全部第三方插件组合尚未验证。
 

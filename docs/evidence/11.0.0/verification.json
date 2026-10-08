@@ -13,5 +13,13 @@
   "testedZotero": "10.0.6",
   "platform": "Windows",
   "productionBuild": "2026-10-09 01:06:36 Asia/Shanghai",
-  "verified": true
+  "verified": true,
+  "nativeUpgradePassed": 4,
+  "nativeUpgradeFrom": "10.3.3",
+  "releaseCommit": "c7e74f9711e598944a65a26a81217c6aecc14ccb",
+  "tag": "refnexus-v11.0.0",
+  "releaseURL": "https://github.com/groele/Zotero-diy/releases/tag/refnexus-v11.0.0",
+  "releaseAsset": "https://github.com/groele/Zotero-diy/releases/download/refnexus-v11.0.0/zotero-refnexus.xpi",
+  "remoteRawPackageVerified": true,
+  "releaseAssetDigestVerified": true
 }

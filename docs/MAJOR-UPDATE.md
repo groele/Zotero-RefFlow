@@ -25,6 +25,7 @@
 | 生产包功能实机 | 109 通过，0 失败 | [主报告](evidence/11.0.0/native-final.json)及其子报告 |
 | 实时外部服务与真实 PDF | 5 通过，0 失败 | [联网报告](evidence/11.0.0/online-native.json) |
 | 原生设置、维护信息和链接 | 2 通过，0 失败 | [设置报告](evidence/11.0.0/metadata-native.json) |
+| 发布后原生自动升级 | 4 通过，0 失败 | [升级报告](evidence/11.0.0/update-native.json) |
 | TypeScript / 生产构建 | 通过 | `npm run build`，最终包信息见[校验文件](evidence/11.0.0/verification.json) |
 
 109 项为七组子场景共 100 项加九项独立主场景；主报告中的七个汇总项不重复计数。12 项新增专项包含在 109 项中。早期 `major-native.json` 是设置页最后调整前的独立检查，最终证据使用 `native-final-native-major.json`。
@@ -56,7 +57,13 @@
 
 构建校验依据实际已安装的 Zotero 原生更新器对 `update_link`、`update_hash` 和 `update_info_url` 的支持，另参见 [Mozilla 更新格式](https://extensionworkshop.com/documentation/manage/updating-your-extension/)。
 
-发布后会在独立配置中使用真实 10.3.3 安装包，通过原生 AddonManager 检查并安装 11.0.0；结果记录于本页发布后的补充记录，未完成前不将配置正确等同于升级已经通过。
+发布后在独立配置中使用真实 10.3.3 安装包，通过原生 AddonManager 检查并安装 11.0.0，4 项检查全部通过：旧版激活、发现正确版本和地址、原生下载安装并启用、新面板正常且没有同上下文重复注册。升级保留原插件 ID。此结果来自实际 GitHub 清单与安装包，不是替换更新器或本地模拟。
+
+远程 main 的安装包与清单已读取校验，SHA-256 与本地最终生产包一致；GitHub Release 附件状态为 uploaded，大小和服务端摘要一致。详见 [远程校验](evidence/11.0.0/remote-verification.json)与 [Release 检查](evidence/11.0.0/github-release.json)。
+
+发布提交 `c7e74f9711e598944a65a26a81217c6aecc14ccb`；已推送 main 与注释标签 `refnexus-v11.0.0`，远程标签解引用指向该提交。后续证据文档提交不改变已验证安装包及版本标签。仓库默认 latest 仍为另一插件的 `v12.0.0`。
+
+主用户配置未在本轮自动替换安装包；可在 Zotero 插件管理中检查更新或安装 Release 附件后重启。
 
 ## 仍需持续改进的范围
 

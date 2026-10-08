@@ -1,0 +1,43 @@
+{
+  "version": "10.0.6",
+  "scope": "Native AddonManager automatic update; real GitHub update manifest and XPI",
+  "tests": [
+    {
+      "name": "previous 10.3.3 is active with the same upgrade identity",
+      "ok": true,
+      "detail": {
+        "version": "10.3.3",
+        "id": "refnexus@polygon.org",
+        "updateURL": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json"
+      }
+    },
+    {
+      "name": "native updater discovers 11.0.0 from the user repository",
+      "ok": true,
+      "detail": {
+        "version": "11.0.0",
+        "source": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/zotero-refnexus.xpi"
+      }
+    },
+    {
+      "name": "native updater downloads, verifies and installs the production package",
+      "ok": true,
+      "detail": {
+        "version": "11.0.0",
+        "active": true,
+        "id": "refnexus@polygon.org"
+      }
+    },
+    {
+      "name": "updated native reference pane remains registered once per context",
+      "ok": true,
+      "detail": {
+        "panes": 1,
+        "uniqueContexts": true
+      }
+    }
+  ],
+  "finished": "2026-10-08T17:16:22.529Z",
+  "passed": 4,
+  "failed": 0
+}
