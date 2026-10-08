@@ -105,7 +105,7 @@ export default class Views {
     const registered = paneManager.registerSection({
       paneID,
       pluginID: config.addonID,
-      sidenav: { l10nID: "refnexus-pane-title", icon },
+      sidenav: { l10nID: "refnexus-pane-sidenav", icon },
       header: { l10nID: "refnexus-pane-title",l10nArgs:JSON.stringify({count:0}), icon: `chrome://${config.addonRef}/content/icons/reference.svg` },
       sectionButtons:[
         {type:"type",icon:`chrome://${config.addonRef}/content/icons/type.svg`,l10nID:"refnexus-pane-type",onClick:({body,item})=>this.typeMenu(body,item)},

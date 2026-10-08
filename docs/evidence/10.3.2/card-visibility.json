@@ -1,0 +1,25 @@
+{
+  "version": "10.0.6",
+  "finished": "2026-10-08T13:51:29.493Z",
+  "passed": 1,
+  "failed": 0,
+  "documentHidden": true,
+  "windowState": 3,
+  "localID": 2,
+  "matchedID": 2,
+  "row": {
+    "x": 651,
+    "y": 543.86669921875,
+    "width": 304,
+    "height": 51.149993896484375,
+    "top": 543.86669921875,
+    "right": 955,
+    "bottom": 595.0166931152344,
+    "left": 651
+  },
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"The connection was refused when attempting to contact wss://stream.zotero.org/.\" {file: \"chrome://zotero/content/xpcom/streamer.js\" line: 240}]",
+    "[JavaScript Error: \"WebSocket connection closed: 1006 \"]"
+  ]
+}

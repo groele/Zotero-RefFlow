@@ -1,0 +1,131 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T16:23:56.147Z",
+  "tests": [
+    {
+      "name": "production XPI cold startup with native sidebar and no debug bridge",
+      "ok": true,
+      "detail": {
+        "addonVersion": "10.3.2",
+        "env": "production",
+        "errors": [
+          "[JavaScript Error: \"uncaught exception: undefined\"]"
+        ]
+      }
+    },
+    {
+      "name": "native-regression",
+      "ok": true,
+      "detail": {
+        "passed": 10,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-stress",
+      "ok": true,
+      "detail": {
+        "passed": 22,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-publishers",
+      "ok": true,
+      "detail": {
+        "passed": 28,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-numbering",
+      "ok": true,
+      "detail": {
+        "passed": 6,
+        "failed": 0
+      }
+    },
+    {
+      "name": "XPI baseline layout: header icons, search, metadata cards, selection and filtering",
+      "ok": true,
+      "detail": {
+        "cards": 4,
+        "multiSelect": true,
+        "search": true,
+        "contextMenu": true
+      }
+    },
+    {
+      "name": "same-item native rerender preserves in-flight retrieval and literature type",
+      "ok": true,
+      "detail": {
+        "preserved": true
+      }
+    },
+    {
+      "name": "native single-row import saves one item and one relation",
+      "ok": true,
+      "detail": {
+        "saved": true
+      }
+    },
+    {
+      "name": "local library status and metadata hover require no enrichment requests",
+      "ok": true,
+      "detail": {
+        "localMatch": true,
+        "hover": true,
+        "enrichmentRequests": 0
+      }
+    },
+    {
+      "name": "partial citation snapshot stays labeled and survives an offline force refresh",
+      "ok": true,
+      "detail": {
+        "partial": "1/9",
+        "offlineRecovery": true
+      }
+    },
+    {
+      "name": "second native main window has one pane and closing it preserves the plugin",
+      "ok": true,
+      "detail": {
+        "windows": 2,
+        "onePanePerWindow": true
+      }
+    },
+    {
+      "name": "native preference pane renders and saves the optional OpenAlex key",
+      "ok": true,
+      "detail": {
+        "masked": true,
+        "saved": true
+      }
+    },
+    {
+      "name": "disable and re-enable production XPI twice without duplicate panes",
+      "ok": true,
+      "detail": {
+        "cycles": 2,
+        "errors": [
+          "[JavaScript Error: \"uncaught exception: undefined\"]",
+          "[JavaScript Error: \"uncaught exception: undefined\"]",
+          "[JavaScript Error: \"uncaught exception: undefined\"]",
+          "[JavaScript Error: \"uncaught exception: undefined\"]"
+        ]
+      }
+    },
+    {
+      "name": "native-sidebar",
+      "ok": true,
+      "detail": {
+        "passed": 10,
+        "failed": 0
+      }
+    }
+  ],
+  "skippedOnline": true,
+  "finished": "2026-10-08T16:25:22.221Z",
+  "passed": 14,
+  "failed": 0
+}

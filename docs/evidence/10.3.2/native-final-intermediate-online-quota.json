@@ -1,0 +1,131 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T13:51:55.356Z",
+  "tests": [
+    {
+      "name": "production XPI cold startup with native sidebar and no debug bridge",
+      "ok": true,
+      "detail": {
+        "addonVersion": "10.3.2",
+        "env": "production",
+        "errors": [
+          "[JavaScript Error: \"uncaught exception: undefined\"]"
+        ]
+      }
+    },
+    {
+      "name": "native-regression",
+      "ok": true,
+      "detail": {
+        "passed": 10,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-stress",
+      "ok": true,
+      "detail": {
+        "passed": 22,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-online",
+      "ok": false,
+      "error": "Error: 2 native scenarios failed",
+      "stack": "check@jar:file:///C:/Users/gro_e/AppData/Local/Temp/refnexus-z10-release-20261008-215153-13d0e5/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:6:41\nanonymous/<@jar:file:///C:/Users/gro_e/AppData/Local/Temp/refnexus-z10-release-20261008-215153-13d0e5/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:19:78\n"
+    },
+    {
+      "name": "native-publishers",
+      "ok": true,
+      "detail": {
+        "passed": 28,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-numbering",
+      "ok": true,
+      "detail": {
+        "passed": 6,
+        "failed": 0
+      }
+    },
+    {
+      "name": "XPI baseline layout: header icons, search, metadata cards, selection and filtering",
+      "ok": true,
+      "detail": {
+        "cards": 4,
+        "multiSelect": true,
+        "search": true,
+        "contextMenu": true
+      }
+    },
+    {
+      "name": "same-item native rerender preserves in-flight retrieval and literature type",
+      "ok": true,
+      "detail": {
+        "preserved": true
+      }
+    },
+    {
+      "name": "native single-row import saves one item and one relation",
+      "ok": true,
+      "detail": {
+        "saved": true
+      }
+    },
+    {
+      "name": "local library status and metadata hover require no enrichment requests",
+      "ok": false,
+      "error": "Error: Visible card did not match local item: {\"localID\":41,\"row\":{\"x\":651,\"y\":543.566650390625,\"width\":304,\"height\":51.149993896484375,\"top\":543.566650390625,\"right\":955,\"bottom\":594.7166442871094,\"left\":651},\"sectionOpen\":true,\"hidden\":false,\"bodyItem\":\"40\",\"selectedItem\":40,\"cardDisposed\":false,\"queue\":0,\"active\":0,\"documentHidden\":true}",
+      "stack": "check@jar:file:///C:/Users/gro_e/AppData/Local/Temp/refnexus-z10-release-20261008-215153-13d0e5/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:6:41\nanonymous/<@jar:file:///C:/Users/gro_e/AppData/Local/Temp/refnexus-z10-release-20261008-215153-13d0e5/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:63:57\n"
+    },
+    {
+      "name": "partial citation snapshot stays labeled and survives an offline force refresh",
+      "ok": false,
+      "error": "Error: Partial result missing",
+      "stack": "check@jar:file:///C:/Users/gro_e/AppData/Local/Temp/refnexus-z10-release-20261008-215153-13d0e5/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:6:41\nanonymous/<@jar:file:///C:/Users/gro_e/AppData/Local/Temp/refnexus-z10-release-20261008-215153-13d0e5/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:69:70\n"
+    },
+    {
+      "name": "second native main window has one pane and closing it preserves the plugin",
+      "ok": true,
+      "detail": {
+        "windows": 2,
+        "onePanePerWindow": true
+      }
+    },
+    {
+      "name": "native preference pane renders and saves the optional OpenAlex key",
+      "ok": true,
+      "detail": {
+        "masked": true,
+        "saved": true
+      }
+    },
+    {
+      "name": "disable and re-enable production XPI twice without duplicate panes",
+      "ok": true,
+      "detail": {
+        "cycles": 2,
+        "errors": [
+          "[JavaScript Error: \"uncaught exception: undefined\"]",
+          "[JavaScript Error: \"uncaught exception: undefined\"]",
+          "[JavaScript Error: \"uncaught exception: undefined\"]",
+          "[JavaScript Error: \"uncaught exception: undefined\"]"
+        ]
+      }
+    },
+    {
+      "name": "native-sidebar",
+      "ok": true,
+      "detail": {
+        "passed": 10,
+        "failed": 0
+      }
+    }
+  ],
+  "finished": "2026-10-08T13:53:27.873Z",
+  "passed": 12,
+  "failed": 3
+}

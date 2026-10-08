@@ -1,0 +1,13 @@
+if(!/refnexus-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
+const delay=ms=>Zotero.Promise.delay(ms),views=Zotero.ZoteroRefNexus.views;
+window.restore();window.focus();await delay(300);
+const parent=new Zotero.Item('journalArticle');parent.setField('title','Card visibility parent');await parent.saveTx();
+const local=new Zotero.Item('journalArticle');local.setField('title','Local metadata hover fixture');local.setField('DOI','10.1234/hoverfixture');await local.saveTx();
+window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(300);
+const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');
+const ref={title:'Local metadata hover fixture',text:'Hover reference fixture',identifiers:{DOI:'10.1234/hoverfixture'}};
+await body._cards.render([ref],()=>true);body.closest('item-pane-custom-section').querySelector('collapsible-section').open=true;
+const row=body.querySelector('.reference-item');row.scrollIntoView();
+for(let i=0;i<100&&!ref._item;i++)await delay(50);
+const ok=ref._item?.id===local.id;
+await Zotero.File.putContentsAsync(cfg.output,JSON.stringify({version:Zotero.version,finished:new Date().toISOString(),passed:ok?1:0,failed:ok?0:1,documentHidden:window.document.hidden,windowState:window.windowState,localID:local.id,matchedID:ref._item?.id,row:row.getBoundingClientRect().toJSON(),errors:Zotero.getErrors(true)},null,2));

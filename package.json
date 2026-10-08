@@ -1,14 +1,16 @@
 {
   "name": "zotero-refnexus",
-  "version": "10.3.1",
-  "description": "Zotero RefNexus - Citation Graph & Reference Intelligence Suite",
+  "version": "10.3.2",
+  "description": "Zotero 10 reference retrieval and citation graphs, derived from Zotero Reference / Ethereal Reference by Polygon / MuiseDestiny.",
   "config": {
     "addonName": "Zotero RefNexus",
     "addonID": "refnexus@polygon.org",
     "addonRef": "refnexus",
     "addonInstance": "ZoteroRefNexus",
-    "releasepage": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/zotero-refnexus.xpi",
-    "updaterdf": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json"
+    "downloadURL": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/zotero-refnexus.xpi",
+    "updateURL": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json",
+    "issuesURL": "https://github.com/groele/Zotero-diy/issues",
+    "upstreamURL": "https://github.com/MuiseDestiny/zotero-reference"
   },
   "main": "src/index.ts",
   "scripts": {
@@ -24,7 +26,7 @@
     "type": "git",
     "url": "git+https://github.com/groele/Zotero-diy.git"
   },
-  "author": "Polygon",
+  "author": "groele",
   "license": "AGPL-3.0-or-later",
   "bugs": {
     "url": "https://github.com/groele/Zotero-diy/issues"
@@ -44,5 +46,11 @@
     "replace-in-file": "^6.3.5",
     "typescript": "^4.9.5",
     "zotero-types": "^1.0.9"
-  }
+  },
+  "contributors": [
+    {
+      "name": "Polygon / MuiseDestiny",
+      "url": "https://github.com/MuiseDestiny"
+    }
+  ]
 }

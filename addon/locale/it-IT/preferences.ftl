@@ -63,3 +63,10 @@ source-auto =
     .label = Automatico (consigliato)
 source-web =
     .label = Editore HTML / XML
+
+about-maintainer = Modificato e mantenuto da groele
+about-origin = Basato su Zotero Reference / Ethereal Reference (Polygon / MuiseDestiny). Attribuzione originale e licenza AGPL-3.0-or-later conservate.
+about-project = Progetto e aggiornamenti
+about-issues = Segnala un problema
+about-upstream = Progetto originale
+openAlexKey-get = Ottieni / visualizza una chiave API OpenAlex gratuita

@@ -1,0 +1,58 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-08T13:52:30.218Z",
+  "tests": [
+    {
+      "name": "live multi-provider reference list includes bibliographic metadata",
+      "ok": true,
+      "detail": {
+        "doi": "10.1038/nphys1170",
+        "count": 10,
+        "first": "Lundeen, J. S. et al. Nature Phys. 5, 27–30 (2009)."
+      },
+      "ms": 4402
+    },
+    {
+      "name": "live OpenAlex Citations and native mode cache",
+      "ok": false,
+      "ms": 2308,
+      "error": "Error: Provider label missing"
+    },
+    {
+      "name": "live OpenAlex Related and native mode cache",
+      "ok": false,
+      "ms": 921,
+      "error": "Error: Live mode failed: 获取失败，请重试 OpenAlex related metadata unavailable: HTTP 429 Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget is used up ($0 remaini {\"status\":429,\"endpoint\":\"https://api.openalex.org/works\",\"message\":\"Insufficient budget. This request has no API key, so it counts against the free daily budget shared by everyone on your network's IP address, and that budget is used up ($0 remaini\"}"
+    },
+    {
+      "name": "real arXiv metadata uses the native XML parser",
+      "ok": true,
+      "detail": {
+        "title": "Attention Is All You Need",
+        "authors": 8,
+        "year": "2017"
+      },
+      "ms": 2760
+    },
+    {
+      "name": "real public paper PDF is extracted by native Zotero Reader",
+      "ok": true,
+      "detail": {
+        "source": "https://arxiv.org/pdf/1706.03762",
+        "references": 40,
+        "diagnostics": {
+          "pagesRead": 6,
+          "totalPages": 15,
+          "headingFound": true,
+          "scanLimited": false,
+          "elapsedMs": 1974
+        }
+      },
+      "ms": 2701
+    }
+  ],
+  "scope": "Live public Crossref and OpenAlex APIs; no service responses mocked",
+  "finished": "2026-10-08T13:52:43.324Z",
+  "passed": 3,
+  "failed": 2
+}

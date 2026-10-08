@@ -69,3 +69,10 @@ source-auto =
     .label = 自动获取（推荐）
 source-web =
     .label = 出版社网页 / XML
+
+about-maintainer = 二次开发与维护：groele
+about-origin = 基于 Zotero Reference / Ethereal Reference（Polygon / MuiseDestiny）二次修改；保留原作者署名及 AGPL-3.0-or-later 许可。
+about-project = 项目与更新
+about-issues = 反馈问题
+about-upstream = 原始项目
+openAlexKey-get = 申请 / 查看免费的 OpenAlex API Key

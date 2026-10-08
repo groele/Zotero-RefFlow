@@ -2,11 +2,35 @@ import { config } from "../package.json";
 import { registerPrefsScripts, registerPrefs } from "./modules/prefs";
 import Views from "./modules/views";
 import ConnectedPapers from "./modules/connectedpapers";
+import { restoreLegacySidebarLayout } from "./modules/sidebarLayout";
 
 const initializedWindows = new WeakSet<Window>();
 let activeViews: Views | undefined;
 const graphs = new Map<Window, ConnectedPapers>();
 let ownerWindow: Window | undefined;
+let graphPaneID: string | undefined;
+
+function registerGraphPane() {
+  if (graphPaneID) return;
+  const getGraph = (body: Element) => graphs.get(body.ownerDocument.defaultView as Window);
+  graphPaneID = Zotero.ItemPaneManager.registerSection({
+    paneID: `${config.addonRef}-graph`,
+    pluginID: config.addonID,
+    header: { l10nID: "refnexus-graph-pane-title", icon: `chrome://${config.addonRef}/content/icons/connectedpapers.png` },
+    sidenav: { l10nID: "refnexus-graph-pane-sidenav", icon: `chrome://${config.addonRef}/content/icons/connectedpapers.png` },
+    onInit: ({ body, tabType, setEnabled }) => {
+      (body.ownerDocument as any).l10n?.addResourceIds([`${config.addonRef}-addon.ftl`]);
+      setEnabled(tabType === "library" && Boolean(getGraph(body)?.graphVisible));
+    },
+    onItemChange: ({ body, item, tabType, setEnabled }) => {
+      setEnabled(tabType === "library" && Boolean(item?.isRegularItem() && getGraph(body)?.graphVisible));
+    },
+    onRender: ({ body, tabType }) => {
+      if (tabType === "library") getGraph(body)?.mountRelatedPane(body as HTMLElement);
+    },
+    onDestroy: ({ body }) => getGraph(body)?.unmountRelatedPane(body as HTMLElement),
+  }) || undefined;
+}
 
 async function onStartup() {
   await Promise.all([
@@ -32,6 +56,7 @@ async function onMainWindowLoad(win: Window): Promise<void> {
   while((!pane?.itemsView || !pane?.collectionsView?.itemTreeView) && Date.now()<deadline && !win.closed)await Zotero.Promise.delay(50);
   if(win.closed)return;
   if(!pane?.itemsView || !pane?.collectionsView?.itemTreeView)throw new Error("RefNexus: native Zotero item tree did not finish initialization");
+  restoreLegacySidebarLayout(win.document);
   if (activeViews) {
     const graph = new ConnectedPapers(activeViews, win);
     graphs.set(win, graph);
@@ -48,6 +73,7 @@ async function onMainWindowLoad(win: Window): Promise<void> {
   const graph=new ConnectedPapers(views, win);
   graphs.set(win, graph);
   await graph.init();
+  registerGraphPane();
 }
 
 async function onMainWindowUnload(win: Window): Promise<void> {
@@ -62,6 +88,8 @@ async function onMainWindowUnload(win: Window): Promise<void> {
 
 
 async function onShutdown(): Promise<void> {
+  if (graphPaneID) Zotero.ItemPaneManager.unregisterSection(graphPaneID);
+  graphPaneID = undefined;
   await activeViews?.shutdown();
   for(const graph of graphs.values())graph.shutdown();
   graphs.clear();

@@ -4,7 +4,7 @@ const check=(ok,message)=>{if(!ok)throw new Error(message)};
 const test=async(name,fn)=>{try{report.tests.push({name,ok:true,detail:await fn()});}catch(error){report.tests.push({name,ok:false,error:String(error),stack:error?.stack});}await Zotero.File.putContentsAsync(cfg.output,JSON.stringify(report,null,2));};
 const views=Zotero.ZoteroRefNexus.views;
 const item=new Zotero.Item('journalArticle');item.setField('title','Native numbering verification');await item.saveTx();window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(item.id);await Zotero.Promise.delay(200);
-const body=window.document.querySelector('item-pane-custom-section[data-pane*="refnexus"] [data-type="body"]'),grid=body.querySelector('#related-grid'),cards=body._cards;
+const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]'),grid=body.querySelector('#related-grid'),cards=body._cards;
 const refs=[1,2,12,1000].map(number=>({number,title:'Numbering fixture '+number,text:'Smith, J. Numbering fixture '+number+'. Journal, 2024.',authors:[],identifiers:{}}));
 const numbers=()=>[...body.querySelectorAll('.reference-number')].map(node=>node.textContent);
 await test('native production version and visible source numbers',async()=>{

@@ -1,8 +1,16 @@
 # RefNexus for Zotero 10
 
-**10.3.1** · 参考文献获取、文献卡片与引用关系浏览。
+**10.3.2** · 参考文献获取、文献卡片与引用关系浏览。
 
 本项目以用户提供的 `zotero-reference-zotero10.xpi` 的功能组织和使用习惯为基准，对获取流程、稳定性、性能和交互进行二次开发。该 XPI 的实际清单名称是 **Ethereal Reference**，版本 **1.8.17**；文件名中的“zotero10”不代表插件版本号。
+
+## 项目信息
+
+- 二次开发与维护：**[groele](https://github.com/groele)**。
+- 项目与下载：[groele/Zotero-diy · RefNexus-Zotero10](https://github.com/groele/Zotero-diy/tree/main/RefNexus-Zotero10)。
+- 问题反馈：[GitHub Issues](https://github.com/groele/Zotero-diy/issues)。
+- 自动更新清单：[update.json](https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json)。
+- 设置页提供项目、反馈、原始项目与免费 OpenAlex Key 入口。
 
 ## 来源与二次开发声明
 
@@ -22,6 +30,14 @@
 6. 标题悬浮详情优先显示已有元数据，不额外联网。可在插件设置中调整悬浮行为和自动获取。
 
 PDF 模式会复用匹配的阅读器，或在后台打开当前文献的 PDF 附件。没有可读取文本层的扫描件需要先做 OCR。
+
+## 10.3.2 侧边栏布局修复
+
+- 修复关系图初始化把 Zotero 原生侧边栏改为纵向、导致图标栏落到内容下方的问题；删除对原生内容区的全局宽度覆盖。
+- 首屏最多 8 张卡片主动做本地匹配，后续列表保持按可见区域延迟处理，避免状态依赖后台窗口的监听时机。
+- 关系图列表改用 Zotero 10 原生自定义面板，仅在关系图开启且选中常规文献时显示；保留右侧原生图标栏和笔记编辑布局。
+- 参考文献侧栏图标使用独立提示文本，保留面板标题；修复热升级留下的已知旧布局修改。
+- Windows / Zotero 10.0.6 侧边栏专项 10/10、单元测试 133/133，通过真实 DOM 几何测量及截图验证。详情见 [侧边栏修复记录](docs/SIDEBAR.md)。
 
 ## 10.3.1 卡片编号
 

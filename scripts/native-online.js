@@ -9,7 +9,7 @@ await test('live multi-provider reference list includes bibliographic metadata',
 });
 for(const type of ['Citations','Related'])await test('live OpenAlex '+type+' and native mode cache',async()=>{
  const parent=new Zotero.Item('journalArticle');parent.setField('title','Valley-contrasting physics in graphene');parent.setField('DOI',doi);await parent.saveTx();window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await Zotero.Promise.delay(150);
- const body=window.document.querySelector('item-pane-custom-section[data-pane*="refnexus"] [data-type="body"]');body.setAttribute('data-refnexus-type',type);body.setAttribute('source','PDF');
+ const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');body.setAttribute('data-refnexus-type',type);body.setAttribute('source','PDF');
  await views.refreshReferences(body,false,false,false,parent);check(body.getAttribute('source')==='API','Literature type did not switch to online');check(body.references?.length>0,'Live mode failed: '+body.querySelector('#reference-num').textContent+' '+body.querySelector('#reference-num').title+' '+JSON.stringify(views.utils.API.requests.lastFailure));
  const count=body.references.length;check(body.querySelectorAll('.reference-item').length===count,'Cards incomplete');check(body.getAttribute('data-refnexus-result-source').includes('OpenAlex'),'Provider label missing');await views.refreshReferences(body,true,false,false,parent);check(body.references.length===count,'Cached mode lost results');return {doi,count,source:body.getAttribute('data-refnexus-result-source')};
 });

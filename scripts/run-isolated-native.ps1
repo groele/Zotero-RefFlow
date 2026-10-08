@@ -3,6 +3,7 @@ param(
   [string]$OutputPath = "$PSScriptRoot/../tests/native-final.json",
   [string]$XpiPath = "$PSScriptRoot/../build/zotero-refnexus.xpi",
   [switch]$WithoutPlugin,
+  [switch]$SkipOnline,
   [switch]$Wait,
   [switch]$CloseWhenDone
 )
@@ -13,7 +14,7 @@ $data=Join-Path $testRoot 'data'
 $driver=Join-Path $testRoot 'native-test-driver'
 New-Item -ItemType Directory -Path $profile,$data,$driver,(Join-Path $profile 'extensions') -Force | Out-Null
 if (-not $WithoutPlugin) { Copy-Item -LiteralPath ([IO.Path]::GetFullPath($XpiPath)) -Destination (Join-Path $profile 'extensions/refnexus@polygon.org.xpi') }
-$config=@{script=[IO.Path]::GetFullPath($ScriptPath);output=[IO.Path]::GetFullPath($OutputPath);fixtures=[IO.Path]::GetFullPath("$PSScriptRoot/../tests/native-fixtures");workspace=[IO.Path]::GetFullPath("$PSScriptRoot/..");profile=$profile;withoutPlugin=[bool]$WithoutPlugin;startupProbe=($ScriptPath -like '*native-startup-control.js');closeWhenDone=[bool]$CloseWhenDone} | ConvertTo-Json -Compress
+$config=@{script=[IO.Path]::GetFullPath($ScriptPath);output=[IO.Path]::GetFullPath($OutputPath);fixtures=[IO.Path]::GetFullPath("$PSScriptRoot/../tests/native-fixtures");workspace=[IO.Path]::GetFullPath("$PSScriptRoot/..");profile=$profile;withoutPlugin=[bool]$WithoutPlugin;skipOnline=[bool]$SkipOnline;startupProbe=($ScriptPath -like '*native-startup-control.js');closeWhenDone=[bool]$CloseWhenDone} | ConvertTo-Json -Compress
 $driverManifest=Get-Content -LiteralPath "$PSScriptRoot/../build/addon/manifest.json" -Raw | ConvertFrom-Json
 $driverManifest.name='RefNexus isolated native test driver'
 $driverManifest.version='1.0.0'

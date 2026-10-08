@@ -15,7 +15,7 @@ const make=async(title,doi)=>{const item=new Zotero.Item('journalArticle');item.
 const stamp=Date.now();
 const parent=await make(`RefNexus stress parent ${stamp}`,'10.1234/stress-parent-'+stamp);
 const other=await make(`RefNexus alternative item ${stamp}`,'10.1234/stress-other-'+stamp);
-const select=async(item)=>{window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(item.id);await delay(80);const body=window.document.querySelector('item-pane-custom-section[data-pane*="refnexus"] [data-type="body"]');check(body,'Native pane missing');return body;};
+const select=async(item)=>{window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(item.id);await delay(80);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');check(body,'Native pane missing');return body;};
 const attachment=await Zotero.Attachments.importFromFile({file:cfg.fixtures+'\\columns.pdf',parentItemID:parent.id});
 const reader=await Zotero.Reader.open(attachment.id);await delay(1000);
 const originalPerform=views.performReferences;

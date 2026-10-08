@@ -1,0 +1,248 @@
+{
+  "version": "10.0.6",
+  "before": {
+    "host": {
+      "tag": "item-pane",
+      "id": "zotero-item-pane",
+      "orient": null,
+      "display": "flex",
+      "flexDirection": "row",
+      "x": 643,
+      "y": 106.69999694824219,
+      "width": 357,
+      "height": 493.29998779296875,
+      "children": [
+        {
+          "tag": "deck",
+          "id": "zotero-item-pane-content",
+          "orient": null
+        },
+        {
+          "tag": "item-pane-sidenav",
+          "id": "zotero-view-item-sidenav",
+          "orient": null
+        }
+      ]
+    },
+    "content": {
+      "tag": "deck",
+      "id": "zotero-item-pane-content",
+      "orient": null,
+      "display": "grid",
+      "flexDirection": "row",
+      "x": 643,
+      "y": 106.69999694824219,
+      "width": 320,
+      "height": 493.29998779296875,
+      "children": [
+        {
+          "tag": "item-message-pane",
+          "id": "zotero-item-message",
+          "orient": null
+        },
+        {
+          "tag": "item-details",
+          "id": "zotero-item-details",
+          "orient": null
+        },
+        {
+          "tag": "note-editor",
+          "id": "zotero-note-editor",
+          "orient": null
+        },
+        {
+          "tag": "duplicates-merge-pane",
+          "id": "zotero-duplicates-merge-pane",
+          "orient": null
+        },
+        {
+          "tag": "annotation-items-pane",
+          "id": "zotero-annotations-pane",
+          "orient": null
+        },
+        {
+          "tag": "groupbox",
+          "id": "batch-edit-prompt",
+          "orient": null
+        }
+      ]
+    },
+    "rail": {
+      "tag": "item-pane-sidenav",
+      "id": "zotero-view-item-sidenav",
+      "orient": null,
+      "display": "flex",
+      "flexDirection": "column",
+      "x": 963,
+      "y": 106.69999694824219,
+      "width": 37,
+      "height": 493.29998779296875,
+      "children": [
+        {
+          "tag": "toolbarbutton",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "popupset",
+          "id": "",
+          "orient": null
+        }
+      ]
+    },
+    "panel": null
+  },
+  "after": {
+    "host": {
+      "tag": "item-pane",
+      "id": "zotero-item-pane",
+      "orient": null,
+      "display": "flex",
+      "flexDirection": "row",
+      "x": 643,
+      "y": 106.69999694824219,
+      "width": 357,
+      "height": 493.29998779296875,
+      "children": [
+        {
+          "tag": "deck",
+          "id": "zotero-item-pane-content",
+          "orient": null
+        },
+        {
+          "tag": "item-pane-sidenav",
+          "id": "zotero-view-item-sidenav",
+          "orient": null
+        }
+      ]
+    },
+    "content": {
+      "tag": "deck",
+      "id": "zotero-item-pane-content",
+      "orient": null,
+      "display": "grid",
+      "flexDirection": "row",
+      "x": 643,
+      "y": 106.69999694824219,
+      "width": 320,
+      "height": 493.29998779296875,
+      "children": [
+        {
+          "tag": "item-message-pane",
+          "id": "zotero-item-message",
+          "orient": null
+        },
+        {
+          "tag": "item-details",
+          "id": "zotero-item-details",
+          "orient": null
+        },
+        {
+          "tag": "note-editor",
+          "id": "zotero-note-editor",
+          "orient": null
+        },
+        {
+          "tag": "duplicates-merge-pane",
+          "id": "zotero-duplicates-merge-pane",
+          "orient": null
+        },
+        {
+          "tag": "annotation-items-pane",
+          "id": "zotero-annotations-pane",
+          "orient": null
+        },
+        {
+          "tag": "groupbox",
+          "id": "batch-edit-prompt",
+          "orient": null
+        }
+      ]
+    },
+    "rail": {
+      "tag": "item-pane-sidenav",
+      "id": "zotero-view-item-sidenav",
+      "orient": null,
+      "display": "flex",
+      "flexDirection": "column",
+      "x": 963,
+      "y": 106.69999694824219,
+      "width": 37,
+      "height": 493.29998779296875,
+      "children": [
+        {
+          "tag": "toolbarbutton",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "div",
+          "id": "",
+          "orient": null
+        },
+        {
+          "tag": "popupset",
+          "id": "",
+          "orient": null
+        }
+      ]
+    },
+    "panel": null
+  },
+  "finished": "2026-10-08T13:33:00.566Z"
+}

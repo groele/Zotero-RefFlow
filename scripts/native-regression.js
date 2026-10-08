@@ -26,7 +26,7 @@ const select = async name => {
   window.Zotero_Tabs.select('zotero-pane');
   await window.ZoteroPane.selectItem(items[name].item.id);
   await delay(150);
-  const section = window.document.querySelector('item-pane-custom-section[data-pane*="refnexus"]');
+  const section = window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"]');
   const body = section?.querySelector('[data-type="body"]');
   check(body, 'Native item-pane body unavailable');
   return { section, body };
@@ -67,7 +67,7 @@ await test('late response cannot populate a different selected item', async () =
     const {body} = await select('single'); body.setAttribute('source','API');
     const pending = views.refreshReferences(body,false,false,false,items.single.item);
     await delay(100); await select('columns'); await pending;
-    const current = window.document.querySelector('item-pane-custom-section[data-pane*="refnexus"] [data-type="body"]');
+    const current = window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');
     check(!current.querySelector('#related-grid').textContent.includes('STALE'), 'Old item references rendered after selection changed');
   } finally { api.getDOIInfoByCrossref=original; }
 });

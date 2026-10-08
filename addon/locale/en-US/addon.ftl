@@ -88,3 +88,11 @@ cards-source-auto = Automatic (recommended)
 cards-source-web = Publisher HTML / XML
 cards-auto-empty = No usable list; check PDF text, DOI or connection
 cards-number-label = Source list number
+
+graph-pane-title =
+    .label = Citation graph
+graph-pane-sidenav =
+    .tooltiptext = Citation graph
+
+pane-sidenav =
+    .tooltiptext = References

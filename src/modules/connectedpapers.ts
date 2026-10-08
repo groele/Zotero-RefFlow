@@ -19,7 +19,7 @@ export default class ConnectedPapers {
   private itemIDs: number[] = []
   private zoteroColor: boolean = true
   private cleanup: Array<()=>void> = [];
-  private selectListener=()=>this.updateAddOrRemove();
+  private selectListener=()=>{this.updateAddOrRemove();this.syncRelatedPane(this.graphVisible);};
   constructor(views: Views, win: Window = window) {
     this.win=win;this.doc=win.document;
     this.requests = new Requests()
@@ -37,7 +37,6 @@ export default class ConnectedPapers {
       if (++waitCount > 50) break;
     }
     this.initItemsPane()
-    this.initEditPane()
   }
 
   public shutdown() {
@@ -90,9 +89,6 @@ export default class ConnectedPapers {
           }
           #${id} .item.highlight.hover {
             background-color: #d0ecf0;
-          }
-          #zotero-item-pane-content {
-            width: 100%;
           }
         `// 这里添加后会让Mac的图标变形，所以遇Mac不添
         + (Zotero.isMac ? "" : `
@@ -147,12 +143,12 @@ export default class ConnectedPapers {
         if(!this.frame.getAttribute("src")) this.frame.setAttribute("src",`chrome://${config.addonRef}/content/dist/index.html`);
         // this.splitterAfter.style.display = ""
         node.style.display = ""
-        if(this.boxAfter) this.boxAfter.style.display = "block"
+        this.syncRelatedPane(true)
         Zotero.Prefs.set(`${config.addonRef}.graphView.enable`, true)
       } else {
         // this.splitterAfter.style.display = "none"
         node.style.display = "none"
-        if(this.boxAfter) this.boxAfter.style.display = "none"
+        this.syncRelatedPane(false)
         Zotero.Prefs.set(`${config.addonRef}.graphView.enable`, false)
       }
     })
@@ -160,25 +156,39 @@ export default class ConnectedPapers {
     toolbar.insertBefore(newNode, this.doc.getElementById("zotero-tb-search"));
   }
 
-  /**
-   * 注册右侧面板
-   */
-  private initEditPane() {
-    this.doc.querySelectorAll("#connected-papers-relatedsplit-after").forEach(e => e.remove());
-    // let relatedbox = (this.doc.querySelector("#zotero-editpane-related") as Element);
-    let beforeBox = (this.doc.querySelector("#zotero-item-pane-content") as Element);
-    if (!beforeBox) return;
-    beforeBox.parentElement?.setAttribute("orient", "vertical");
+  public get graphVisible(): boolean {
+    return Boolean(this.graphContainer && this.graphContainer.style.display !== "none");
+  }
+
+  /** Own only a native custom section's body, never Zotero's deck or icon rail. */
+  public mountRelatedPane(body: HTMLElement) {
+    if (this.boxAfter?.parentElement === body) return;
+    this.boxAfter?.remove();
     const boxAfter = this.boxAfter = this.doc.createElement("div") as any;
     boxAfter.id = "connected-papers-relatedsplit-after";
     boxAfter.style.overflow = "hidden"
     boxAfter.style.backgroundColor = "var(--material-background, #ffffff)"
-    beforeBox.after(boxAfter);
-    boxAfter.style.display = "none";
+    body.append(boxAfter);
     boxAfter.style.height = (Zotero.Prefs.get(`${config.addonRef}.graphView.height`) as string) || "400px";
     // @ts-ignore
     boxAfter.style["padding-top"] = "0"
     this.buildRelatedPanel(boxAfter)
+  }
+
+  public unmountRelatedPane(body: HTMLElement) {
+    if (this.boxAfter?.parentElement !== body) return;
+    this.boxAfter.remove();
+    this.relatedContainer = undefined;
+  }
+
+  private syncRelatedPane(visible: boolean) {
+    const item = this.win.ZoteroPane.getSelectedItems()[0];
+    const enabled = visible && Boolean(item?.isRegularItem());
+    const section = this.doc.querySelector('#zotero-item-details item-pane-custom-section[data-pane$="-refnexus-graph"]') as HTMLElement | null;
+    if (!section) return;
+    section.hidden = !enabled;
+    const body = section.querySelector('[data-type="body"]') as HTMLElement | null;
+    if (enabled && body) this.mountRelatedPane(body);
   }
 
   public buildRelatedPanel(box: XUL.Box) {
@@ -1010,7 +1020,7 @@ export default class ConnectedPapers {
       const height = `${hh <= minHeight ? minHeight : hh}px`
       graphContainer.style.height = height;
       frame.style.height = height;
-      this.boxAfter.style.height = height;
+      if (this.boxAfter) this.boxAfter.style.height = height;
       Zotero.Prefs.set(`${config.addonRef}.graphView.height`, height)
     };
     const mouseUpHandler = () => {

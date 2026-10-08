@@ -14,6 +14,7 @@ export default class ReferenceCards {
   private observer?:IntersectionObserver;
   private matchQueue:Array<()=>Promise<void>>=[];
   private matchActive=0;
+  private matchedRows=new WeakSet<HTMLElement>();
   private hoverTimer?:number;
   private tip?:TipUI;
 
@@ -25,6 +26,20 @@ export default class ReferenceCards {
   dispose(){this.disposed=true;window.clearTimeout(this.searchTimer);this.clear();}
   clear(){this.observer?.disconnect();this.matchQueue=[];window.clearTimeout(this.hoverTimer);this.tip?.clear();this.tip=undefined;this.selected.clear();this.refs=[];this.rows=[];this.grid.replaceChildren();this.search.value="";}
   private drainMatches(){while(this.matchActive<4&&this.matchQueue.length){const match=this.matchQueue.shift()!;this.matchActive++;void match().catch(error=>ztoolkit.log(error)).finally(()=>{this.matchActive--;if(!this.disposed)this.drainMatches();});}}
+  private queueLibraryMatch(row:HTMLElement,parent:Zotero.Item,current:()=>boolean){
+    if(this.matchedRows.has(row))return;
+    this.matchedRows.add(row);
+    const ref=(row as any).reference;
+    this.matchQueue.push(async()=>{
+      if(!current()||!row.isConnected)return;
+      const found=await this.views.utils.searchLibraryItem(ref,parent.libraryID);
+      if(!current()||!row.isConnected||!found)return;
+      row.querySelector(".reference-action")!.textContent="↗";
+      (row.querySelector(".reference-action") as HTMLElement).title=getString("cards-show-library");
+      (row.querySelector(".reference-state") as HTMLElement).style.backgroundColor="var(--color-accent, #3678b5)";
+      row.style.opacity="1";
+    });
+  }
 
   private parent():Zotero.Item{return Zotero.Items.get(Number(this.body.getAttribute("data-refnexus-item-id"))) as Zotero.Item;}
   private label():HTMLElement{return this.body.querySelector("#reference-num")!;}
@@ -52,10 +67,8 @@ export default class ReferenceCards {
     const numbers=refs.map((ref,index)=>Number.isSafeInteger(Number(ref.number))&&Number(ref.number)>0?Number(ref.number):(positions.get(ref)||index+1));
     this.grid.style.setProperty("--refnexus-number-width",`${numbers.reduce((width,number)=>Math.max(width,String(number).length+1),2)}ch`);
     if((window as any).IntersectionObserver)this.observer=new (window as any).IntersectionObserver((entries:IntersectionObserverEntry[])=>{
-      for(const entry of entries)if(entry.isIntersecting){this.observer?.unobserve(entry.target);const row=entry.target as HTMLElement,ref=(row as any).reference;
-        this.matchQueue.push(async()=>{if(!current()||!row.isConnected)return;const found=await this.views.utils.searchLibraryItem(ref,parent.libraryID);if(!current()||!row.isConnected||!found)return;
-          row.querySelector(".reference-action")!.textContent="↗";(row.querySelector(".reference-action") as HTMLElement).title=getString("cards-show-library");(row.querySelector(".reference-state") as HTMLElement).style.backgroundColor="var(--color-accent, #3678b5)";row.style.opacity="1";
-        });
+      for(const entry of entries)if(entry.isIntersecting){this.observer?.unobserve(entry.target);
+        this.queueLibraryMatch(entry.target as HTMLElement,parent,current);
       }this.drainMatches();
     },{rootMargin:"80px"});
 
@@ -99,7 +112,16 @@ export default class ReferenceCards {
       this.rows.push(row);fragment.append(row);
       if(index%40===39){await Zotero.Promise.delay(0);if(!current()||this.disposed)return;}
     }
-    if(current()&&!this.disposed){this.grid.append(fragment);for(const row of this.rows)this.observer?.observe(row);}
+    if(current()&&!this.disposed){
+      this.grid.append(fragment);
+      // Native background windows may delay intersection callbacks. Match only
+      // the first screen's bounded rows eagerly; keep long lists lazy.
+      for(const [index,row] of this.rows.entries()){
+        if(index<8)this.queueLibraryMatch(row,parent,current);
+        else this.observer?.observe(row);
+      }
+      this.drainMatches();
+    }
   }
   private open(ref:ItemBaseInfo){if(ref._item)this.views.utils.selectItemInLibrary(ref._item);else{const url=ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:undefined);if(url&&/^https?:\/\//i.test(url))Zotero.launchURL(url);}}
   menu(event?:MouseEvent){
