@@ -2,18 +2,6 @@
   <html:link rel="localization" href="__addonRef__-preferences.ftl" />
 </linkset>
 <vbox id="zotero-prefpane-__addonRef__" onload="Zotero.__addonInstance__.hooks.onPrefsEvent('load', {window})">
-  <groupbox id="__addonRef__-about">
-    <html:h2>__addonName__ · __buildVersion__</html:h2>
-    <html:p data-l10n-id="about-maintainer"></html:p>
-    <html:p data-l10n-id="about-origin"></html:p>
-    <html:p data-l10n-id="about-updates"></html:p>
-    <html:div style="display:flex;flex-wrap:wrap;gap:12px;">
-      <html:a id="__addonRef__-project-link" href="__homepage__" onclick="Zotero.launchURL(this.href);return false;" data-l10n-id="about-project"></html:a>
-      <html:a id="__addonRef__-issues-link" href="__issuesURL__" onclick="Zotero.launchURL(this.href);return false;" data-l10n-id="about-issues"></html:a>
-      <html:a href="__upstreamURL__" onclick="Zotero.launchURL(this.href);return false;" data-l10n-id="about-upstream"></html:a>
-      <html:a id="__addonRef__-release-notes-link" href="__releaseNotesURL__" onclick="Zotero.launchURL(this.href);return false;" data-l10n-id="about-release-notes"></html:a>
-    </html:div>
-  </groupbox>
   <groupbox>
     <html:h2 data-l10n-id="caption-online"></html:h2>
     <html:label data-l10n-id="openAlexKey-label" for="__addonRef__-openalex-key"></html:label>
@@ -120,5 +108,17 @@
       </html:input>
       <html:span style="margin: auto 0; margin-left: .5em;" data-l10n-id="notInLibarayOpacity-end"></html:span>
     </hbox>
+  </groupbox>
+  <groupbox id="__addonRef__-about">
+    <html:h2>__addonName__ · __buildVersion__</html:h2>
+    <html:p data-l10n-id="about-maintainer"></html:p>
+    <html:p data-l10n-id="about-origin"></html:p>
+    <html:p data-l10n-id="about-updates"></html:p>
+    <html:div style="display:flex;flex-wrap:wrap;gap:12px;">
+      <html:a id="__addonRef__-project-link" href="__homepage__" onclick="Zotero.launchURL(this.href);return false;" data-l10n-id="about-project"></html:a>
+      <html:a id="__addonRef__-issues-link" href="__issuesURL__" onclick="Zotero.launchURL(this.href);return false;" data-l10n-id="about-issues"></html:a>
+      <html:a href="__upstreamURL__" onclick="Zotero.launchURL(this.href);return false;" data-l10n-id="about-upstream"></html:a>
+      <html:a id="__addonRef__-release-notes-link" href="__releaseNotesURL__" onclick="Zotero.launchURL(this.href);return false;" data-l10n-id="about-release-notes"></html:a>
+    </html:div>
   </groupbox>
 </vbox>

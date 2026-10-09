@@ -1,6 +1,6 @@
 # RefNexus for Zotero 10
 
-**11.0.0** · 参考文献获取、文献卡片与引用关系浏览。面向 Zotero 10 的大版本更新。
+**11.0.1** · 参考文献获取、文献卡片与引用关系浏览。兼容 Zotero 10。
 
 本项目以用户提供的 `zotero-reference-zotero10.xpi` 的功能组织和使用习惯为基准，对获取流程、稳定性、性能和交互进行二次开发。该 XPI 的实际清单名称是 **Ethereal Reference**，版本 **1.8.17**；文件名中的“zotero10”不代表插件版本号。
 
@@ -11,7 +11,8 @@
 - 问题反馈：[GitHub Issues](https://github.com/groele/Zotero-diy/issues)。
 - 自动更新清单：[update.json](https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json)。
 - 设置页提供项目、反馈、原始项目、版本说明与免费 OpenAlex Key 入口。
-- 本插件独立发布标签：`refnexus-v11.0.0`；仓库还包含其他插件，请按插件名称选择安装包。
+- 本插件独立发布标签：`refnexus-v11.0.1`；仓库还包含其他插件，请按插件名称选择安装包。
+- [11.0.1 版本说明](docs/RELEASE-NOTES.md)：设置页维护信息移至底部。
 
 ## 来源与二次开发声明
 

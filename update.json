@@ -3,7 +3,7 @@
     "refnexus@polygon.org": {
       "updates": [
         {
-          "version": "11.0.0",
+          "version": "11.0.1",
           "update_link": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/zotero-refnexus.xpi",
           "applications": {
             "zotero": {
@@ -11,8 +11,8 @@
               "strict_max_version": "10.*"
             }
           },
-          "update_hash": "sha256:ba498342a442bb2470dd13ebe231cd41765f9d1375f5a8637cad1ced63aaa3c9",
-          "update_info_url": "https://github.com/groele/Zotero-diy/releases/tag/refnexus-v11.0.0"
+          "update_hash": "sha256:8616e85d49f2255768a4b252dfc925319ae654ca96b19dbf2efdb2c92f022b3f",
+          "update_info_url": "https://github.com/groele/Zotero-diy/releases/tag/refnexus-v11.0.1"
         }
       ]
     }

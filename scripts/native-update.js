@@ -10,13 +10,13 @@ const base='https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zo
 await test('previous 10.3.3 is active with the same upgrade identity',async()=>{
  addon=await AddonManager.getAddonByID('refnexus@polygon.org');check(addon?.isActive&&addon.version==='10.3.3','Previous production addon not active');check(addon.updateURL===base+'update.json','Wrong previous update URL');return {version:addon.version,id:addon.id,updateURL:addon.updateURL};
 });
-await test('native updater discovers 11.0.0 from the user repository',async()=>{
+await test('native updater discovers 11.0.1 from the user repository',async()=>{
  check(addon?.version==='10.3.3','Previous version unavailable');
  await new Promise((resolve,reject)=>{
   const timer=setTimeout(()=>reject(new Error('Update discovery exceeded 45 seconds')),45000);
   addon.findUpdates({onUpdateAvailable(_addon,available){install=available;},onUpdateFinished(_addon,status){clearTimeout(timer);if(!install)reject(new Error('No update offered; native status '+status));else resolve();}},AddonManager.UPDATE_WHEN_USER_REQUESTED);
  });
- check(install.version==='11.0.0','Wrong offered version: '+install.version);check(install.sourceURI.spec===base+'zotero-refnexus.xpi','Wrong offered package');
+ check(install.version==='11.0.1','Wrong offered version: '+install.version);check(install.sourceURI.spec===base+'zotero-refnexus.xpi','Wrong offered package');
  return {version:install.version,source:install.sourceURI.spec};
 });
 await test('native updater downloads, verifies and installs the production package',async()=>{
@@ -27,14 +27,14 @@ await test('native updater downloads, verifies and installs the production packa
   function finish(error){clearTimeout(timer);install.removeListener(listener);error?reject(error):resolve();}
   install.addListener(listener);Promise.resolve(install.install()).catch(finish);
  });
- const current=await AddonManager.getAddonByID('refnexus@polygon.org');check(current?.version==='11.0.0'&&current.isActive,'New addon not active');
+ const current=await AddonManager.getAddonByID('refnexus@polygon.org');check(current?.version==='11.0.1'&&current.isActive,'New addon not active');
  for(let i=0;i<300&&!Zotero.ZoteroRefNexus?.views?.referenceTasks;i++)await delay(100);
  check(Zotero.ZoteroRefNexus?.views?.referenceTasks,'Updated plugin did not start');
  check(current.updateURL===base+'update.json','Updated plugin changed update authority');
  return {version:current.version,active:current.isActive,id:current.id};
 });
 await test('updated native reference pane remains registered once per context',async()=>{
- const current=await AddonManager.getAddonByID('refnexus@polygon.org');check(current.version==='11.0.0','Upgrade did not complete');
+ const current=await AddonManager.getAddonByID('refnexus@polygon.org');check(current.version==='11.0.1','Upgrade did not complete');
  const item=new Zotero.Item('journalArticle');item.setField('title','Actual native updater smoke test');await item.saveTx();await window.ZoteroPane.selectItem(item.id);await delay(300);
  const panes=[...window.document.querySelectorAll('item-pane-custom-section[data-pane$="-refnexus-references"]')];check(panes.length,'Updated pane missing');const contexts=new Set();for(const pane of panes){const context=pane.closest('item-details')||pane.parentElement;check(!contexts.has(context),'Duplicate updated pane');contexts.add(context);}return {panes:panes.length,uniqueContexts:true};
 });

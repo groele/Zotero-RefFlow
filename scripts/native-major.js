@@ -55,6 +55,6 @@ await test('optional enrichment timeout cancels its native child subscription',a
  const client=new HTTP({timeoutMs:10000});try{const start=Date.now();await api.optional(signal=>client.get(base+'/slow?optional='+stamp,'json',{},signal),40,undefined);await delay(20);check(!client.active&&!client.inFlight.size,'Optional timeout left HTTP work running');check(Date.now()-start<500,'Optional deadline exceeded');return {deadlineMs:40};}finally{client.dispose();}
 });
 await test('installed updater targets the user repository',async()=>{
- const {AddonManager}=ChromeUtils.importESModule('resource://gre/modules/AddonManager.sys.mjs');const addon=await AddonManager.getAddonByID('refnexus@polygon.org');check(addon.version==='11.0.0','Wrong major package');check(addon.updateURL==='https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json','Wrong update authority');return {pluginVersion:addon.version,updateURL:addon.updateURL};
+ const {AddonManager}=ChromeUtils.importESModule('resource://gre/modules/AddonManager.sys.mjs');const addon=await AddonManager.getAddonByID('refnexus@polygon.org');check(addon.version==='11.0.1','Wrong release package');check(addon.updateURL==='https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json','Wrong update authority');return {pluginVersion:addon.version,updateURL:addon.updateURL};
 });
 report.finished=new Date().toISOString();report.passed=report.tests.filter(test=>test.ok).length;report.failed=report.tests.filter(test=>!test.ok).length;await save();

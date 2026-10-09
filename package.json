@@ -1,6 +1,6 @@
 {
   "name": "zotero-refnexus",
-  "version": "11.0.0",
+  "version": "11.0.1",
   "description": "Zotero 10 reference retrieval and citation graphs, derived from Zotero Reference / Ethereal Reference by Polygon / MuiseDestiny.",
   "config": {
     "addonName": "Zotero RefNexus",
