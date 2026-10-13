@@ -15,9 +15,11 @@ export default class TipUI {
       default: "#F9B5D0"
     }
   }
-  public tipTimer!: number;
+  public tipTimer!: ReturnType<typeof globalThis.setTimeout>;
+  private controller=new AbortController();
+  get signal():AbortSignal{return this.controller.signal;}
 
-  constructor() {
+  constructor(utils: Utils, private win: Window = window) {
     const rawShade = Zotero.Prefs.get(`${config.addonRef}.shadeMillisecond`);
     this.shadeMillisecond = rawShade ? parseInt(String(rawShade)) : 300;
     if (isNaN(this.shadeMillisecond)) this.shadeMillisecond = 300;
@@ -25,21 +27,25 @@ export default class TipUI {
     const rawRemove = Zotero.Prefs.get(`${config.addonRef}.removeTipAfterMillisecond`);
     this.removeTipAfterMillisecond = rawRemove ? parseInt(String(rawRemove)) : 1000;
     if (isNaN(this.removeTipAfterMillisecond)) this.removeTipAfterMillisecond = 1000;
-    this.utils = new Utils();
+    this.utils = utils;
   }
+
+  private get doc(): Document { return this.win.document; }
 
   public onInit(refRect: Rect, position:string) {
     this.refRect = refRect;
     this.position = position;
     // 初始化，先移除其它container
     this.clear()
+    this.controller=new AbortController();
     this.buildContainer()
   }
 
   public clear() {
-    document.querySelectorAll(`.${config.addonRef}-tip-container`).forEach((e: any) => {
+    this.controller.abort();
+    this.doc.querySelectorAll(`.${config.addonRef}-tip-container`).forEach((e: any) => {
       e.style.opacity = "0"
-      window.setTimeout(() => {
+      globalThis.setTimeout(() => {
         e.remove()
       }, this.shadeMillisecond);
     })
@@ -79,7 +85,7 @@ export default class TipUI {
       }
       return this.container.getBoundingClientRect() as Rect
     }
-    const winRect: Rect = document.documentElement.getBoundingClientRect()
+    const winRect: Rect = this.doc.documentElement.getBoundingClientRect()
     const maxWidth = winRect.width;
     const maxHeight = winRect.height;
     const refRect = this.refRect;
@@ -139,7 +145,7 @@ export default class TipUI {
   private buildContainer() {
     // 位置计算
     this.container = ztoolkit.UI.createElement(
-      document,
+      this.doc,
       "div",
       {
         namespace: "html",
@@ -182,13 +188,13 @@ export default class TipUI {
           {
             type: "mouseenter",
             listener: () => {
-              window.clearTimeout(this.tipTimer);
+              globalThis.clearTimeout(this.tipTimer);
             }
           },
           {
             type: "mouseleave",
             listener: () => {
-              this.tipTimer = window.setTimeout(() => {
+              this.tipTimer = globalThis.setTimeout(() => {
                 this.container.remove();
               }, this.removeTipAfterMillisecond);
             }
@@ -219,7 +225,7 @@ export default class TipUI {
         ]
       }
     ) as unknown as HTMLDivElement
-    document.documentElement.appendChild(this.container)
+    this.doc.documentElement.appendChild(this.container)
   }
 
   /**
@@ -238,7 +244,7 @@ export default class TipUI {
     index: number,
     prefIndex?: number
   ) {
-    if (!this.container || (!this.container.isConnected && !document.documentElement.contains(this.container))) {
+    if (!this.container || (!this.container.isConnected && !this.doc.documentElement.contains(this.container))) {
       return;
     }
     const optionContainer = this.container.querySelector("#option-container") as HTMLElement;
@@ -246,21 +252,10 @@ export default class TipUI {
     if (!optionContainer || !contentContainer) return;
 
     const translate = async (text: string) => {
-      if (Zotero.ZoteroPDFTranslate) {
-        Zotero.ZoteroPDFTranslate._sourceText = text
-        const success = await Zotero.ZoteroPDFTranslate.translate.getTranslation()
-        if (!success) {
-          Zotero.ZoteroPDFTranslate.view.showProgressWindow(
-            "Translate Failed",
-            success,
-            "fail"
-          );
-          return
-        }
-        return Zotero.ZoteroPDFTranslate._translatedText;
-      } else if (Zotero.PDFTranslate) {
-        return (await Zotero.PDFTranslate.api.translate(text))?.result
-      }
+      const provider = (Zotero as typeof Zotero & {
+        PDFTranslate?: {api: {translate(text: string): Promise<{result?: string}>}};
+      }).PDFTranslate;
+      return provider ? (await provider.api.translate(text))?.result : undefined;
     }
     let translateNode = async function (event: any) {
       if (
@@ -307,7 +302,7 @@ export default class TipUI {
     )
     if (isSelect) { this.reset() }
     const contentNode = ztoolkit.UI.createElement(
-      document,
+      this.doc,
       "div",
       {
         classList: [`${config.addonRef}-tip`],
@@ -375,7 +370,7 @@ export default class TipUI {
                         } else if (tag.item) {
                           this.clear()
                           Zotero.ProgressWindowSet.closeAll();
-                          this.utils.selectItemInLibrary(tag.item)
+                          this.utils.selectItemInLibrary(tag.item, this.win)
                         }
                         else {
                           this.utils.copyText(tag.text)
@@ -467,7 +462,7 @@ export default class TipUI {
       }
     ) as HTMLDivElement
     const optionNode = ztoolkit.UI.createElement(
-      document,
+      this.doc,
       "div",
       {
         id: `option-${index}`,

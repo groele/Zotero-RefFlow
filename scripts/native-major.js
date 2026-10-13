@@ -31,7 +31,7 @@ await test('sort is local and retains selection and source numbering',async()=>{
  let calls=0;api.getReferenceList=async()=>{calls++;throw new Error('Sorting must not fetch');};Zotero.Prefs.set('refnexus.sortBy','Recency');await views.sortReferences(body);check(calls===0,'Sort requested references');check(body.querySelector('.reference-number').textContent==='14.','Sort changed original numbers');check(body.querySelector('.reference-item.selected')?.reference.identifiers.DOI===refs[2].identifiers.DOI,'Sort lost selection');Zotero.Prefs.set('refnexus.sortBy','Original');await views.sortReferences(body);return {providerRequests:0};
 });
 await test('lazy library matching remains valid after the fetch task completes',async()=>{
- const local=new Zotero.Item('journalArticle');local.libraryID=parent.libraryID;local.setField('title',refs[13].title);local.setField('DOI',refs[13].identifiers.DOI);await local.saveTx();views.utils.clearLibraryItemCache();
+ const local=new Zotero.Item('journalArticle');local.libraryID=parent.libraryID;local.setField('title',refs[13].title);local.setField('DOI',refs[13].identifiers.DOI);await local.saveTx({skipSelect:true});views.utils.clearLibraryItemCache();
  const cards=body._cards,queue=cards.queueLibraryMatch;let listCurrent;
  cards.queueLibraryMatch=function(row,item,current){listCurrent=current;return queue.call(this,row,item,current);};
  api.getReferenceList=async()=>({references:refs.map(ref=>({...ref,identifiers:{...ref.identifiers}})),source:'Controlled complete source'});
@@ -55,6 +55,6 @@ await test('optional enrichment timeout cancels its native child subscription',a
  const client=new HTTP({timeoutMs:10000});try{const start=Date.now();await api.optional(signal=>client.get(base+'/slow?optional='+stamp,'json',{},signal),40,undefined);await delay(20);check(!client.active&&!client.inFlight.size,'Optional timeout left HTTP work running');check(Date.now()-start<500,'Optional deadline exceeded');return {deadlineMs:40};}finally{client.dispose();}
 });
 await test('installed updater targets the user repository',async()=>{
- const {AddonManager}=ChromeUtils.importESModule('resource://gre/modules/AddonManager.sys.mjs');const addon=await AddonManager.getAddonByID('refnexus@polygon.org');check(addon.version==='11.0.1','Wrong release package');check(addon.updateURL==='https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json','Wrong update authority');return {pluginVersion:addon.version,updateURL:addon.updateURL};
+ const {AddonManager}=ChromeUtils.importESModule('resource://gre/modules/AddonManager.sys.mjs');const addon=await AddonManager.getAddonByID('refnexus@polygon.org');check(addon.version==='11.0.2','Wrong release package');check(addon.updateURL==='https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json','Wrong update authority');return {pluginVersion:addon.version,updateURL:addon.updateURL};
 });
 report.finished=new Date().toISOString();report.passed=report.tests.filter(test=>test.ok).length;report.failed=report.tests.filter(test=>!test.ok).length;await save();

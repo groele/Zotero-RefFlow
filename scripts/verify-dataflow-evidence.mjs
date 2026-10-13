@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+const dir='docs/evidence/dataflow-2026-10-12';
+const read=name=>JSON.parse(fs.readFileSync(`${dir}/${name}.json`,'utf8'));
+const full=read('native-final'),dataflow=read('native-dataflow'),architecture=read('native-architecture');
+for(const report of [full,dataflow,architecture])if(!report.finished||report.failed||report.fatal)throw new Error('Incomplete or failed native verification');
+const fullScenarios=full.tests.reduce((count,test)=>count+(test.detail?.passed??1),0);
+const interfaces=read('interface-audit');if(interfaces.retired.length)throw new Error('Retired interfaces remain');
+const units=fs.readFileSync(`${dir}/unit.log`,'utf8');const unitCount=Number(units.match(/# pass (\d+)/)?.[1]);if(!unitCount||!/# fail 0\b/.test(units))throw new Error('Unit verification failed');
+const hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const originalHash='ba498342a442bb2470dd13ebe231cd41765f9d1375f5a8637cad1ced63aaa3c9';
+if(hash('zotero-refnexus.xpi')!==originalHash)throw new Error('Original release artifact changed');
+const result={at:new Date().toISOString(),host:full.version,units:unitCount,native:{full:fullScenarios,dataflow:dataflow.passed,architecture:architecture.passed,total:fullScenarios+dataflow.passed+architecture.passed},interfaces:{files:interfaces.files,retired:0},xpi:{path:'build/zotero-refnexus.xpi',bytes:fs.statSync('build/zotero-refnexus.xpi').size,sha256:hash('build/zotero-refnexus.xpi')},originalXpiPreserved:true,externalProviderResponses:'controlled fixtures; not proof of live quota or all-paper coverage'};
+fs.writeFileSync(`${dir}/verification.json`,JSON.stringify(result,null,2));console.log(JSON.stringify(result,null,2));

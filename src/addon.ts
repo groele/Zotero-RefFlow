@@ -2,6 +2,7 @@ import { ColumnOptions } from "zotero-plugin-toolkit";
 import { DialogHelper } from "zotero-plugin-toolkit";
 import hooks from "./hooks";
 import { createZToolkit } from "./utils/ztoolkit";
+import type Views from "./modules/views";
 
 class Addon {
   public data: {
@@ -24,6 +25,7 @@ class Addon {
   public hooks: typeof hooks;
   // APIs
   public api: object;
+  public views?: Views;
 
   constructor() {
     this.data = {

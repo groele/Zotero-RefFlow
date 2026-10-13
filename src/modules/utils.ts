@@ -6,12 +6,15 @@ import CitationVerifier from "./verifier";
 class Utils {
   API: API;
   PDF: PDF;
-  private lock?: _ZoteroTypes.PromiseObject;
   private itemCache: Map<string, Zotero.Item | null> = new Map();
   private readonly MAX_ITEM_CACHE: number = 800;
+  private itemCacheGeneration = 0;
+  private itemFlights = new Map<string, Promise<Zotero.Item | undefined>>();
 
   public clearLibraryItemCache(): void {
     this.itemCache.clear();
+    this.itemCacheGeneration++;
+    this.itemFlights.clear();
   }
   public regex = {
     DOI: /10\.\d{4,9}\/[-._;()/:A-Za-z0-9><]+[^\.\]]/,
@@ -257,76 +260,6 @@ class Utils {
     return { creatorType: "author", lastName: trimmed };
   }
 
-  async createItemByZotero(identifiers: ItemBaseInfo["identifiers"], collections: number[], fallbackInfo?: ItemBaseInfo): Promise<Zotero.Item | undefined> {
-    let createdItem: Zotero.Item | undefined;
-    let libraryID = this.getSelectedLibraryID();
-
-    if (identifiers?.DOI || identifiers?.arXiv) {
-      try {
-        var translate = new (Zotero as any).Translate.Search();
-        translate.setIdentifier(identifiers);
-        let translators = await translate.getTranslators();
-        if (translators && translators.length > 0) {
-          translate.setTranslator(translators);
-          const results = await translate.translate({
-            libraryID,
-            collections,
-            saveAttachments: false
-          });
-          if (results && results.length > 0) {
-            createdItem = results[0];
-          }
-        }
-      } catch (e) {
-        ztoolkit.log("createItemByZotero translator failed, trying metadata fallback:", e);
-      }
-    }
-
-    // 降级：如果 Translator 解析失败，但存在可用元数据，直接从元数据创建条目
-    if (!createdItem && fallbackInfo) {
-      try {
-        const itemType = fallbackInfo.type || "journalArticle";
-        const newItem: any = new (Zotero as any).Item(itemType);
-        newItem.setField("title", fallbackInfo.title || fallbackInfo.text || "Untitled");
-        if (identifiers?.DOI) newItem.setField("DOI", identifiers.DOI);
-        if (fallbackInfo.year) newItem.setField("date", String(fallbackInfo.year));
-        if (fallbackInfo.publicationVenue) newItem.setField("publicationTitle", fallbackInfo.publicationVenue);
-        if (fallbackInfo.authors && fallbackInfo.authors.length > 0) {
-          newItem.setCreators(fallbackInfo.authors.map(a => this.splitCreator(a)));
-        }
-        newItem.libraryID = libraryID;
-        for (const colId of (collections || [])) {
-          newItem.addToCollection(colId);
-        }
-        await newItem.saveTx();
-        createdItem = newItem as Zotero.Item;
-      } catch (err) {
-        ztoolkit.log("Metadata fallback creation failed:", err);
-      }
-    }
-
-    return createdItem;
-  }
-
-  async createItemByJasminum(title: string) {
-    let cnkiURL = await this.API.getCNKIURL(title, true)
-    ztoolkit.log("cnkiURL", cnkiURL)
-    // Jasminum
-    let articleId = Zotero.Jasminum.Scrape.getIDFromURL(cnkiURL);
-    let postData = Zotero.Jasminum.Scrape.createRefPostData([articleId])
-    let data = await Zotero.Jasminum.Scrape.getRefText(postData)
-
-    let items = await Zotero.Jasminum.Utils.trans2Items(data, 1);
-    if (items) {
-      let item = items[0]
-      item.setField("url", cnkiURL)
-      await item.saveTx()
-      return item
-    }
-  }
-
-
-
   public searchRelatedItem(item: Zotero.Item, refItem: Zotero.Item): Zotero.Item | undefined {
     if (!item || !refItem) { return; }
     const libId = item.libraryID || 1;
@@ -343,9 +276,12 @@ class Utils {
   public async searchItem(info: ItemBaseInfo, libraryID?: number) {
     if (!info) { return; }
     let s = new (Zotero as any).Search();
-    s.libraryID = libraryID || this.getSelectedLibraryID();
+    const resolvedLibrary=libraryID || this.resolveLibraryID();
+    if(!resolvedLibrary)return;
+    s.libraryID = resolvedLibrary;
     // @ts-ignore
     s.addCondition("joinMode", "any");
+      s.addCondition("resultLevel", "item");
 
     let hasCondition = false;
     if (info.identifiers?.DOI) {
@@ -358,6 +294,8 @@ class Utils {
     if (titleCandidate && titleCandidate.trim().length > 6) {
       const cleanTitle = CitationVerifier.cleanTitle(titleCandidate).slice(0, 60);
       s.addCondition("title", "contains", cleanTitle);
+      const literalTitle=titleCandidate.trim().slice(0,60);
+      if(literalTitle.toLowerCase()!==cleanTitle)s.addCondition("title","contains",literalTitle);
       hasCondition = true;
     }
     if (info.identifiers?.arXiv) {
@@ -420,10 +358,12 @@ class Utils {
    */
   public async searchLibraryItem(info: ItemBaseInfo, libraryID?: number): Promise<Zotero.Item | undefined> {
     await Zotero.Promise.delay(0);
-    libraryID=libraryID || this.getSelectedLibraryID();
+    libraryID=libraryID || this.resolveLibraryID();
+    if(!libraryID)return undefined;
     const key = `${libraryID}:${info.identifiers?.DOI || ""}:${info.identifiers?.arXiv || ""}:${info.title || info.text || ""}:library-item`;
     if (this.itemCache.has(key)) {
       const cached = this.itemCache.get(key);
+      this.itemCache.delete(key);this.itemCache.set(key,cached || null);
       if (cached && !cached.deleted) {
         info._item = cached;
         return cached;
@@ -431,8 +371,18 @@ class Utils {
       return undefined;
     }
 
-    // 1. 优先使用精确的 Zotero.Search 引擎
-    let item = await this.searchItem(info, libraryID);
+    // Share metadata-independent lookup work; an item notification invalidates
+    // its generation so a pre-change miss cannot repopulate the cache.
+    const generation = this.itemCacheGeneration;
+    let flight = this.itemFlights.get(key);
+    if (!flight) {
+      flight = this.searchItem(info, libraryID);
+      this.itemFlights.set(key, flight);
+    }
+    let item: Zotero.Item | undefined;
+    try { item = await flight; }
+    finally { if (this.itemFlights.get(key) === flight) this.itemFlights.delete(key); }
+    if (generation !== this.itemCacheGeneration) return undefined;
 
     // 2. 如果找到了匹配条目，进行标题验证，防止张冠李戴
     if (item) {
@@ -453,12 +403,6 @@ class Utils {
 
     if (item) {
       info._item = item;
-      info.title = item.getField("title") as string;
-      const DOI = item.getField("DOI") as string;
-      if (DOI) {
-        info.identifiers = info.identifiers || {};
-        info.identifiers.DOI = DOI;
-      }
     }
 
     // 写入 LRU 缓存（包括未找到结果的 null，避免重复查询）
@@ -472,9 +416,9 @@ class Utils {
   }
 
 
-  public selectItemInLibrary(item: Zotero.Item) {
-    Zotero_Tabs.select('zotero-pane');
-    ZoteroPane.selectItem(item.id);
+  public selectItemInLibrary(item: Zotero.Item, win: Window = window) {
+    (win as any).Zotero_Tabs.select('zotero-pane');
+    return (win as any).ZoteroPane.selectItem(item.id);
   }
 
   public getItemType(item: Zotero.Item): string | undefined {
@@ -532,23 +476,25 @@ class Utils {
     return text.replace(/\n+/g, " ").trim();
   }
 
-  public getReader() {
-    return Zotero.Reader.getByTabID(Zotero_Tabs.selectedID)
+  public getReader(win: Window = window) {
+    const tabID=(win as any).Zotero_Tabs?.selectedID;
+    return tabID?Zotero.Reader.getByTabID(tabID):undefined;
   }
 
-  public getSelectedLibraryID(): number {
+  public resolveLibraryID(win: Window = window): number | undefined {
     try {
-      const ids = (ZoteroPane as any)?.getSelectedLibraryIDs?.();
+      const pane=(win as any).ZoteroPane;
+      const ids = pane?.getSelectedLibraryIDs();
       if (Array.isArray(ids) && ids.length === 1 && Number.isFinite(Number(ids[0]))) {
         return Number(ids[0]);
       }
-      const selectedItems = (ZoteroPane as any)?.itemsView?.getSelectedItems?.() || [];
+      const selectedItems = pane?.getSelectedItems() || [];
       const itemLibraryIDs = [...new Set(selectedItems.map((item: Zotero.Item) => Number(item.libraryID)).filter(Number.isFinite))];
       if (itemLibraryIDs.length === 1) return Number(itemLibraryIDs[0]);
     } catch (error) {
       ztoolkit.log("Could not resolve the selected Zotero library:", error);
     }
-    return 1;
+    return undefined;
   }
 
   public copyText = (text: string, show: boolean = true) => {
@@ -560,13 +506,14 @@ class Utils {
     }
   }
 
-  public getItem(): Zotero.Item | undefined {
-    let reader = this.getReader();
-    if (reader) {
-      return reader._item?.parentItem || reader._item;
+  public getItem(win: Window = window): Zotero.Item | undefined {
+    let reader = this.getReader(win);
+    if (reader?.itemID) {
+      const item=Zotero.Items.get(reader.itemID);
+      return item?(item.parentItem || item):undefined;
     }
     try {
-      const selected = (ZoteroPane as any)?.itemsView?.getSelectedItems?.() || (ZoteroPane as any)?.getSelectedItems?.();
+      const selected = (win as any).ZoteroPane?.getSelectedItems();
       if (selected && selected.length > 0 && selected[0]?.isRegularItem?.()) {
         return selected[0];
       }

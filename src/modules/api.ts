@@ -6,19 +6,24 @@ import RetractionChecker from "./retraction";
 import CitationVerifier from "./verifier";
 import PublisherReferences from "./publisherReferences";
 import type {ReferenceResult} from "./referenceRetrieval";
+import SemanticScholarProvider from "./semanticScholar";
+import {selectUniqueTitle} from "./titleResolution";
 
 class API {
   private async optional<T>(work:(signal:AbortSignal)=>Promise<T>,timeoutMs:number,fallback:T,signal?:AbortSignal):Promise<T> {
     let timer:any;
-    const controller=new ((window as any).AbortController||globalThis.AbortController)();
-    const abort=()=>controller.abort();signal?.addEventListener('abort',abort,{once:true});
+    const controller=new AbortController();
+    let release:()=>void=()=>{};
+    const cancelled=new Promise<T>(resolve=>{release=()=>resolve(fallback);});
+    const abort=()=>{controller.abort();release();};signal?.addEventListener('abort',abort,{once:true});
     if(signal?.aborted){abort();signal.removeEventListener('abort',abort);return fallback;}
-    try{return await Promise.race([work(controller.signal),new Promise<T>(resolve=>{timer=window.setTimeout(()=>{controller.abort();resolve(fallback);},timeoutMs);})]);}
-    finally{window.clearTimeout(timer);controller.abort();signal?.removeEventListener('abort',abort);}
+    try{return await Promise.race([work(controller.signal),cancelled,new Promise<T>(resolve=>{timer=globalThis.setTimeout(()=>{controller.abort();resolve(fallback);},timeoutMs);})]);}
+    finally{globalThis.clearTimeout(timer);controller.abort();signal?.removeEventListener('abort',abort);}
   }
   public utils: Utils;
   public requests: Requests;
   public openAlex: OpenAlexProvider;
+  public semanticScholar: SemanticScholarProvider;
   public publisherReferences=new PublisherReferences();
   public retractionChecker: RetractionChecker;
   public Info: { crossref: Function, connectedpapers: Function, readpaper: Function, semanticscholar: Function, unpaywall: Function, arXiv: Function };
@@ -27,6 +32,7 @@ class API {
     this.utils = utils;
     this.requests = new Requests();
     this.openAlex = new OpenAlexProvider(this.requests);
+    this.semanticScholar = new SemanticScholarProvider(this.requests);
     this.retractionChecker = new RetractionChecker(this.requests);
     this.Info = {
       crossref: (item: any) => {
@@ -36,7 +42,7 @@ class API {
           "posted-content": "preprint",
           "book-chapter": "bookSection"
         }
-        let references: ItemBaseInfo[] = item.reference?.map((item: any) => {
+        let references: ItemBaseInfo[] = (Array.isArray(item.reference)?item.reference:[]).filter((reference:any)=>reference&&typeof reference==="object").map((item: any) => {
           let identifiers
           let url: string | undefined
           let text: string
@@ -69,7 +75,7 @@ class API {
 
         const refCount = item["is-referenced-by-count"];
         const resolvedTitle = Array.isArray(item.title) ? item.title[0] : (item.title || "");
-        const resolvedAuthors = item?.author?.map((i: any) => {
+        const resolvedAuthors = (Array.isArray(item.author)?item.author:[]).filter(Boolean).map((i: any) => {
           return i.family ? (i.given ? `${i.given} ${i.family}` : i.family) : (i.name || "");
         }).filter(Boolean) || [];
         const resolvedYear = (item.published && item.published["date-parts"]?.[0]?.[0]) ||
@@ -238,76 +244,22 @@ class API {
     }
   }
 
-  // For DOI
-  async getDOIBaseInfo(DOI: string): Promise<ItemBaseInfo | undefined> {
-    const routes: any = {
-      semanticscholar: `https://api.semanticscholar.org/graph/v1/paper/${DOI}?fields=title,year,authors`
-    }
-    for (let route in routes) {
-      let response = await this.requests.get(routes[route])
-      if (response) {
-        response.DOI = DOI
-        return this.Info[route as keyof typeof this.Info](response) as ItemBaseInfo
-      }
-    }
+  async getDOIBaseInfo(DOI:string,signal?:AbortSignal):Promise<ItemBaseInfo|undefined> {
+    return this.getDOIInfoBySemanticscholar(DOI,signal);
   }
 
-  /**
-   * From semanticscholar API
-   * @param DOI 
-   */
-  async getDOIInfoBySemanticscholar(DOI: string): Promise<ItemInfo | undefined> {
-    const api = `https://api.semanticscholar.org/graph/v1/paper/${DOI}?fields=title,authors,abstract,year,journal,fieldsOfStudy,publicationVenue,publicationDate`
-    let response = await this.requests.get(api)
-    if (response) {
-      response.DOI = DOI
-      if (!response.abstract) {
-        // 可能是摘要太长，打开网页版获取
-        let text = await this.requests.get(
-          `https://www.semanticscholar.org/paper/${response.paperId}`,
-          "text/html"
-        )
-        let parser = ztoolkit.getDOMParser()
-        let doc = parser.parseFromString(text, "text/html")
-        const abstract = doc.head.querySelector("meta[name=description]")?.getAttribute("content")
-        if (!abstract?.startsWith("Semantic Scholar")) {
-          response.abstract = abstract
-        }
-      }
-      return this.Info.semanticscholar(response)
-    }
+  async getDOIInfoBySemanticscholar(DOI:string,signal?:AbortSignal):Promise<ItemInfo|undefined> {
+    const paper=await this.semanticScholar.byDOI(DOI,signal);
+    return paper?this.semanticScholar.toInfo(paper):undefined;
   }
 
-  /**
-   * 从 Semantic Scholar Academic Graph 获取参考文献列表 (作为 Tier A 知识图谱兜底补全)
-   */
-  async getDOIReferencesBySemanticScholar(DOI: string,signal?:AbortSignal): Promise<ItemBaseInfo[]> {
-    const cleanDoi = DOI.trim().replace(/^https?:\/\/doi\.org\//i, "").replace(/^doi:\s*/i, "");
-    const api = `https://api.semanticscholar.org/graph/v1/paper/DOI:${encodeURIComponent(cleanDoi)}/references?fields=title,authors,year,venue,externalIds&limit=100`;
-    const response = await this.requests.get(api,"json",{},signal);
-    if (!response || !Array.isArray(response.data)) return [];
-
-    return response.data.map((item: any, idx: number) => {
-      const cited = item.citedPaper || item;
-      const authors = (cited.authors || []).map((a: any) => a.name).filter(Boolean);
-      const doi = cited.externalIds?.DOI;
-      const title = cited.title || "Untitled";
-      return {
-        number: idx + 1,
-        title,
-        authors,
-        year: cited.year ? String(cited.year) : undefined,
-        type: "journalArticle",
-        publicationVenue: cited.venue,
-        text: `${authors.join(", ")} (${cited.year || "n.d."}). ${title}. ${cited.venue || ""}`,
-        identifiers: doi ? { DOI: doi } : {},
-        url: doi ? `https://doi.org/${doi}` : undefined,
-        sources: ["SemanticScholar"],
-        confidence: doi ? 0.92 : 0.70
-      };
-    });
+  async getDOIReferenceListBySemanticScholar(DOI:string,signal?:AbortSignal):Promise<ReferenceResult|undefined> {
+    return this.semanticScholar.neighborhood(DOI,"References",signal);
   }
 
+  async getDOIReferencesBySemanticScholar(DOI:string,signal?:AbortSignal):Promise<ItemBaseInfo[]> {
+    return (await this.getDOIReferenceListBySemanticScholar(DOI,signal))?.references || [];
+  }
   async getDOIInfoByCrossref(DOI: string,signal?:AbortSignal): Promise<ItemInfo | undefined> {
     if(signal?.aborted)return undefined;
     const cleanDOI = CitationVerifier.normalizeDOI(DOI) || DOI.trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, "").replace(/^doi:\s*/i, "");
@@ -322,6 +274,10 @@ class API {
     if(signal?.aborted)return undefined;
 
     let crossrefData = crossrefRes.status === "fulfilled" ? crossrefRes.value?.message : undefined;
+    const returnedDOI=CitationVerifier.normalizeDOI(crossrefData?.DOI);
+    if(returnedDOI && returnedDOI!==CitationVerifier.normalizeDOI(cleanDOI)){
+      ztoolkit.log("Ignoring conflicting Crossref parent DOI");crossrefData=undefined;
+    }
     let openalexWork = openalexRes.status === "fulfilled" ? openalexRes.value : undefined;
 
 
@@ -351,9 +307,8 @@ class API {
     // Crossref entries, but its unmatched records are never appended as if they
     // were part of the same ordered reference list.
     if (references.length === 0 && openalexHydrated.length > 0) {
-      // Crossref 无引文，用 OpenAlex 补齐并保持其在原著中的引用次序
+      // OpenAlex graph order is a provider order, not printed citation numbering.
       references = openalexHydrated.map((oa, idx) => ({
-        number: idx + 1,
         title: oa.title,
         authors: oa.authors,
         year: oa.year,
@@ -368,17 +323,28 @@ class API {
         retraction: oa.isRetracted ? { isRetracted: true, reason: "Retracted work flagged by OpenAlex" } : undefined
       }));
     } else if (openalexHydrated.length > 0) {
+      const byDOI=new Map<string,any>(),byTitle=new Map<string,any[]>();
+      for(const work of openalexHydrated){
+        const doi=CitationVerifier.normalizeDOI(work.doi);if(doi&&!byDOI.has(doi))byDOI.set(doi,work);
+        const title=CitationVerifier.cleanTitle(work.title);if(title){const group=byTitle.get(title)||[];group.push(work);byTitle.set(title,group);}
+      }
       // 用 OpenAlex 数据挂载 OA 全文链接、缺失 DOI 与共识证据。
       for (const ref of references) {
         const refDoi = CitationVerifier.normalizeDOI(ref.identifiers?.DOI);
-        const match = openalexHydrated.find(oa => {
+        const exact=refDoi?byDOI.get(refDoi):undefined;
+        const sameTitle=byTitle.get(CitationVerifier.cleanTitle(ref.title))||[];
+        const candidates=sameTitle.length?sameTitle:(references.length*openalexHydrated.length<=250000?openalexHydrated:[]);
+        const matches = exact?[exact]:candidates.filter(oa => {
           const oaDOI=CitationVerifier.normalizeDOI(oa.doi);
           if (refDoi && oaDOI) return refDoi===oaDOI;
-          if (ref.title && oa.title && CitationVerifier.tokenJaccard(ref.title, oa.title) >= 0.80) return true;
           const titleKey=CitationVerifier.cleanTitle(oa.title);
-          if (ref.text && titleKey.length>=20 && CitationVerifier.cleanTitle(ref.text).includes(titleKey)) return true;
-          return false;
+          const contained=ref.text&&titleKey.length>=20&&CitationVerifier.cleanTitle(ref.text).includes(titleKey);
+          const candidateTitle=ref.title || (contained?oa.title:"");
+          return Boolean(candidateTitle && CitationVerifier.evaluate({title:candidateTitle,author:ref.authors?.[0],year:ref.year,doi:refDoi},
+            {title:oa.title,authors:oa.authors,year:oa.year,doi:oaDOI}).status==="ACCEPT");
         });
+        const identities=new Set(matches.map(work=>CitationVerifier.normalizeDOI(work.doi)||work.openalexId||CitationVerifier.cleanTitle(work.title)));
+        const match=identities.size===1?matches[0]:undefined;
 
         if (match) {
           if (!ref.identifiers?.DOI && match.doi) {
@@ -415,27 +381,25 @@ class API {
         extractedCount: references.length
       });
     }
-    if (references.length === 0) {
+    let semanticPartial=false,semanticAvailable=false;
+    if (references.length === 0 || isUnderpopulated) {
       try {
-        const s2Refs = await this.getDOIReferencesBySemanticScholar(cleanDOI,signal);
-        if (s2Refs && s2Refs.length > 0) {
-          references = s2Refs;
+        const result = references.length
+          ? await this.optional(child=>this.getDOIReferenceListBySemanticScholar(cleanDOI,child),5000,undefined,signal)
+          : await this.getDOIReferenceListBySemanticScholar(cleanDOI,signal);
+        semanticAvailable=Boolean(result);
+        if(!references.length)semanticPartial=Boolean(result?.partial);
+        if (result && result.references.length>references.length) {
+          references = result.references;semanticPartial=Boolean(result.partial);
         }
       } catch (s2Err) {
         ztoolkit.log("Semantic Scholar references error:", s2Err);
       }
     }
 
-    // 5. 执行撤稿观察与学术诚信检查 (基于 Zotero 本地库极速匹配，0 网络时延)
+    // Local retraction checks run after library matching, where the actual
+    // Zotero item is available. Unmatched provider rows are metadata only.
     if(!crossrefData&&!openalexWork&&!references.length)return undefined;
-    for (const ref of references) {
-      if (ref.identifiers?.DOI && !ref.retraction?.isRetracted) {
-        const retStatus = this.retractionChecker.checkLocal(ref.identifiers.DOI,ref._item);
-        if (retStatus.isRetracted) {
-          ref.retraction = retStatus;
-        }
-      }
-    }
 
     let finalInfo: ItemInfo = crossrefData ? this.Info.crossref(crossrefData) : {
       identifiers: { DOI: cleanDOI },
@@ -449,7 +413,10 @@ class API {
 
     finalInfo.references = references;
     finalInfo.referenceExpected=Number(expectedCount)||references.length;
-    finalInfo.referencePartial=references.length<Number(expectedCount);
+    const confirmedEmpty=Number(crossrefData?.["reference-count"])===0 && crossrefData?.["reference-count"]!==undefined
+      || Array.isArray(openalexWork?.work?.referenced_works)&&openalexWork.work.referenced_works.length===0
+      || semanticAvailable&&!semanticPartial;
+    finalInfo.referencePartial=semanticPartial || references.length<Number(expectedCount) || (!references.length&&!confirmedEmpty);
     finalInfo.DOI = cleanDOI;
     return finalInfo;
   }
@@ -465,89 +432,16 @@ class API {
       const structured=await this.publisherReferences.getReferences(DOI,url||info?.url,title||info?.title,signal);
       if(structured.length>references.length)return {references:structured,source:structured[0].sources?.[0]||"Publisher",expected:info?.referenceExpected,partial:Boolean(info?.referenceExpected&&structured.length<info.referenceExpected)};
     }
-    return {references,source:references[0]?.sources?.[0]||"Online",expected:info?.referenceExpected,partial:info?.referencePartial};
+    return {references,source:references[0]?.sources?.[0]||"Online",expected:info?.referenceExpected,partial:info?.referencePartial,
+      status:references.length?(info?.referencePartial?"partial":"success"):!info||info.referencePartial?"unavailable":"empty"};
   }
 
-  async getDOIRelatedArray(DOI: string, limit: number = 20,signal?:AbortSignal): Promise<ItemBaseInfo[] | undefined> {
-    const cleanDoi = DOI.trim().replace(/^https?:\/\/doi\.org\//i, "");
-    // 使用官方免费公开的 Semantic Scholar Academic Graph API
-    const api = `https://api.semanticscholar.org/graph/v1/paper/DOI:${encodeURIComponent(cleanDoi)}/citations?fields=title,authors,year,venue,externalIds&limit=${limit}`;
-    let response = await this.requests.get(api,"json",{},signal);
-    if (response && Array.isArray(response.data)) {
-      return response.data.map((item: any) => {
-        const citing = item.citingPaper || item;
-        const authors = (citing.authors || []).map((a: any) => a.name);
-        const doi = citing.externalIds?.DOI;
-        return {
-          title: citing.title || "Untitled",
-          identifiers: doi ? { DOI: doi } : {},
-          year: citing.year ? String(citing.year) : undefined,
-          text: citing.title || "Untitled",
-          type: "journalArticle",
-          authors: authors,
-          url: doi ? `https://doi.org/${doi}` : undefined
-        };
-      });
-    }
-  }
-
-  /**
-   * API失效
-   */
-  async _getDOIRelatedArray(DOI: string, limit: number = 20): Promise<ItemBaseInfo[] | undefined> {
-    let res = await this.requests.get(
-      `https://rest.connectedpapers.com/id_translator/doi/${DOI}`,
-      "json",
-      {
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 e/107.0.0.0 Safari/537.36"
-      }
-    );
-    if (!res || !res.paperId) return undefined;
-    const api = `https://www.semanticscholar.org/api/1/search/paper/${res.paperId}/citations`
-    let response = await this.requests.post(api, {
-      "page": 1,
-      "pageSize": 20,
-      "sort": "relevance",
-      "authors": [],
-      "coAuthors": [],
-      "venues": [],
-      "yearFilter": null,
-      "requireViewablePdf": false,
-      "fieldsOfStudy": [],
-      "useS2FosFields": true
-    })
-    ztoolkit.log(response)
-    if (response) {
-      let arr: ItemInfo[] = response.results.map((i: any) => {
-        let info: ItemInfo = {
-          title: i.title.text,
-          identifiers: {},
-          year: i.year,
-          text: i.title.text,
-          type: "journalArticle",
-          authors: i.authors.map((e: any) => e[1].text),
-        }
-        if (i.citationContexts?.length > 0) {
-          let descriptions: string[] = []
-          i.citationContexts.slice(0, 1).forEach((ctx: any) => {
-            try {
-              descriptions.push(
-                `${ctx.intents.length > 0 ? ctx.intents[0].id : "unknown"}: ${i.citationContexts[0].context.text}`
-              )
-            } catch {
-              ztoolkit.log(ctx)
-            }
-          })
-          info.description = descriptions.join("\n")
-        }
-        return info
-      })
-      return arr
-    }
+  async getDOIRelatedArray(DOI:string,limit=20,signal?:AbortSignal):Promise<ItemBaseInfo[]|undefined> {
+    return (await this.semanticScholar.neighborhood(DOI,"Citations",signal,limit))?.references;
   }
   // For arXiv
-  async getArXivInfo(arXiv: string) {
-    const response = await this.requests.get(`https://export.arxiv.org/api/query?id_list=${encodeURIComponent(arXiv)}`, "text");
+  async getArXivInfo(arXiv: string,signal?:AbortSignal) {
+    const response = await this.requests.get(`https://export.arxiv.org/api/query?id_list=${encodeURIComponent(arXiv)}`, "text",{},signal);
     if (!response) return;
     const xml = ztoolkit.getDOMParser().parseFromString(String(response), "application/xml");
     if (xml.querySelector("parsererror")) throw new Error("Invalid arXiv metadata response");
@@ -571,45 +465,17 @@ class API {
     const cleanTitle = title.trim();
     const api = `https://api.crossref.org/works?query.bibliographic=${encodeURIComponent(cleanTitle)}&rows=3`;
     let response = await this.requests.get(api,"json",{},signal);
-    if (response && response.message?.items) {
-      const skipTypes = ["component", "dataset"];
-      const items = response.message.items.filter((e: any) => !skipTypes.includes(e.type));
-      for (const item of items) {
-        const candTitle = Array.isArray(item.title) ? item.title[0] : item.title;
-        const candAuthors = item?.author?.map((i: any) => i.family).filter(Boolean);
-        const candYear = item.published && item.published["date-parts"]?.[0]?.[0];
-        const candDOI = item.DOI;
-
-        const evalResult = CitationVerifier.evaluate(
-          { title: cleanTitle, author, year },
-          { title: candTitle, authors: candAuthors, year: candYear, doi: candDOI }
-        );
-
-        if (evalResult.status === "ACCEPT") {
-          let info = this.Info.crossref(item) as ItemInfo;
-          return info;
-        }
-      }
-    }
-    return undefined;
-  }
-
-  async getTitleInfoByConnectedpapers(text: string): Promise<ItemInfo | undefined> {
-    let title = text;
-    if (this.utils.isDOI(text)) {
-      let DOI = text;
-      let res = await this.requests.get(
-        `https://rest.connectedpapers.com/id_translator/doi/${encodeURIComponent(DOI)}`
-      );
-      title = res?.title || text;
-    }
-    const api = `https://rest.connectedpapers.com/search/${encodeURIComponent(title)}/1`;
-    let response = await this.requests.post(api);
-    if (response && response?.results?.length) {
-      let item = response.results[0];
-      let info = this.Info.connectedpapers(item) as ItemInfo;
-      return info;
-    }
+    if(signal?.aborted)return;
+    const items=Array.isArray(response?.message?.items)?response.message.items:[];
+    const item=selectUniqueTitle<any>({title:cleanTitle,author,year},items.filter((item:any)=>item&&!['component','dataset'].includes(item.type)).map((item:any)=>({
+      value:item,work:{title:Array.isArray(item.title)?item.title[0]:item.title,doi:item.DOI,
+        authors:(Array.isArray(item.author)?item.author:[]).map((author:any)=>author?.family||author?.name).filter((name:any)=>typeof name==="string"),
+        year:(item.published||item['published-print']||item['published-online'])?.['date-parts']?.[0]?.[0]}
+    })));
+    if(!item)return;
+    const info=this.Info.crossref(item) as ItemInfo;
+    info.identifiers.DOI=CitationVerifier.normalizeDOI(info.identifiers.DOI);
+    return info;
   }
 
   /**
@@ -618,119 +484,43 @@ class API {
   async resolveWork(title: string, author?: string, year?: string,signal?:AbortSignal): Promise<{ doi?: string; oaUrl?: string; info?: ItemInfo } | undefined> {
     if (!title || signal?.aborted) return undefined;
 
-    // 1. 尝试 Crossref 权威解析
-    const crInfo = await this.getTitleInfoByCrossref(title, author, year,signal);
-    if(signal?.aborted)return undefined;
-    if (crInfo && crInfo.identifiers?.DOI) {
-      return {
-        doi: crInfo.identifiers.DOI,
-        info: crInfo
-      };
-    }
-
-    // 2. 尝试 OpenAlex 联邦检索
-    const oaSummary = await this.openAlex.searchWorkByTitle(title, author, year,signal);
-    if (oaSummary && oaSummary.doi) {
-      return {
-        doi: oaSummary.doi,
-        oaUrl: oaSummary.oaUrl
-      };
-    }
-
-    return undefined;
-  }
-  
-  async getTitleInfoByReadpaper(title: string, body: object = {}, doi: string | undefined = undefined): Promise<ItemInfo|undefined> {
-    const api = "https://readpaper.com/api/microService-app-aiKnowledge/aiKnowledge/paper/search"
-    let _body = {
-      keywords: title,
-      page: 1,
-      pageSize: 1,
-      searchType: Number(Object.values(body).length > 0)
-    }
-    body = { ..._body, ...body }
-
-    let response = await this.requests.post(api, body)
-    if (response && response?.data?.list?.[0]) {
-      let data = response?.data?.list?.[0]
-      // 验证DOI
-      if (doi) {
-        // 获取paperId的doi
-        let _res = await this.requests.post(
-          "https://readpaper.com/api/microService-app-aiKnowledge/aiKnowledge/paper/getPaperDetailInfo",
-          { paperId: data.id }
-        )
-        const paperDoi = _res?.data?.doi;
-        if (!paperDoi || paperDoi.toUpperCase() !== doi.toUpperCase()) {
-          return undefined;
-        }
-      }
-      let info = this.Info.readpaper(data) as ItemInfo
-      if (doi) { info.identifiers = { DOI: doi }}
-      return info
-    }
-  }
-
-  // For CNKI
-  async _getCNKIURL(title: string, author: string) {
-    ztoolkit.log("getCNKIURL", title, author)
-    let cnkiURL
-    let oldFunc = Zotero.Jasminum.Scrape.getItemFromSearch
-    Zotero.Jasminum.Scrape.getItemFromSearch = function (htmlString: string) {
+    const providers = [
+      {name:"Crossref",run:async()=>{const info=await this.getTitleInfoByCrossref(title,author,year,signal);return info?{doi:info.identifiers.DOI,info}:undefined;}},
+      {name:"OpenAlex",run:async()=>{const work=await this.openAlex.searchWorkByTitle(title,author,year,signal);return work?{doi:work.doi,oaUrl:work.oaUrl}:undefined;}},
+      {name:"Semantic Scholar",run:async()=>{const paper=await this.semanticScholar.byTitle(title,author,year,signal);if(!paper)return;const info=this.semanticScholar.toInfo(paper);return {doi:info.identifiers.DOI,oaUrl:info.oaUrl,info};}}
+    ];
+    for(const provider of providers) {
+      if(signal?.aborted)return;
       try {
-        let res = htmlString.match(/href='(.+FileName=.+?&DbName=.+?)'/i) as any[]
-        if (res.length) {
-          return res[1]
-        }
-      } catch {
-        return
+        const result=await provider.run();
+        if(signal?.aborted)return;
+        const doi=CitationVerifier.normalizeDOI(result?.doi);
+        if(doi)return {...result!,doi};
+      }catch(error:any){
+        if(error?.name==="AbortError"||signal?.aborted)throw error;
+        ztoolkit.log(`${provider.name} title lookup failed; trying next provider`,error);
       }
-    }.bind(Zotero.Jasminum);
-    cnkiURL = await Zotero.Jasminum.Scrape.search({ keyword: title })
-    Zotero.Jasminum.Scrape.getItemFromSearch = oldFunc.bind(Zotero.Jasminum);
-    if (!cnkiURL) {
-      ztoolkit.log("cnkiURL", cnkiURL)
-      return
-    }
-    let args = this.utils.parseCNKIURL(cnkiURL)
-    if (args) {
-      cnkiURL = `https://kns.cnki.net/kcms/detail/detail.aspx?FileName=${args.fileName}&DbName=${args.dbName}&DbCode=${args.dbCode}`
-      return cnkiURL
     }
   }
 
-  async getCNKIURL(keywords: string, slience: boolean = false) {
+  async getCNKIURL(keywords: string, slience: boolean = false, signal?: AbortSignal) {
     if (!slience) {
       (new ztoolkit.ProgressWindow("[Pending] API", {closeOtherProgressWindows: true}))
         .createLine({ text: `Get CNKI URL`, type: "default" })
         .show()
     }
-    const res = await Zotero.HTTP.request(
-      "POST",
-      "https://kns.cnki.net/kns8/Brief/GetGridTableHtml",
-      {
-        headers: {
-          Accept: "text/html, */*; q=0.01",
-          "Accept-Encoding": "gzip, deflate, br",
-          "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7",
-          Connection: "keep-alive",
-          "Content-Length": "2085",
-          "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-          Host: "kns.cnki.net",
-          Origin: "https://kns.cnki.net",
-          Referer:
-            "https://kns.cnki.net/kns8/AdvSearch?dbprefix=SCDB&&crossDbcodes=CJFQ%2CCDMD%2CCIPD%2CCCND%2CCISD%2CSNAD%2CBDZK%2CCJFN%2CCCJD",
-          "Sec-Fetch-Dest": "empty",
-          "Sec-Fetch-Mode": "cors",
-          "Sec-Fetch-Site": "same-origin",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        body: `IsSearch=true&QueryJson={"Platform":"","DBCode":"CFLS","KuaKuCode":"CJFQ,CDMD,CIPD,CCND,CISD,SNAD,BDZK,CCJD,CCVD,CJFN","QNode":{"QGroup":[{"Key":"Subject","Title":"","Logic":1,"Items":[{"Title":"主题","Name":"SU","Value":"${keywords}","Operate":"%=","BlurType":""}],"ChildItems":[]}]},"CodeLang":"ch"}&PageName=defaultresult&DBCode=CFLS&CurPage=1&RecordsCntPerPage=20&CurDisplayMode=listmode&CurrSortField=&CurrSortFieldType=desc&IsSentenceSearch=false&Subject=`
-      }
-    )
+    const query = {Platform:"",DBCode:"CFLS",KuaKuCode:"CJFQ,CDMD,CIPD,CCND,CISD,SNAD,BDZK,CCJD,CCVD,CJFN",
+      QNode:{QGroup:[{Key:"Subject",Title:"",Logic:1,Items:[{Title:"主题",Name:"SU",Value:keywords,Operate:"%=",BlurType:""}],ChildItems:[]}]},CodeLang:"ch"};
+    const form = {IsSearch:"true",QueryJson:JSON.stringify(query),PageName:"defaultresult",DBCode:"CFLS",CurPage:"1",RecordsCntPerPage:"20",
+      CurDisplayMode:"listmode",CurrSortField:"",CurrSortFieldType:"desc",IsSentenceSearch:"false",Subject:""};
+    const body = Object.entries(form).map(([key,value])=>`${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&");
+    const res = await this.requests.post("https://kns.cnki.net/kns8/Brief/GetGridTableHtml",body,"text",{
+      Accept:"text/html", "Content-Type":"application/x-www-form-urlencoded; charset=UTF-8", "X-Requested-With":"XMLHttpRequest"
+    }, signal);
+    if(signal?.aborted)return;
     try {
-      if (res && res.responseText) {
-        let cnkiMatch = res.responseText.match(/href='(.+FileName=.+?&DbName=.+?)'/i);
+      if (typeof res === "string") {
+        let cnkiMatch = res.match(/href='(.+FileName=.+?&DbName=.+?)'/i);
         if (cnkiMatch && cnkiMatch[1]) {
           let args = this.utils.parseCNKIURL(cnkiMatch[1]);
           if (args) {
@@ -746,9 +536,9 @@ class API {
     }
   }
 
-  async getTitleInfoByCNKI(refText: string): Promise<ItemInfo | undefined> {
+  async getTitleInfoByCNKI(refText: string, signal?:AbortSignal): Promise<ItemInfo | undefined> {
     // 拒绝非中文请求，避免被封IP
-    if (!this.utils.isChinese(refText)) { return }
+    if (signal?.aborted || !this.utils.isChinese(refText)) { return }
     let res = this.utils.parseRefText(refText)
     const key = `${res.title}${res.authors}${refText}`
     const cached = this.requests.getCache(key);
@@ -756,21 +546,25 @@ class API {
       return cached;
     }
     ztoolkit.log("parseRefText", refText, res)
-    let url = await this.getCNKIURL(res.title, true)
+    let url = await this.getCNKIURL(res.title, true,signal)
     if (!url || typeof url !== "string") { return }
 
-    let htmlString = await this.requests.get(url, "text")
+    let htmlString = await this.requests.get(url, "text",{},signal)
+    if(signal?.aborted || typeof htmlString!=="string")return;
     ztoolkit.log(url, htmlString)
     const parser = ztoolkit.getDOMParser();
-    let doc = parser.parseFromString(htmlString, "text/html").childNodes[1] as any
+    const doc = parser.parseFromString(htmlString, "text/html").documentElement as any;
     let aTags = doc.querySelectorAll(".top-tip span a")
     const informSpan = [...doc.querySelectorAll("p.total-inform span")].find(span => span.innerText.includes("下载"));
     const downloadMatch = informSpan?.innerText?.match(/\d+/);
-    const downloadCount = downloadMatch ? downloadMatch[0] : "0";
+    const downloadCount = downloadMatch ? downloadMatch[0] : undefined;
+    const returnedTitle=String(doc.querySelector(".brief h1")?.textContent||"").trim();
+    const requestedTitle=CitationVerifier.cleanTitle(res.title);
+    if(requestedTitle.length<6 || !returnedTitle || (requestedTitle!==CitationVerifier.cleanTitle(returnedTitle) && CitationVerifier.tokenJaccard(res.title,returnedTitle)<0.95))return;
 
     let info: ItemInfo = {
       identifiers: { CNKI: url },
-      title: doc.querySelector(".brief h1")?.innerText || "",
+      title: returnedTitle,
       abstract: doc.querySelector("span#ChDivSummary")?.innerText || "",
       authors: [...doc.querySelectorAll("#authorpart span a")].map((a: any) => a.innerText),
       type: "journalArticle",
@@ -779,80 +573,46 @@ class API {
       url: url,
       source: "CNKI",
       tags: [...doc.querySelectorAll(".keywords a")].map((a: any) => a.innerText.replace(/(\n|\s+|;)/g, ""))
-        .concat([
+        .concat(downloadCount!==undefined?[
           {
             text: downloadCount,
             color: "#cc7c08",
             tip: "知网下载量"
           }
-        ])
+        ]:[])
     }
     this.requests.setCache(key, info);
     return info
   }
 
-  async getCNKIFileInfo(fileName: string, count: number=0): Promise<ItemInfo | undefined> {
-    /**
-     * 根据账号密码登录
-     */
-    const prefsKey = `${config.addonRef}.CNKI.token`
-    const username = (Zotero.Prefs.get(`${config.addonRef}.CNKI.username`) as string) || "";
-    const password = (Zotero.Prefs.get(`${config.addonRef}.CNKI.password`) as string) || "";
-    if (username.length * password.length === 0) {
-      (new ztoolkit.ProgressWindow("[Fail] API", { closeOtherProgressWindows: true }))
-        .createLine({ text: "请配置知网研学账号密码后重试", type: "fail" })
-        .show()
-      return undefined;
+  async getCNKIFileInfo(fileName: string, count=0, signal?:AbortSignal): Promise<ItemInfo | undefined> {
+    if(signal?.aborted || !fileName)return;
+    const prefsKey=`${config.addonRef}.CNKI.token`;
+    const username=String(Zotero.Prefs.get(`${config.addonRef}.CNKI.username`)||"");
+    const password=String(Zotero.Prefs.get(`${config.addonRef}.CNKI.password`)||"");
+    let token=String(Zotero.Prefs.get(prefsKey)||"");
+    const updateToken=async()=>{
+      if(!username||!password||signal?.aborted)return false;
+      const res=await this.requests.post("https://apix.cnki.net/databusapi/api/v1.0/credential/namepasswithcleartext/personalaccount",
+        {Username:username,Password:password},"json",{},signal,{cache:false});
+      if(signal?.aborted || typeof res?.Content!=="string" || !res.Content.trim())return false;
+      token=res.Content.trim();Zotero.Prefs.set(prefsKey,token);return true;
+    };
+    if(!token && !await updateToken())return;
+    const name=encodeURIComponent(fileName);
+    const infoApi=`https://x.cnki.net/readApi/api/v1/paperInfo?fileName=${name}&tableName=CJFDTOTAL&dbCode=CJFD&from=ReadingHistory&type=psmc&fsType=1&taskId=0`;
+    const refApi=`https://x.cnki.net/readApi/api/v1/paperRefreNotes?appId=CRSP_BASIC_PSMC&dbcode=CJFD&tablename=CJFDTOTAL&filename=${name}&type=1&page=1`;
+    const infoData=await this.requests.get(infoApi,"json",{token},signal);
+    if(signal?.aborted)return;
+    const refData=await this.requests.get(refApi,"json",{token},signal);
+    if(signal?.aborted)return;
+    if(!refData || String(refData.code)!=="200") {
+      // Renew only an explicit authentication rejection, once. Transport,
+      // rate-limit and unknown vendor failures do not trigger repeated logins.
+      const rejected=["401","403"].includes(String(refData?.code));
+      if(rejected && count<1 && await updateToken())return this.getCNKIFileInfo(fileName,count+1,signal);
+      return;
     }
-    let updateToken = async () => {
-      function getRandomIP() {
-        let ip: string = "";
-        for (var i = 0; i < 4; i++) {
-          //判断是否小于3，决定后面要不要拼接.
-          if (i < 3) {
-            ip = ip + String(Math.floor(Math.random() * 256)) + "."
-          } else {
-            ip = ip + String(Math.floor(Math.random() * 256))
-          }
-        }
-        return ip
-      }
-      let res = await this.requests.post(
-        "https://apix.cnki.net/databusapi/api/v1.0/credential/namepasswithcleartext/personalaccount",
-        {
-          Username: username,
-          Password: password,
-          Clientip: getRandomIP()
-        }
-      )
-      const token = res.Content
-      Zotero.Prefs.set(prefsKey, token)
-    }
-    const infoApi = `https://x.cnki.net/readApi/api/v1/paperInfo?fileName=${fileName}&tableName=CJFDTOTAL&dbCode=CJFD&from=ReadingHistory&type=psmc&fsType=1&taskId=0`
-    const refApi = `https://x.cnki.net/readApi/api/v1/paperRefreNotes?appId=CRSP_BASIC_PSMC&dbcode=CJFD&tablename=CJFDTOTAL&filename=${fileName}&type=1&page=1`
-    const userAgent = "user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
-    const token = Zotero.Prefs.get(prefsKey) as string
-    const infoData = await this.requests.get(infoApi, "json", {
-      token: token,
-      "user-agent": userAgent
-    })
-    // 这是最后一根救命稻草
-    const refData = await this.requests.get(refApi, "json", {
-      token: token,
-      "user-agent": userAgent
-    })
-    ztoolkit.log(refData)
-    if (!refData || String(refData.code) != "200") {
-      if (count < 3) {
-        await updateToken()
-        return await this.getCNKIFileInfo(fileName, count + 1)
-      } else {
-        (new ztoolkit.ProgressWindow("[Fail] API", {closeOtherProgressWindows: true}))
-          .createLine({ text: `${refData?.code || 'Error'}: ${refData?.promptMessage || '请求失败'}`, type: "fail" })
-          .show()
-        return undefined;
-      }
-    } 
 
     let info: ItemInfo = {
       identifiers: {},
@@ -874,7 +634,7 @@ class API {
         const refText = (ref?.title || "").replace(/^\[\d+\]/, "");
         if (_ref) {
           const dbCode = (_ref.dbSource || "").split("_")[0];
-          const cnkiURL = `https://kns.cnki.net/kcms/detail/detail.aspx?FileName=${_ref.fileName}&DbName=${_ref.tableName}&DbCode=${dbCode}`;
+          const cnkiURL = `https://kns.cnki.net/kcms/detail/detail.aspx?FileName=${encodeURIComponent(_ref.fileName||"")}&DbName=${encodeURIComponent(_ref.tableName||"")}&DbCode=${encodeURIComponent(dbCode)}`;
           info.references?.push({
             identifiers: {
               CNKI: cnkiURL
@@ -901,7 +661,7 @@ class API {
         .forEach((ref: any) => {
           const title = (ref.title || "").replace(/^\[\d+\]/, "");
           const dbCode = (ref.dbSource || "").split("_")[0];
-          const cnkiURL = `https://kns.cnki.net/kcms/detail/detail.aspx?FileName=${ref.fileName}&DbName=${ref.tableName}&DbCode=${dbCode}`;
+          const cnkiURL = `https://kns.cnki.net/kcms/detail/detail.aspx?FileName=${encodeURIComponent(ref.fileName||"")}&DbName=${encodeURIComponent(ref.tableName||"")}&DbCode=${encodeURIComponent(dbCode)}`;
           const authors = typeof ref.author === "string" ? ref.author.split(";").filter((s: string) => s.length) : [];
           info.references?.push({
             identifiers: {
@@ -917,6 +677,10 @@ class API {
           });
         });
     }
+    // Vendor pagination is undocumented. Only the complete bibliography can
+    // establish completeness; a first-page refer list remains partial.
+    info.referencePartial=!Array.isArray(infoData?.content?.paper?.bibliography);
+    if(signal?.aborted)return;
     return info
   }
 }

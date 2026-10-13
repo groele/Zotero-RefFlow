@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-12T16:23:01.121Z",
+  "host": "10.0.6",
+  "units": 186,
+  "native": {
+    "full": 109,
+    "dataflow": 13,
+    "architecture": 6,
+    "total": 128
+  },
+  "interfaces": {
+    "files": 40,
+    "retired": 0
+  },
+  "xpi": {
+    "path": "build/zotero-refnexus.xpi",
+    "bytes": 227571,
+    "sha256": "b3f76a0b15e8ae85c4c809ed9ba2d523ec362ccfa56a23ee5f6ad2b9572efe58"
+  },
+  "originalXpiPreserved": true,
+  "externalProviderResponses": "controlled fixtures; not proof of live quota or all-paper coverage"
+}

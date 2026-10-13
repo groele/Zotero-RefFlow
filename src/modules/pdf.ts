@@ -1,6 +1,6 @@
 import Utils from "./utils";
 import { extractReferencesFromLines, isBibliographyHeading, ReferenceTextLine } from "./referenceExtractor";
-import { textItemsToLines } from "./pdfLayout";
+import { structuredPageToLines } from "./structuredPDF";
 
 export interface PDFExtractionOptions {
   signal?: AbortSignal;
@@ -8,6 +8,7 @@ export interface PDFExtractionOptions {
   maxPages?: number;
   notify?: boolean;
   onProgress?: (scannedPages: number, totalPages: number) => void;
+  pageIndex?: number;
 }
 
 export interface PDFDiagnostics {
@@ -25,7 +26,7 @@ export default class PDF {
   constructor(utils?: Utils) { this.utils = utils || new Utils(); }
   getDiagnostics(reader: object): PDFDiagnostics | undefined { return this.diagnostics.get(reader); }
 
-  async getReferences(reader: _ZoteroTypes.ReaderInstance, fromCurrentPage: boolean, options: PDFExtractionOptions = {}): Promise<ItemInfo[]> {
+  async getReferences(reader: _ZoteroTypes.ReaderInstance | Zotero.Item, fromCurrentPage: boolean, options: PDFExtractionOptions = {}): Promise<ItemInfo[]> {
     const start = Date.now();
     const stats: PDFDiagnostics = { pagesRead: 0, totalPages: 0, headingFound: false, scanLimited: false, elapsedMs: 0 };
     try {
@@ -54,7 +55,7 @@ export default class PDF {
 
   private error(name: string, message: string): Error { const error=new Error(message);error.name=name;return error; }
 
-  /** Deadlines also cover getPage/getTextContent promises that never settle. */
+  /** Deadlines also cover native SDT generation and page reads that never settle. */
   private async bounded<T>(work: PromiseLike<T> | T, deadline: number, signal?: AbortSignal): Promise<T> {
     if (signal?.aborted) throw this.error("AbortError","Reference extraction cancelled");
     const remaining=deadline-Date.now();
@@ -65,61 +66,49 @@ export default class PDF {
       return await Promise.race([
         Promise.resolve(work),
         new Promise<never>((_,reject)=>{
-          timer=window.setTimeout(()=>reject(this.error("TimeoutError","PDF text extraction timed out")),remaining);
+          timer=globalThis.setTimeout(()=>reject(this.error("TimeoutError","PDF text extraction timed out")),remaining);
           abort=()=>reject(this.error("AbortError","Reference extraction cancelled"));
           signal?.addEventListener("abort",abort,{once:true});
         })
       ]);
-    } finally { window.clearTimeout(timer);signal?.removeEventListener("abort",abort); }
+    } finally { globalThis.clearTimeout(timer);signal?.removeEventListener("abort",abort); }
   }
 
-  private async readReferenceLines(reader: _ZoteroTypes.ReaderInstance, fromCurrentPage: boolean, options: PDFExtractionOptions, stats: PDFDiagnostics): Promise<ReferenceTextLine[]> {
+  private async readReferenceLines(reader: _ZoteroTypes.ReaderInstance | Zotero.Item, fromCurrentPage: boolean, options: PDFExtractionOptions, stats: PDFDiagnostics): Promise<ReferenceTextLine[]> {
     const deadline=Date.now()+Math.max(1,options.timeoutMs ?? 45000);
-    const readyDeadline=Math.min(deadline,Date.now()+5000);
-    let application: any;
-    while (!application) {
-      if ((reader as any)?._destroyed) throw this.error("AbortError","PDF reader was closed");
-      const frame=(reader as any)?._iframeWindow;
-      application=frame?.wrappedJSObject?.PDFViewerApplication || frame?.PDFViewerApplication;
-      if (!application) await this.bounded(Zotero.Promise.delay(100),readyDeadline,options.signal);
-    }
-    if (application.initializedPromise) await this.bounded(application.initializedPromise,Math.min(deadline,Date.now()+10000),options.signal);
-    // PDFViewerApplication initialization can finish before its loading task.
-    // Background opening exercises this race more often than an already visible reader.
-    const loadDeadline=Math.min(deadline,Date.now()+10000);
-    while(!application.pdfDocument) {
-      if((reader as any)._destroyed)throw this.error("AbortError","PDF reader was closed");
-      await this.bounded(Zotero.Promise.delay(100),loadDeadline,options.signal);
-    }
-    const document=application.pdfDocument;
-    const pageCount=Number(document?.numPages || application.pagesCount || 0);
-    if (!document || !Number.isFinite(pageCount) || pageCount<1) throw new Error("PDF text document is unavailable");
+    const itemID=Number((reader as any).itemID || (reader as Zotero.Item).id);
+    const attachment = "attachmentContentType" in reader ? reader as Zotero.Item : Zotero.Items.get(itemID);
+    if(!attachment || attachment.deleted || attachment.attachmentContentType!=="application/pdf")throw this.error("AbortError","PDF attachment is unavailable");
+    const sdt=(Zotero as any).SDT;
+    if(typeof sdt?.getReader!=="function")throw new Error("Zotero structured document text API is required");
+    if(options.signal?.aborted)throw this.error("AbortError","Reference extraction cancelled");
+    const pack:any=await this.bounded(sdt.getReader(itemID,{isPriority:true}),deadline,options.signal);
+    if(!pack || !/^1\./.test(pack.header?.schemaVersion || ""))throw new Error("Native structured PDF text is unavailable or has an unsupported schema");
+    const catalog:any=await this.bounded(pack.getCatalog(),deadline,options.signal);
+    const pageCount=Array.isArray(catalog?.pages)?catalog.pages.length:0;
+    if(pageCount<1)throw new Error("PDF text document is unavailable");
     stats.totalPages=pageCount;
-    const activePage=Math.min(pageCount,Math.max(1,Number(application.page)||pageCount));
+    const pageIndex=options.pageIndex ?? attachment.getAttachmentLastPageIndex();
+    const activePage=Math.min(pageCount,Math.max(1,Number.isInteger(pageIndex)?Number(pageIndex)+1:1));
     const end=fromCurrentPage?activePage:pageCount;
     const first=Math.max(1,end-Math.max(1,Math.min(200,options.maxPages??60))+1);
     const pages: ReferenceTextLine[][]=[];
+    let startFound=false;
     for (let pageNumber=end;pageNumber>=first;pageNumber--) {
-      if ((reader as any)._destroyed) throw this.error("AbortError","PDF reader was closed");
-      const pageView=application.pdfViewer?.getPageView?.(pageNumber-1);
-      const page=pageView?.pdfPage || await this.bounded(document.getPage(pageNumber),deadline,options.signal);
-      const textPage=typeof page?.getTextContent==="function"?page:page?.wrappedJSObject || (globalThis as any).Components?.utils?.waiveXrays?.(page);
-      if (typeof textPage?.getTextContent!=="function") throw new Error(`PDF text layer is unavailable on page ${pageNumber}`);
-      const content: any=await this.bounded(textPage.getTextContent({includeMarkedContent:false}),deadline,options.signal);
-      const width=Number(page.view?.[2])-Number(page.view?.[0]) || pageView?.viewport?.width || 612;
-      const height=Number(page.view?.[3])-Number(page.view?.[1]) || 792;
-      const lines=textItemsToLines(content?.items||[],pageNumber,width,height);
+      if (attachment.deleted) throw this.error("AbortError","PDF attachment was deleted");
+      const blocks:any=await this.bounded(pack.getPageBlocks(pageNumber-1),deadline,options.signal);
+      const lines=structuredPageToLines(blocks,pageNumber-1,catalog.pages[pageNumber-1].viewRect);
       pages.push(lines);stats.pagesRead++;
       options.onProgress?.(stats.pagesRead,pageCount);
       if (lines.some(line=>isBibliographyHeading(line.text))) {
         stats.headingFound=true;
         // A continued/methods list may begin at 51; keep scanning for the main list.
         const firstReference=extractReferencesFromLines(lines)[0];
-        if(firstReference && (firstReference.number===undefined||firstReference.number===1))break;
+        if(firstReference && (firstReference.number===undefined||firstReference.number===1)){startFound=true;break;}
       }
       await this.bounded(Zotero.Promise.delay(0),deadline,options.signal);
     }
-    stats.scanLimited=!stats.headingFound && first>1;
+    stats.scanLimited=!startFound && first>1;
     return pages.reverse().flat();
   }
 }

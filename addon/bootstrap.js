@@ -26,10 +26,15 @@ async function startup({ id, version, rootURI }, reason) {
    * and all child variables assigned to it is globally accessible.
    * See `src/index.ts` for details.
    */
+  const timers = ChromeUtils.importESModule("resource://gre/modules/Timer.sys.mjs");
+  Components.utils.importGlobalProperties(["AbortController"]);
   const ctx = {
     rootURI,
     Zotero,
     PathUtils,
+    setTimeout: timers.setTimeout,
+    clearTimeout: timers.clearTimeout,
+    AbortController,
   };
   ctx._globalThis = ctx;
 
@@ -49,6 +54,7 @@ async function onMainWindowUnload({ window }, reason) {
 
 async function shutdown({ id, version, resourceURI, rootURI }, reason) {
   if (reason === APP_SHUTDOWN) {
+    await Zotero.__addonInstance__?.views?.storage?.dispose();
     return;
   }
 

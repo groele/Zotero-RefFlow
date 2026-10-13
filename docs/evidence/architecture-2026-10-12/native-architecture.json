@@ -1,0 +1,58 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-12T12:34:35.884Z",
+  "scope": "native lifecycle, DOM, SQLite; controlled provider responses",
+  "tests": [
+    {
+      "name": "production cold startup",
+      "ok": true,
+      "detail": {
+        "alive": true
+      }
+    },
+    {
+      "name": "page extraction cannot read or overwrite the Auto full-document cache",
+      "ok": true,
+      "detail": {
+        "calls": 2,
+        "fullCachePreserved": true
+      }
+    },
+    {
+      "name": "graph import relates every origin atomically and rollback restores all links",
+      "ok": true,
+      "detail": {
+        "origins": 2,
+        "created": 1,
+        "rollback": true
+      }
+    },
+    {
+      "name": "closing a secondary window cancels its pane jobs",
+      "ok": true,
+      "detail": {
+        "cancelled": true,
+        "styleCount": 1
+      }
+    },
+    {
+      "name": "disable disposes the old cache and rejects late writes",
+      "ok": false,
+      "error": "ReferenceError: AddonManager is not defined",
+      "stack": "anonymous/<@jar:<isolated-zotero-profile>/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:50:27\ntest@jar:<isolated-zotero-profile>/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:8:88\nanonymous@jar:<isolated-zotero-profile>/profile/extensions/refnexus-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:49:9\n"
+    }
+  ],
+  "startupErrors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]"
+  ],
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"Plugin refnexus-native-test@example.org is missing bootstrap method 'onMainWindowLoad'\"]",
+    "[JavaScript Error: \"The connection was refused when attempting to contact wss:/stream.zotero.org/.\" {file: \"chrome:/zotero/content/xpcom/streamer.js\" line: 240}]",
+    "[JavaScript Error: \"WebSocket connection closed: 1006 \"]",
+    "[JavaScript Error: \"Plugin refnexus-native-test@example.org is missing bootstrap method 'onMainWindowUnload'\"]"
+  ],
+  "finished": "2026-10-12T12:34:37.800Z",
+  "passed": 4,
+  "failed": 1
+}

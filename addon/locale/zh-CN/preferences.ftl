@@ -79,3 +79,5 @@ openAlexKey-get = 申请 / 查看免费的 OpenAlex API Key
 
 about-updates = 插件更新由 groele/Zotero-diy 提供，仅支持 Zotero 10。
 about-release-notes = 版本说明
+semanticScholarKey-label = Semantic Scholar API Key（可选）
+semanticScholarKey-description = 保留官方 Graph API。未填写时使用匿名访问；填写后用于官方 x-api-key 请求头。

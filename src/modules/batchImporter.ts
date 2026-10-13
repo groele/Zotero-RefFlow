@@ -7,6 +7,7 @@ export interface BatchImportOptions {
   createManifestNote?: boolean;
   translatorTimeoutMs?: number;
   collections?: number[];
+  relatedParents?: Zotero.Item[];
 }
 export interface BatchImportResult {
   batchId: string; total: number; importedCount: number; existingCount: number; failedCount: number;
@@ -14,7 +15,7 @@ export interface BatchImportResult {
 }
 interface BatchRecord {
   version: 1; parentID: number; libraryID: number; createdIDs: number[]; noteID?: number; collectionID?: number;
-  relations: Array<{id:number;parentAdded:boolean;itemAdded:boolean}>;
+  relations: Array<{id:number;parentID?:number;parentAdded:boolean;itemAdded:boolean}>;
   memberships: Array<{id:number;collectionID:number}>;
   attachments: Array<{id:number;parentID:number}>;
 }
@@ -56,27 +57,31 @@ export class BatchImporter {
       const translate=new (Zotero as any).Translate.Search();translate.setIdentifier({DOI:doi});
       const translators=await translate.getTranslators();if(!translators?.length)return;
       translate.setTranslator(translators);
-      return (await translate.translate({libraryID:false,saveAttachments:false}))?.[0];
+      const metadata=(await translate.translate({libraryID:false,saveAttachments:false}))?.[0];
+      const returned=CitationVerifier.normalizeDOI(metadata?.DOI);
+      if(returned&&returned!==CitationVerifier.normalizeDOI(doi)){ztoolkit.log("Ignoring conflicting translator DOI");return;}
+      return metadata;
     })();
-    try {return await Promise.race([job,new Promise<undefined>(resolve=>{timer=window.setTimeout(()=>resolve(undefined),Math.max(1,timeoutMs));})]);}
+    try {return await Promise.race([job,new Promise<undefined>(resolve=>{timer=globalThis.setTimeout(()=>resolve(undefined),Math.max(1,timeoutMs));})]);}
     catch(error){ztoolkit.log("DOI metadata lookup failed",error);return undefined;}
-    finally {window.clearTimeout(timer);}
+    finally {globalThis.clearTimeout(timer);}
   }
 
   private static makeItem(ref:ItemBaseInfo,metadata:any,libraryID:number):Zotero.Item {
     const native=Zotero as any;
     const candidateType=metadata?.itemType||ref.type||"journalArticle";
-    const type=native.ItemTypes.getID(candidateType)?candidateType:"journalArticle";
+    const type=!["attachment","note","annotation"].includes(candidateType)&&native.ItemTypes.getID(candidateType)?candidateType:"journalArticle";
+    const doi=CitationVerifier.normalizeDOI(ref.identifiers?.DOI);
     const item=new Zotero.Item(type);item.libraryID=libraryID;
-    const data=metadata||{title:ref.title||ref.text||"Untitled",DOI:ref.identifiers?.DOI,date:ref.year,publicationTitle:ref.publicationVenue};
+    const data=metadata||{title:ref.title||ref.text||"Untitled",DOI:doi,date:ref.year,publicationTitle:ref.publicationVenue};
     for(const [field,value] of Object.entries(data)) {
       if(typeof value!=="string" && typeof value!=="number")continue;
       const fieldID=native.ItemFields.getID(field);
       if(fieldID && native.ItemFields.isValidForType(fieldID,item.itemTypeID)) item.setField(field as any,String(value));
     }
     if(!item.getField("title")) item.setField("title",ref.title||ref.text||"Untitled");
-    if(ref.identifiers?.DOI && native.ItemFields.isValidForType(native.ItemFields.getID("DOI"),item.itemTypeID)) item.setField("DOI",ref.identifiers.DOI);
-    const creators=metadata?.creators || (ref.authors||[]).map(name=>this.utils.splitCreator(name));
+    if(doi && native.ItemFields.isValidForType(native.ItemFields.getID("DOI"),item.itemTypeID)) item.setField("DOI",doi);
+    const creators=Array.isArray(metadata?.creators)?metadata.creators:(ref.authors||[]).map(name=>this.utils.splitCreator(name));
     if(creators.length)item.setCreators(creators);
     return item;
   }
@@ -89,6 +94,10 @@ export class BatchImporter {
     if(!parent?.id || !parent.isRegularItem() || parent.deleted)throw new Error("Select a saved, editable parent item");
     const library=(Zotero as any).Libraries.get(parent.libraryID);
     if(!library?.editable)throw new Error("This library is read-only");
+    const relatedParents = [...new Map([parent,...(options.relatedParents || [])].map(item => [item.id,item])).values()];
+    if (relatedParents.some(item => !item.id || item.deleted || !item.isRegularItem() || item.libraryID !== parent.libraryID)) {
+      throw new Error("Graph origins must be saved regular items in one editable library");
+    }
     if(!refs.length)throw new Error("No references to import");
     const batchID=this.generateBatchId();
     const record:BatchRecord={version:1,parentID:parent.id,libraryID:parent.libraryID,createdIDs:[],relations:[],memberships:[],attachments:[]};
@@ -109,7 +118,7 @@ export class BatchImporter {
       } else {
         for(const id of options.collections||parent.getCollections()) {
           const col=await Zotero.Collections.getAsync(id);
-          if(col?.libraryID===parent.libraryID)collections.push(id);
+          if(col && col.libraryID===parent.libraryID)collections.push(id);
         }
       }
       const seen=new Map<string,Zotero.Item>();
@@ -138,16 +147,18 @@ export class BatchImporter {
                   if(!isNew)record.memberships.push({id:target.id,collectionID:colID});
                 }
               }
-              if(target.id!==parent.id) {
-                const parentAdded=!parent.relatedItems.includes(target.key),itemAdded=!target.relatedItems.includes(parent.key);
-                if(parentAdded)parent.addRelatedItem(target);if(itemAdded)target.addRelatedItem(parent);
-                if(parentAdded||itemAdded)record.relations.push({id:target.id,parentAdded,itemAdded});
+              for (const origin of relatedParents) {
+                if(target.id===origin.id)continue;
+                const parentAdded=!origin.relatedItems.includes(target.key),itemAdded=!target.relatedItems.includes(origin.key);
+                if(parentAdded)origin.addRelatedItem(target);if(itemAdded)target.addRelatedItem(origin);
+                if(parentAdded||itemAdded)record.relations.push({id:target.id,parentID:origin.id,parentAdded,itemAdded});
+                if(origin.id!==parent.id)await origin.save();
               }
               await target.save();this.storeRecord(parent,batchID,record);await parent.save();
             });
           } catch(error) {
             record.createdIDs.length=oldCreated;record.relations.length=oldRelations;record.memberships.length=oldMemberships;
-            await Promise.allSettled([(parent as any).reload(null,true),target.id?(target as any).reload(null,true):Promise.resolve()]);throw error;
+            await Promise.allSettled([...relatedParents.map(origin => (origin as any).reload(null,true)),target.id?(target as any).reload(null,true):Promise.resolve()]);throw error;
           }
           if(isNew)result.importedCount++;else result.existingCount++;
           seen.set(identity,target);ref._item=target;
@@ -213,8 +224,10 @@ export class BatchImporter {
     await this.transaction(async()=>{
       for(const change of record.relations) {
         const item=await Zotero.Items.getAsync(change.id) as Zotero.Item;
-        if(!item || item.libraryID!==parent.libraryID)continue;
-        if(change.parentAdded)parent.removeRelatedItem(item);if(change.itemAdded)item.removeRelatedItem(parent);
+        const origin = change.parentID && change.parentID !== parent.id ? await Zotero.Items.getAsync(change.parentID) as Zotero.Item : parent;
+        if(!item || item.libraryID!==parent.libraryID || !origin || origin.libraryID!==parent.libraryID)continue;
+        if(change.parentAdded)origin.removeRelatedItem(item);if(change.itemAdded)item.removeRelatedItem(origin);
+        if(origin.id!==parent.id)await origin.save();
         await item.save();
       }
       for(const change of record.memberships) {

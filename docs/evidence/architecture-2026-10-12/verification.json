@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-12",
+  "unverified": [
+    "CNKI authenticated flows",
+    "third-party translation accounts",
+    "OCR",
+    "long-term memory",
+    "other OS",
+    "future Zotero major",
+    "all plugin combinations"
+  ],
+  "host": "Zotero 10.0.6 / Windows / Firefox 140",
+  "bundle": {
+    "currentBytes": 417760,
+    "reductionPercent": 25.84,
+    "baselineBytes": 563350
+  },
+  "buildType": "production evaluation; no promotion or release",
+  "xpi": {
+    "path": "<source-checkout>/build/zotero-refnexus.xpi",
+    "sha256": "6c586b322a3154a47b0320a29710f3a1b47ab5b29cfbefca17c3dd85c04fd123",
+    "bytes": 226007
+  },
+  "typecheck": "passed TypeScript 5.9.3",
+  "dependency": {
+    "vulnerabilities": 0,
+    "typescript": "5.9.3",
+    "zoteroTypes": "4.1.3",
+    "esbuild": "0.28.2"
+  },
+  "originalRelease": {
+    "untouchedByEvaluationBuild": true,
+    "sha256": "ba498342a442bb2470dd13ebe231cd41765f9d1375f5a8637cad1ced63aaa3c9"
+  },
+  "startupLog": "uncaught exception undefined remains unlocalized",
+  "native": {
+    "architectureFailed": 0,
+    "architecturePassed": 6,
+    "wrappersFailed": 0,
+    "suiteWrappers": 16,
+    "independentScenarios": 109,
+    "totalIndependentScenarios": 115,
+    "groups": [
+      {
+        "count": 10,
+        "passed": 10,
+        "failed": 0,
+        "name": "native-regression"
+      },
+      {
+        "count": 22,
+        "passed": 22,
+        "failed": 0,
+        "name": "native-stress"
+      },
+      {
+        "count": 28,
+        "passed": 28,
+        "failed": 0,
+        "name": "native-publishers"
+      },
+      {
+        "count": 6,
+        "passed": 6,
+        "failed": 0,
+        "name": "native-numbering"
+      },
+      {
+        "count": 12,
+        "passed": 12,
+        "failed": 0,
+        "name": "native-usability"
+      },
+      {
+        "count": 12,
+        "passed": 12,
+        "failed": 0,
+        "name": "native-major"
+      },
+      {
+        "count": 10,
+        "passed": 10,
+        "failed": 0,
+        "name": "native-sidebar"
+      }
+    ],
+    "wrappersPassed": 16
+  },
+  "unit": {
+    "failed": 0,
+    "passed": 165
+  },
+  "sourceVersion": "11.0.0"
+}

@@ -30,9 +30,12 @@ export function publisherForURL(value: string): PublisherProfile | undefined {
 const clean=(value:any)=>String(value?.textContent||value||"").replace(/\s+/g," ").trim();
 const doi=(value?:string)=>CitationVerifier.normalizeDOI(value);
 const MAX_REFERENCES=2000;
+// Gecko's generated NodeList iterator includes nullable generic Nodes. CSS
+// selectors always return Elements; normalize that boundary in one place.
+const elements=(root:ParentNode,selector:string):Element[]=>Array.from(root.querySelectorAll(selector)) as Element[];
 
 function matchingArticle(document:Document,expectedDOI:string,title?:string):boolean {
-  const values=[...document.querySelectorAll('meta[name="citation_doi"], meta[name="dc.Identifier"], meta[name="DC.Identifier"], meta[property="prism:doi"], meta[name="prism.doi"]')].map(element=>doi(element.getAttribute("content")||""));
+  const values=elements(document,'meta[name="citation_doi"], meta[name="dc.Identifier"], meta[name="DC.Identifier"], meta[property="prism:doi"], meta[name="prism.doi"]').map(element=>doi(element.getAttribute("content")||""));
   const declared=values.filter(Boolean);
   if(declared.length&&doi(expectedDOI))return declared.includes(doi(expectedDOI));
   const candidate=clean(document.querySelector('meta[name="citation_title"]')?.getAttribute("content")||document.querySelector("h1"));
@@ -43,7 +46,7 @@ function matchingArticle(document:Document,expectedDOI:string,title?:string):boo
 export function parsePublisherHTML(document:Document,url:string,expectedDOI:string,title?:string):ItemBaseInfo[] {
   const profile=publisherForURL(url);
   if(!profile || !matchingArticle(document,expectedDOI,title))return [];
-  const nodes=[...document.querySelectorAll(profile.selectors)];
+  const nodes=elements(document,profile.selectors);
   const seen=new Set<string>();
   return nodes.filter(node=>!nodes.some(other=>other!==node&&other.contains(node))).slice(0,MAX_REFERENCES).flatMap((node,index)=>{
     const copy=node.cloneNode(true) as Element;
@@ -51,7 +54,7 @@ export function parsePublisherHTML(document:Document,url:string,expectedDOI:stri
     const text=clean(copy).replace(/^\s*(?:\[\d+\]|\d+[.)]?)\s*/,"");
     if(text.length<15 || seen.has(text))return [];
     seen.add(text);
-    const links=[...node.querySelectorAll("a[href]")].map(link=>link.getAttribute("href")||"");
+    const links=elements(node,"a[href]").map(link=>link.getAttribute("href")||"");
     const identifier=links.map(link=>/^https?:\/\/(?:dx\.)?doi\.org\//i.test(link)?doi(link):undefined).find(Boolean) || doi(text.match(/(?:doi\s*:?\s*|https?:\/\/(?:dx\.)?doi\.org\/)(10\.\d{4,9}\/[^\s<>]+)/i)?.[1]);
     const number=Number(node.querySelector('.ref-label, .label')?.textContent?.match(/\d+/)?.[0])||Number(node.getAttribute("value"))||Number(node.id.match(/(?:ref|CR)(\d+)$/i)?.[1])||index+1;
     return [{text,title:clean(node.querySelector('.article-title, .ref-title, [itemprop="name"]'))||undefined,authors:[],identifiers:identifier?{DOI:identifier}:{},number,year:text.match(/\b(?:18|19|20)\d{2}\b/)?.[0],url:identifier?`https://doi.org/${identifier}`:undefined,sources:[profile.name+" HTML"]} as ItemBaseInfo];
@@ -61,15 +64,15 @@ export function parsePublisherHTML(document:Document,url:string,expectedDOI:stri
 /** JATS is shared by many publishers; validate the parent DOI before accepting its back matter. */
 export function parseJATS(document:Document,expectedDOI:string):ItemBaseInfo[] {
   if(document.querySelector("parsererror, error"))return [];
-  const articles=[...document.getElementsByTagName("article")];
-  const article=articles.find(article=>[...article.querySelectorAll('front article-id[pub-id-type="doi"]')].some(id=>doi(clean(id))===doi(expectedDOI)));
+  const articles=Array.from(document.getElementsByTagName("article")) as Element[];
+  const article=articles.find(article=>elements(article,'front article-id[pub-id-type="doi"]').some(id=>doi(clean(id))===doi(expectedDOI)));
   if(!article)return [];
   const seen=new Set<string>();
-  return [...article.querySelectorAll("back ref-list ref")].slice(0,MAX_REFERENCES).flatMap((ref,index)=>{
+  return elements(article,"back ref-list ref").slice(0,MAX_REFERENCES).flatMap((ref,index)=>{
     const citation=ref.querySelector("mixed-citation, element-citation, nlm-citation")||ref;
-    const identifier=doi(clean(citation.querySelector('pub-id[pub-id-type="doi"]'))) || [...citation.querySelectorAll("ext-link")].map(link=>doi(link.getAttribute("xlink:href")||link.getAttribute("href")||clean(link))).find(Boolean);
+    const identifier=doi(clean(citation.querySelector('pub-id[pub-id-type="doi"]'))) || elements(citation,"ext-link").map(link=>doi(link.getAttribute("xlink:href")||link.getAttribute("href")||clean(link))).find(Boolean);
     const title=clean(citation.querySelector("article-title, chapter-title"));
-    const authors=[...citation.querySelectorAll("person-group name, person-group string-name")].map(name=>[clean(name.querySelector("given-names")),clean(name.querySelector("surname"))].filter(Boolean).join(" ")||clean(name));
+    const authors=elements(citation,"person-group name, person-group string-name").map(name=>[clean(name.querySelector("given-names")),clean(name.querySelector("surname"))].filter(Boolean).join(" ")||clean(name));
     const year=clean(citation.querySelector("year")),venue=clean(citation.querySelector("source"));
     // Element-only citations omit punctuation, so construct a readable fallback.
     const text=citation.localName==="element-citation"?[authors.join(", "),title,venue,year,identifier].filter(Boolean).join(". "):clean(citation);
@@ -88,9 +91,9 @@ export default class PublisherReferences {
   private pending=0;
   private disposed=false;
   private misses=new Map<string,number>();
-  private async request(url:string,type="json",headers:Record<string,string>={}) {
+  private async request(url:string,type="json",headers:Record<string,string>={},signal?:AbortSignal) {
     // Persist parsed references in the pane cache, not hundreds of full HTML/XML bodies.
-    try{return await this.requests.get(url,type as any,headers);}finally{this.requests.clearCache();}
+    try{return await this.requests.get(url,type as any,headers,signal);}finally{this.requests.clearCache();}
   }
   clearCache(){this.requests.clearCache();this.misses.clear();}
   dispose(){this.disposed=true;this.requests.dispose();this.misses.clear();}
@@ -106,29 +109,37 @@ export default class PublisherReferences {
     const key=doi(expectedDOI);
     if(!key||signal?.aborted||this.disposed||this.pending>=8)return [];
     const cacheKey=key+"|"+(url||"");
+    let unavailable=false;
+    const request=async(requestURL:string,type="json",headers:Record<string,string>={})=>{
+      const value=await this.request(requestURL,type,headers,signal);
+      if(value===undefined)unavailable=true;
+      return value;
+    };
     if((this.misses.get(cacheKey)||0)>Date.now())return [];
     if(url && publisherForURL(url)) {
-      const html=await this.request(url,"text",{Accept:"text/html"});
+      const html=await request(url,"text",{Accept:"text/html"});
       if(signal?.aborted||this.disposed)return [];
       if(typeof html==="string") {const references=this.parseHTML(html,url,key,title);if(references.length)return references;}
     }
     const run=async()=>{
       if(signal?.aborted||this.disposed)return [];
       await Zotero.Promise.delay(Math.max(0,350-(Date.now()-this.pmcLast)));
+      if(signal?.aborted||this.disposed)return [];
       this.pmcLast=Date.now();
-      const data=await this.request(`https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/?ids=${encodeURIComponent(key)}&idtype=doi&format=json&tool=RefNexus`);
+      const data=await request(`https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/?ids=${encodeURIComponent(key)}&idtype=doi&format=json&tool=RefNexus`);
       if(signal?.aborted)return [];
       const record=data?.records?.find((record:any)=>doi(record.doi)===key&&/^PMC\d+$/.test(record.pmcid));
       if(!record)return [];
       await Zotero.Promise.delay(Math.max(0,350-(Date.now()-this.pmcLast)));this.pmcLast=Date.now();
-      const xml=await this.request(`https://pmc.ncbi.nlm.nih.gov/api/oai/v1/mh/?verb=GetRecord&identifier=oai:pubmedcentral.nih.gov:${record.pmcid.slice(3)}&metadataPrefix=pmc`,"text",{Accept:"application/xml","Accept-Encoding":"gzip, deflate"});
+      if(signal?.aborted||this.disposed)return [];
+      const xml=await request(`https://pmc.ncbi.nlm.nih.gov/api/oai/v1/mh/?verb=GetRecord&identifier=oai:pubmedcentral.nih.gov:${record.pmcid.slice(3)}&metadataPrefix=pmc`,"text",{Accept:"application/xml","Accept-Encoding":"gzip, deflate"});
       return !signal?.aborted&&typeof xml==="string"?this.parseXML(xml,key):[];
     };
     if(this.pending>=8||signal?.aborted||this.disposed)return [];
     this.pending++;
     const job=this.pmcTail.then(run,run).finally(()=>{this.pending--;});this.pmcTail=job.catch(()=>{});
     const references=await job;
-    if(!references.length && !signal?.aborted&&!this.disposed){if(this.misses.size>=100)this.misses.delete(this.misses.keys().next().value);this.misses.set(cacheKey,Date.now()+5*60*1000);}
+    if(!references.length && !unavailable && !signal?.aborted&&!this.disposed){if(this.misses.size>=100){const oldest=this.misses.keys().next().value;if(oldest!==undefined)this.misses.delete(oldest);}this.misses.set(cacheKey,Date.now()+5*60*1000);}
     return references;
   }
 }

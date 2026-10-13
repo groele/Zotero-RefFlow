@@ -4,13 +4,16 @@
  */
 
 import { version, homepage } from "../../package.json";
+import {encodeData,utf8Bytes} from "./jsonData";
 
-export interface RequestOptions { timeoutMs?: number; budgetMs?: number; retryDelayMs?: number; cacheTTL?: number; maxConcurrent?: number; maxQueued?: number; }
+export interface RequestOptions { timeoutMs?: number; budgetMs?: number; retryDelayMs?: number; cacheTTL?: number; maxConcurrent?: number; maxQueued?: number; cacheMaxBytes?:number; cacheEntryMaxBytes?:number; }
 interface Flight {promise:Promise<any>;controller:AbortController;consumers:number;settled:boolean;}
 
 export default class Requests {
   private cache: Map<string, any> = new Map();
   private cacheTimes = new Map<string, number>();
+  private cacheSizes=new Map<string,number>();
+  private cacheBytes=0;
   private inFlight = new Map<string, Flight>();
   private readonly MAX_CACHE_ENTRIES: number = 500;
   private options: Required<RequestOptions>;
@@ -18,15 +21,18 @@ export default class Requests {
   private queue: Array<() => void> = [];
   private cancellers = new Set<() => void>();
   private disposed=false;
+  private cacheGeneration=0;
   public lastFailure?: {status:number;endpoint:string;message:string;retryAfterMs?:number};
   private cooldowns=new Map<string,{until:number;message:string}>();
   public readonly metrics={requests:0,cacheHits:0,deduplicated:0,retries:0,timeouts:0,cooldownHits:0,cancellations:0};
 
   constructor(options: RequestOptions={}) {
-    this.options={timeoutMs:15000,budgetMs:25000,retryDelayMs:600,cacheTTL:10*60*1000,maxConcurrent:4,maxQueued:64,...options};
+    this.options={timeoutMs:15000,budgetMs:25000,retryDelayMs:600,cacheTTL:10*60*1000,maxConcurrent:4,maxQueued:64,cacheMaxBytes:8*1024*1024,cacheEntryMaxBytes:2*1024*1024,...options};
   }
 
-  clearCache(): void {this.cache.clear();this.cacheTimes.clear();}
+  clearCache(): void {this.cacheGeneration++;this.cache.clear();this.cacheTimes.clear();this.cacheSizes.clear();this.cacheBytes=0;}
+  private evictCache(key:string){this.cacheBytes-=this.cacheSizes.get(key)||0;this.cache.delete(key);this.cacheTimes.delete(key);this.cacheSizes.delete(key);}
+  public get cacheUsage(){return {entries:this.cache.size,bytes:this.cacheBytes,maxBytes:this.options.cacheMaxBytes};}
   dispose(): void {
     this.disposed=true;
     for(const flight of this.inFlight.values())flight.controller.abort();
@@ -43,10 +49,10 @@ export default class Requests {
       const admitted=await new Promise<boolean>(resolve=>{
         // Reserve the slot before waking the waiter, so a new arrival cannot
         // steal it between promise resolution and continuation.
-        const cleanup=()=>{window.clearTimeout(timer);signal?.removeEventListener('abort',abort);};
+        const cleanup=()=>{globalThis.clearTimeout(timer);signal?.removeEventListener('abort',abort);};
         const resume=()=>{cleanup();if(this.disposed||signal?.aborted){resolve(false);return;}this.active++;resolve(true);};
         const abort=()=>{const index=this.queue.indexOf(resume);if(index>=0)this.queue.splice(index,1);cleanup();resolve(false);};
-        const timer=window.setTimeout(()=>{this.metrics.timeouts++;abort();},this.options.budgetMs);
+        const timer=globalThis.setTimeout(()=>{this.metrics.timeouts++;abort();},this.options.budgetMs);
         this.queue.push(resume);
         signal?.addEventListener('abort',abort,{once:true});
       });
@@ -62,7 +68,7 @@ export default class Requests {
     if(flight?.controller.signal.aborted)flight=undefined;
     if(flight)this.metrics.deduplicated++;
     else {
-      const Controller=(window as any).AbortController||globalThis.AbortController;
+      const Controller=globalThis.AbortController;
       const controller:AbortController=new Controller();
       flight={controller,consumers:0,settled:false,promise:Promise.resolve()};
       const entry=flight;
@@ -77,13 +83,13 @@ export default class Requests {
       const abort=()=>{if(cleanup()){this.metrics.cancellations++;resolve(undefined);}};
       signal?.addEventListener('abort',abort,{once:true});
       if(signal?.aborted)abort();
-      entry.promise.then(value=>{if(cleanup())resolve(value);},error=>{if(cleanup())reject(error);});
+      entry.promise.then(value=>{if(cleanup()){const encoded=encodeData(value);resolve(encoded===undefined?value:JSON.parse(encoded));}},error=>{if(cleanup())reject(error);});
     });
   }
 
   /** Cooldowns are scoped to the origin and credential, not individual URLs. */
   private throttleKey(url:string,headers:Record<string,string>={}):string {
-    const credentials=Object.entries(headers).filter(([key])=>/^(authorization|x-api-key)$/i.test(key))
+    const credentials=Object.entries(headers).filter(([key])=>/^(authorization|x-api-key|token)$/i.test(key))
       .map(([key,value])=>[key.toLowerCase(),value]).sort();
     return JSON.stringify([new URL(url).origin,credentials]);
   }
@@ -100,9 +106,9 @@ export default class Requests {
 
   private pause(ms:number,signal?:AbortSignal):Promise<boolean> {
     return new Promise(resolve=>{
-      const cleanup=()=>{window.clearTimeout(timer);this.cancellers.delete(stop);signal?.removeEventListener('abort',stop);};
+      const cleanup=()=>{globalThis.clearTimeout(timer);this.cancellers.delete(stop);signal?.removeEventListener('abort',stop);};
       const stop=()=>{cleanup();resolve(false);};
-      const timer=window.setTimeout(()=>{cleanup();resolve(true);},ms);
+      const timer=globalThis.setTimeout(()=>{cleanup();resolve(true);},ms);
       this.cancellers.add(stop);
       signal?.addEventListener('abort',stop,{once:true});
       if(this.disposed||signal?.aborted)stop();
@@ -129,13 +135,13 @@ export default class Requests {
     if (!this.cache.has(key)) {
       return undefined;
     }
-    if(Date.now()-(this.cacheTimes.get(key)||0)>this.options.cacheTTL){this.cache.delete(key);this.cacheTimes.delete(key);return undefined;}
+    if(Date.now()-(this.cacheTimes.get(key)||0)>this.options.cacheTTL){this.evictCache(key);return undefined;}
     this.metrics.cacheHits++;
     const value = this.cache.get(key);
     // Map keeps insertion order, so delete/reinsert moves the hit to MRU.
     this.cache.delete(key);
     this.cache.set(key, value);
-    return value;
+    return JSON.parse(value);
   }
 
   /**
@@ -143,16 +149,19 @@ export default class Requests {
    */
   public setCache(key: string, value: any): void {
     if(this.disposed) return;
+    const encoded=encodeData(value);
+    if(encoded===undefined)return;
+    const bytes=utf8Bytes(encoded)+utf8Bytes(key);
+    if(bytes>this.options.cacheEntryMaxBytes||bytes>this.options.cacheMaxBytes){if(this.cache.has(key))this.evictCache(key);return;}
     if (this.cache.has(key)) {
-      this.cache.delete(key);
+      this.evictCache(key);
     }
-    while (this.cache.size >= this.MAX_CACHE_ENTRIES) {
+    while (this.cache.size >= this.MAX_CACHE_ENTRIES || this.cacheBytes+bytes>this.options.cacheMaxBytes) {
       const oldestKey = this.cache.keys().next().value;
       if (oldestKey === undefined) break;
-      this.cache.delete(oldestKey);
-      this.cacheTimes.delete(oldestKey);
+      this.evictCache(oldestKey);
     }
-    this.cache.set(key, value);
+    this.cache.set(key, encoded);this.cacheSizes.set(key,bytes);this.cacheBytes+=bytes;
     this.cacheTimes.set(key,Date.now());
   }
 
@@ -187,7 +196,7 @@ export default class Requests {
         });
         const timeout=Math.max(1,Math.min(this.options.timeoutMs,deadline-Date.now()));
         const timeoutPromise = new Promise<never>((_, reject) => {
-          timerId = window.setTimeout(() => {this.metrics.timeouts++;cancel?.();reject(new Error(`Request timeout after ${timeout}ms`));}, timeout);
+          timerId = globalThis.setTimeout(() => {this.metrics.timeouts++;cancel?.();reject(new Error(`Request timeout after ${timeout}ms`));}, timeout);
         });
 
         const reqPromise = Zotero.HTTP.request(method, url, {
@@ -205,7 +214,7 @@ export default class Requests {
         this.metrics.requests++;
 
         const res = await Promise.race([reqPromise, timeoutPromise,cancelled]);
-        window.clearTimeout(timerId);
+        globalThis.clearTimeout(timerId);
 
         if (res.status >= 200 && res.status < 300) {
           this.lastFailure=undefined;
@@ -237,7 +246,7 @@ export default class Requests {
         retry=!timedOut && !this.disposed && (status===0 || [429,500,502,503,504].includes(status));
         ztoolkit.log(`[HTTP Error] ${method} ${url.split("?")[0]}: ${status}`);
       } finally {
-        window.clearTimeout(timerId);
+        globalThis.clearTimeout(timerId);
         if(stop){this.cancellers.delete(stop);signal?.removeEventListener('abort',stop);}
       }
       if(!retry || attempt>=maxRetries || this.disposed) return undefined;
@@ -262,11 +271,12 @@ export default class Requests {
     }
     const mergedHeaders = Object.assign({}, this.defaultHeaders, headers);
     if(this.disposed||this.coolingDown(this.throttleKey(url,mergedHeaders),url))return undefined;
-    return this.shared(cacheKey,signal,transportSignal=>this.limited(deadline=>this.executeWithRetry("GET", url, {
+    const generation=this.cacheGeneration;
+    return this.shared(`${generation}:${cacheKey}`,signal,transportSignal=>this.limited(deadline=>this.executeWithRetry("GET", url, {
       responseType,
       headers: mergedHeaders
     },2,deadline,transportSignal),transportSignal).then(result => {
-      if (result !== undefined) this.setCache(cacheKey, result);
+      if (result !== undefined && generation===this.cacheGeneration && !transportSignal.aborted) this.setCache(cacheKey, result);
       return result;
     }));
   }
@@ -274,23 +284,25 @@ export default class Requests {
   /**
    * 发送 POST 请求
    */
-  async post(url: string, body: object = {}, responseType: string = "json", headers: Record<string, string> = {},signal?:AbortSignal): Promise<any> {
+  async post(url: string, body: object | string = {}, responseType: string = "json", headers: Record<string, string> = {},signal?:AbortSignal,policy:{cache?:boolean}={}): Promise<any> {
     if(this.disposed||signal?.aborted)return undefined;
     const mergedHeaders = Object.assign({
       "Content-Type": "application/json"
     }, this.defaultHeaders, headers);
     const cacheKey = this.getCacheKey("POST", url, { body, responseType, headers: mergedHeaders });
-    const cached = this.getCache(cacheKey);
+    const cacheable=policy.cache!==false;
+    const cached = cacheable?this.getCache(cacheKey):undefined;
     if (cached !== undefined) {
       return cached;
     }
     if(this.disposed||this.coolingDown(this.throttleKey(url,mergedHeaders),url))return undefined;
-    return this.shared(cacheKey,signal,transportSignal=>this.limited(deadline=>this.executeWithRetry("POST", url, {
+    const generation=this.cacheGeneration;
+    return this.shared(`${generation}:${cacheable?"cache":"fresh"}:${cacheKey}`,signal,transportSignal=>this.limited(deadline=>this.executeWithRetry("POST", url, {
       responseType,
       headers: mergedHeaders,
-      body: JSON.stringify(body)
+      body: typeof body === "string" ? body : JSON.stringify(body)
     },0,deadline,transportSignal),transportSignal).then(result => {
-      if (result !== undefined) this.setCache(cacheKey, result);
+      if (cacheable && result !== undefined && generation===this.cacheGeneration && !transportSignal.aborted) this.setCache(cacheKey, result);
       return result;
     }));
   }

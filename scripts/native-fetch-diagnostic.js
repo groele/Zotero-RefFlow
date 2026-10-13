@@ -1,0 +1,14 @@
+if(!/refnexus-z10-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
+const views=Zotero.ZoteroRefNexus.views;
+const parent=window.ZoteroPane.getSelectedItems()[0];
+const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');
+const report={title:parent?.getField('title'),parentID:parent?.id,before:body?.outerHTML.slice(0,1600),errors:Zotero.getErrors?.(true)};
+body.setAttribute('source','PDF');
+const perform=views.performReferences;
+views.performReferences=async(...args)=>{try{return await perform.apply(views,args);}catch(error){report.caught={error:String(error),stack:error?.stack};throw error;}};
+await views.refreshReferences(body,false,false,false,parent);
+views.performReferences=perform;
+report.after={connected:body.isConnected,count:body.references?.length,label:body.querySelector('#reference-num')?.textContent,bound:body.getAttribute('data-refnexus-item-id'),tasks:views.referenceTasks.size};
+report.errorsAfter=Zotero.getErrors?.(true);
+report.graph=[...window.document.querySelectorAll('iframe')].map(frame=>({id:frame.id,src:frame.getAttribute('src'),parent:frame.parentElement?.id}));
+await Zotero.File.putContentsAsync(cfg.output,JSON.stringify(report,null,2));

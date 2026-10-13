@@ -101,3 +101,4 @@ pane-sidenav =
 cards-kept-results = Previous results retained
 cards-refresh-empty-kept = No new list available; previous results retained
 cards-resolving-doi = Resolving the paper DOI…
+cards-context-changed = The item or document changed. Refresh to retrieve its references.

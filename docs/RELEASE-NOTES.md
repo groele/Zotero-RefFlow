@@ -1,20 +1,29 @@
-# Zotero RefNexus 11.0.1
+# Zotero RefNexus 11.0.2
 
-2026-10-09 · 设置页布局调整与补丁版本更新。
+## v11.0.2 - 2026-10-13
 
-## 界面调整
+### Fixed
 
-- 将维护者、来源与许可、更新来源及项目链接移至所有设置项之后，方便在页面底部查看。
+- Crossref、OpenAlex 与 Semantic Scholar 标题检索共用候选核验和唯一身份选择；统一 DOI 解析器补齐 Semantic Scholar 回退。
+- 统一参考文献完整性计算与缓存契约；区分合法空结果和无可用记录的部分结果，逐条隔离畸形数据。
+- OpenAlex 分页按验证后的唯一记录计数，避免重复记录导致提前结束。
 
-## 安装与更新
+### Verification
 
-在 Zotero 插件管理中检查更新，或从本版本 GitHub Release 下载 `zotero-refnexus.xpi`。
+- 224/224 单元测试；151/151 隔离 Zotero 原生场景；TypeScript 与生产构建通过。
+- Zotero 10.0.6 实机；供应方响应受控，真实联网服务覆盖不属于本次验收。
 
----
+### Compatibility
 
-# Zotero RefNexus 11.0.0
+- 保留原插件 ID、官方 Semantic Scholar Graph API、更新地址及原生 Zotero 数据格式；未引入迁移。
 
-2026-10-09 · 面向 Zotero 10 的大版本更新。
+## v11.0.1 - 2026-10-09
+
+设置页维护信息移至页面底部，便于访问项目与维护链接。
+
+## v11.0.0 - 2026-10-09
+
+面向 Zotero 10 的大版本更新。
 
 ## 获取与交互
 

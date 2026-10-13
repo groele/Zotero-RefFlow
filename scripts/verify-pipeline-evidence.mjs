@@ -1,0 +1,18 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+const dir=process.argv[2]||'docs/evidence/pipeline-2026-10-13';
+const read=name=>JSON.parse(fs.readFileSync(`${dir}/${name}.json`,'utf8'));
+const names=['native-final','native-dataflow','native-architecture','native-pipeline'];
+if(fs.existsSync(`${dir}/native-structure.json`))names.push('native-structure');
+const reports=names.map(read);
+for(const report of reports)if(!report.finished||report.failed||report.fatal)throw new Error('Incomplete or failed native verification');
+const counts=reports.map(report=>report.tests.reduce((count,test)=>count+(test.detail?.passed??1),0));
+const interfaces=read('interface-audit');if(interfaces.retired.length)throw new Error('Retired interfaces remain');
+const unitLog=fs.readFileSync(`${dir}/unit.log`,'utf8'),units=Number(unitLog.match(/# pass (\d+)/)?.[1]);
+if(!units||!/# fail 0\b/.test(unitLog))throw new Error('Unit checks failed');
+const hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const original=read('originals');
+const artifacts=original.artifacts||[{path:'zotero-refnexus.xpi',sha256:original.rootXpi},{path:'update.json',sha256:original.rootUpdate}];
+for(const artifact of artifacts)if(hash(artifact.path)!==artifact.sha256.toLowerCase())throw new Error('Promoted release artifacts changed');
+const result={at:new Date().toISOString(),host:reports[0].version,units,native:Object.fromEntries([...names.map((name,index)=>[name,counts[index]]),['total',counts.reduce((a,b)=>a+b,0)]]),interfaces:{files:interfaces.files,retired:0},xpi:{path:'build/zotero-refnexus.xpi',bytes:fs.statSync('build/zotero-refnexus.xpi').size,sha256:hash('build/zotero-refnexus.xpi')},originalReleaseArtifactsPreserved:true,scope:'isolated native Zotero; external responses controlled, loopback XHR real'};
+fs.writeFileSync(`${dir}/verification.json`,JSON.stringify(result,null,2));console.log(JSON.stringify(result,null,2));

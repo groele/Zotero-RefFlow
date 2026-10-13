@@ -60,6 +60,7 @@ declare type ItemBaseInfo = {
   oaUrl?: string;
   retraction?: {
     isRetracted: boolean;
+    checked?: boolean;
     reason?: string;
   };
   [key: string]: any;
@@ -214,22 +215,3 @@ type GraphResponse = {
   graph_json?: Graph;
   progress?: number;
 };
-declare class ConnectedPapersClient {
-  private readonly accessToken;
-  private readonly serverAddr;
-  constructor(args?: {
-    access_token?: string;
-    server_addr?: string;
-  });
-  getGraphAsyncIterator(args: {
-    paper_id: PaperId;
-    fresh_only?: boolean;
-    loop_until_fresh?: boolean;
-  }): AsyncGenerator<GraphResponse>;
-  getGraph(args: {
-    paper_id: PaperId;
-    fresh_only?: boolean;
-  }): Promise<GraphResponse>;
-  getRemainingUsages(): Promise<number>;
-  getFreeAccessPapers(): Promise<PaperId[]>;
-}

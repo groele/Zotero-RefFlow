@@ -1,132 +1,110 @@
-import { config } from "../../package.json";
-
+import {encodeData,utf8Bytes} from "./jsonData";
+interface StorageOptions {maxItems?:number;maxBytes?:number;entryMaxBytes?:number;}
+/** Owned, bounded cache. Zotero.File owns atomic replacement of its cache file. */
 class LocalStorage {
-  public filename!: string;
-  public cache: Record<string, any> = {};
-  public lock: any;
-  public isInitialized: boolean = false;
-  private saveTimer: any = null;
-  private writeQueue: Promise<void> = Promise.resolve();
-  private disposed = false;
-  private dirty = false;
-
-  private trim(){while(Object.keys(this.cache).length>250){delete this.cache[Object.keys(this.cache)[0]];this.dirty=true;}}
-  private touch(key:string){if(this.cache[key]){const value=this.cache[key];delete this.cache[key];this.cache[key]=value;}}
-  private cacheKey(item: Zotero.Item | { key: string; libraryID?: number } | undefined): string | undefined {
-    if (!item || !("key" in item) || !item.key) return undefined;
-    const libraryID = Number((item as any).libraryID) || 1;
+  public filename!:string;
+  private data:Record<string,any>=Object.create(null);
+  public lock:any;
+  public isInitialized=false;
+  private saveTimer:any=null;
+  private writeQueue:Promise<void>=Promise.resolve();
+  private disposed=false;
+  private dirty=false;
+  private sizes=new Map<string,number>();
+  private bytes=2;
+  private options:Required<StorageOptions>;
+  public metrics={evictions:0,skipped:0,writes:0,writeFailures:0};
+  get cache(){return JSON.parse(encodeData(this.data)!);}
+  get cacheUsage(){return {items:this.sizes.size,bytes:this.bytes,maxBytes:this.options.maxBytes};}
+  constructor(filename:string,options:StorageOptions={}){
+    this.options={maxItems:250,maxBytes:8*1024*1024,entryMaxBytes:2*1024*1024,...options};
+    this.lock=(Zotero.Promise as any).defer();void this.init(filename);
+  }
+  private cacheKey(item:Zotero.Item|{key:string;libraryID?:number}|undefined){
+    const libraryID=Number(item?.libraryID);
+    if(!item?.key||!Number.isSafeInteger(libraryID)||libraryID<1)return;
     return `${libraryID}:${item.key}`;
   }
-
-  constructor(filename: string) {
-    this.lock = (Zotero.Promise as any).defer();
-    this.init(filename);
-    (Zotero as any).addShutdownListener?.(() => this.dispose());
+  private size(key:string,encoded:string){return utf8Bytes(JSON.stringify(key))+utf8Bytes(encoded)+2;}
+  private evict(key:string){this.bytes-=this.sizes.get(key)||0;this.sizes.delete(key);delete this.data[key];this.dirty=true;}
+  private touch(key:string){if(Object.hasOwn(this.data,key)){const value=this.data[key];delete this.data[key];this.data[key]=value;}}
+  private assign(key:string,encoded:string){
+    this.bytes-=this.sizes.get(key)||0;
+    delete this.data[key];this.data[key]=JSON.parse(encoded);
+    const size=this.size(key,encoded);this.sizes.set(key,size);this.bytes+=size;
   }
-
-  async init(filename: string) {
+  private trim(){
+    while(this.sizes.size>this.options.maxItems||this.bytes>this.options.maxBytes){
+      const key=Object.keys(this.data)[0];if(!key)break;this.evict(key);this.metrics.evictions++;
+    }
+  }
+  private dropKey(itemKey:string,key:string){
+    if(!Object.hasOwn(this.data[itemKey]||{},key))return false;
+    delete this.data[itemKey][key];
+    if(!Object.keys(this.data[itemKey]).length)this.evict(itemKey);
+    else this.assign(itemKey,encodeData(this.data[itemKey])!);
+    return true;
+  }
+  async init(filename:string){
     try {
-      // Zotero 10 exposes PathUtils. Persist only in its data directory;
-      // if unavailable, keep an in-memory cache instead of guessing a path.
-      const basePath = Zotero.DataDirectory.dir;
-      if (!basePath) throw new Error("Zotero data directory unavailable");
-      this.filename = (globalThis as any).PathUtils.join(basePath, `${filename}-v2.json`);
-
+      const basePath=Zotero.DataDirectory.dir;if(!basePath)throw new Error("Zotero data directory unavailable");
+      this.filename=(globalThis as any).PathUtils.join(basePath,`${filename}-v2.json`);
       try {
-        const exists=(Zotero.File as any).pathToFile?.(this.filename)?.exists();
-        const rawString = exists===false ? "{}" : (await Zotero.File.getContentsAsync(this.filename)) as string;
-        const parsed = JSON.parse(rawString);
-        this.cache = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
-      } catch {
-        this.cache = {};
-      }
+        const file=(Zotero.File as any).pathToFile?.(this.filename);
+        if(file?.exists() && file.fileSize>this.options.maxBytes)throw new Error("Oversized reference cache");
+        const raw=file?.exists()===false?"{}":await Zotero.File.getContentsAsync(this.filename);
+        if(typeof raw!=="string" || utf8Bytes(raw)>this.options.maxBytes)throw new Error("Invalid reference cache size");
+        const parsed=JSON.parse(raw);
+        if(parsed&&typeof parsed==="object"&&!Array.isArray(parsed))for(const [key,value] of Object.entries(parsed)){
+          if(!/^[1-9]\d*:[^:]+$/.test(key)||!value||typeof value!=="object"||Array.isArray(value))continue;
+          const encoded=encodeData(value);
+          if(encoded!==undefined&&this.size(key,encoded)<=this.options.entryMaxBytes)this.assign(key,encoded);
+          else this.dirty=true;
+        }
+      } catch(error){this.data=Object.create(null);this.sizes.clear();this.bytes=2;ztoolkit.log("Reference cache rebuild",String(error));}
       this.trim();
-      this.isInitialized = true;
-    } catch (e) {
-      ztoolkit.log("LocalStorage init fallback:", e);
-      this.cache = {};
-      this.isInitialized = true;
-    } finally {
-      this.lock.resolve();
-    }
+    } catch(error){ztoolkit.log("LocalStorage memory fallback",String(error));}
+    finally{this.isInitialized=true;this.lock.resolve();}
   }
-
-  get(item: Zotero.Item | { key: string; libraryID?: number } | undefined, key: string): any {
-    const itemKey = this.cacheKey(item);
-    if (!itemKey) return undefined;
-    if (!this.isInitialized) return undefined;
+  get(item:Zotero.Item|{key:string;libraryID?:number}|undefined,key:string):any {
+    const itemKey=this.cacheKey(item);if(!itemKey||!this.isInitialized)return;
     this.touch(itemKey);
-    return this.cache?.[itemKey]?.[key];
+    const value=Object.hasOwn(this.data[itemKey]||{},key)?this.data[itemKey][key]:undefined;
+    const encoded=encodeData(value);return encoded===undefined?undefined:JSON.parse(encoded);
   }
-
-  async getAsync(item: Zotero.Item | { key: string; libraryID?: number } | undefined, key: string): Promise<any> {
-    const itemKey = this.cacheKey(item);
-    if (!itemKey) return undefined;
+  async getAsync(item:Zotero.Item|{key:string;libraryID?:number}|undefined,key:string){await this.lock.promise;return this.get(item,key);}
+  private scheduleSave(delayMs=250){
+    this.dirty=true;if(this.disposed)return;
+    if(this.saveTimer)globalThis.clearTimeout(this.saveTimer);
+    this.saveTimer=globalThis.setTimeout(()=>{this.saveTimer=null;void this.flush().catch(error=>ztoolkit.log("Reference cache save failed",String(error)));},delayMs);
+  }
+  async flush(){
+    if(this.saveTimer){globalThis.clearTimeout(this.saveTimer);this.saveTimer=null;}
     await this.lock.promise;
-    this.touch(itemKey);
-    return this.cache?.[itemKey]?.[key];
-  }
-
-  /**
-   * 防抖持久化至磁盘，防止高频批处理时频繁触发磁盘 I/O 锁竞争
-   */
-  private scheduleSave(delayMs: number = 250) {
-    this.dirty = true;
-    if(this.disposed) return;
-    if (this.saveTimer) {
-      window.clearTimeout(this.saveTimer);
-    }
-    this.saveTimer = window.setTimeout(async () => {
-      this.saveTimer = null;
-      await this.flush().catch(err => ztoolkit.log("Reference cache save failed",err));
-    }, delayMs);
-  }
-
-  public async flush(): Promise<void> {
-    if(this.saveTimer){window.clearTimeout(this.saveTimer);this.saveTimer=null;}
-    await this.lock.promise;
-    if (!this.filename || !this.cache || !this.dirty) {await this.writeQueue;return;}
-    const snapshot = JSON.stringify(this.cache,(key,value)=>key==="_item"?undefined:value);
+    if(!this.filename||!this.dirty){await this.writeQueue;return;}
+    const snapshot=encodeData(this.data);if(snapshot===undefined)throw new Error("Invalid reference cache snapshot");
     this.dirty=false;
-    const write=this.writeQueue.catch(()=>{}).then(async () => {
-      await Zotero.File.putContentsAsync(this.filename, snapshot);
-    });
+    const write=this.writeQueue.catch(()=>{}).then(async()=>{await Zotero.File.putContentsAsync(this.filename,snapshot);this.metrics.writes++;});
     this.writeQueue=write;
-    try {await write;} catch(err){this.dirty=true;throw err;}
+    try{await write;}catch(error){this.dirty=true;this.metrics.writeFailures++;throw error;}
   }
-
-  public async dispose(): Promise<void> {this.disposed=true;await this.flush();}
-
-  async set(item: Zotero.Item | { key: string; libraryID?: number } | undefined, key: string, value: any): Promise<void> {
-    const itemKey = this.cacheKey(item);
-    if (!itemKey) return;
-    await this.lock.promise;
-    if(this.disposed) return;
-    (this.cache[itemKey] ??= {})[key] = value;
-    this.touch(itemKey);this.trim();
-    this.scheduleSave(250);
-  }
-
-  async delete(item: Zotero.Item | { key: string; libraryID?: number } | undefined, key: string): Promise<void> {
-    const itemKey = this.cacheKey(item);
-    if (!itemKey) return;
-    await this.lock.promise;
-    if(this.disposed) return;
-    if (this.cache[itemKey]) {
-      delete this.cache[itemKey][key];
-      if (Object.keys(this.cache[itemKey]).length === 0) delete this.cache[itemKey];
-      this.scheduleSave(250);
+  async dispose(){this.disposed=true;await this.flush();}
+  async set(item:Zotero.Item|{key:string;libraryID?:number}|undefined,key:string,value:any){
+    const itemKey=this.cacheKey(item);if(!itemKey||["__proto__","prototype","constructor"].includes(key))return;
+    await this.lock.promise;if(this.disposed)return;
+    const candidate={...(this.data[itemKey]||{}),[key]:value},encoded=encodeData(candidate);
+    if(encoded===undefined||this.size(itemKey,encoded)>Math.min(this.options.entryMaxBytes,this.options.maxBytes-2)){
+      this.metrics.skipped++;if(this.dropKey(itemKey,key))this.scheduleSave();return;
     }
+    this.assign(itemKey,encoded);this.trim();this.scheduleSave();
   }
-
-  async clear(item: Zotero.Item | { key: string; libraryID?: number } | undefined): Promise<void> {
-    const itemKey = this.cacheKey(item);
-    if (!itemKey) return;
-    await this.lock.promise;
-    if(this.disposed) return;
-    delete this.cache[itemKey];
-    this.scheduleSave(250);
+  async delete(item:Zotero.Item|{key:string;libraryID?:number}|undefined,key:string){
+    const itemKey=this.cacheKey(item);if(!itemKey)return;await this.lock.promise;if(this.disposed)return;
+    if(this.dropKey(itemKey,key))this.scheduleSave();
+  }
+  async clear(item:Zotero.Item|{key:string;libraryID?:number}|undefined){
+    const itemKey=this.cacheKey(item);if(!itemKey)return;await this.lock.promise;if(this.disposed)return;
+    if(Object.hasOwn(this.data,itemKey)){this.evict(itemKey);this.scheduleSave();}
   }
 }
-
 export default LocalStorage;

@@ -6,7 +6,12 @@ import { textItemsToLines } from "../src/modules/pdfLayout";
 import { extractReferencesFromLines } from "../src/modules/referenceExtractor";
 
 const text=(str:string,x:number,y:number,width=160)=>({str,width,height:10,transform:[10,0,0,10,x,y]});
-const reader=(getTextContent:()=>any)=>({_iframeWindow:{PDFViewerApplication:{pdfDocument:{numPages:1},pdfViewer:{getPageView:()=>({pdfPage:{view:[0,0,612,792],getTextContent}})}}}} as any);
+const attachment=()=>({id:1,attachmentContentType:"application/pdf",getAttachmentLastPageIndex:()=>0} as any);
+const installSDT=(getPageBlocks:()=>any)=>{
+  const host:any=Zotero,original=host.SDT;
+  host.SDT={getReader:async()=>({header:{schemaVersion:"1.2.0"},getCatalog:async()=>({pages:[{viewRect:[0,0,612,792]}]}),getPageBlocks})};
+  return ()=>{host.SDT=original;};
+};
 const parser=new PDF({refText2Info:(text:string)=>({title:text,identifiers:{}})} as any);
 
 test("two-column continuations retain sequential citation order",()=>{
@@ -27,17 +32,17 @@ test("a reference heading in the right column does not move before left-column c
 });
 
 test("PDF deadlines cover a stalled text-content promise",async()=>{
-  const stalled=reader(()=>new Promise(()=>{}));
-  await assert.rejects(parser.getReferences(stalled,false,{timeoutMs:20,notify:false}),{name:'TimeoutError'});
+  const restore=installSDT(()=>new Promise(()=>{}));
+  try{await assert.rejects(parser.getReferences(attachment(),false,{timeoutMs:20,notify:false}),{name:'TimeoutError'});}finally{restore();}
 });
 
 test("PDF cancellation settles a pending read and closes its timer",async()=>{
   const controller=new AbortController();
-  const job=parser.getReferences(reader(()=>new Promise(()=>{})),false,{signal:controller.signal,timeoutMs:10000,notify:false});
-  controller.abort();await assert.rejects(job,{name:'AbortError'});
+  const restore=installSDT(()=>new Promise(()=>{}));
+  try{const job=parser.getReferences(attachment(),false,{signal:controller.signal,timeoutMs:10000,notify:false});controller.abort();await assert.rejects(job,{name:'AbortError'});}finally{restore();}
 });
 
-test("closed readers stop before accessing their text document",async()=>{
-  const closed=reader(()=>({items:[]}));closed._destroyed=true;
+test("deleted attachments stop before accessing native structured text",async()=>{
+  const closed=attachment();closed.deleted=true;
   await assert.rejects(parser.getReferences(closed,false,{notify:false}),{name:'AbortError'});
 });

@@ -25,7 +25,7 @@ export class CitationVerifier {
    * 抹平 URL 前缀、大小写、前后标点空格
    */
   public static normalizeDOI(doi?: string): string | undefined {
-    if (!doi) return undefined;
+    if (typeof doi !== "string" || !doi) return undefined;
     let clean = doi.trim().toLowerCase();
     try {
       clean = decodeURIComponent(clean);
@@ -50,7 +50,7 @@ export class CitationVerifier {
    * 自动剔除 XML/HTML 标签、解析转义实体、剔除 LaTeX 数学公式与标点
    */
   public static cleanTitle(title?: string): string {
-    if (!title) return "";
+    if (typeof title !== "string" || !title) return "";
     return title
       .replace(/<[^>]+>/g, " ") // 剔除 HTML/XML 标签 (如 <jats:title>, <i>)
       .replace(/&amp;/g, "&")

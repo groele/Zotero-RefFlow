@@ -1,0 +1,24 @@
+{
+  "at": "2026-10-12T18:14:54.129Z",
+  "host": "10.0.6",
+  "units": 224,
+  "native": {
+    "native-final": 109,
+    "native-dataflow": 13,
+    "native-architecture": 6,
+    "native-pipeline": 15,
+    "native-structure": 8,
+    "total": 151
+  },
+  "interfaces": {
+    "files": 43,
+    "retired": 0
+  },
+  "xpi": {
+    "path": "build/zotero-refnexus.xpi",
+    "bytes": 231120,
+    "sha256": "6e2e27d9ee785494e40a922dcb969d320392eb84d783613bb1c02d5cc795333d"
+  },
+  "originalReleaseArtifactsPreserved": true,
+  "scope": "isolated native Zotero; external responses controlled, loopback XHR real"
+}

@@ -29,7 +29,7 @@ describe("LocalStorage Suite", () => {
     const storage = new LocalStorage("test-cache-kv");
     await storage.lock.promise;
 
-    const mockItem = { key: "ITEMKEY1" };
+    const mockItem = { key: "ITEMKEY1", libraryID:1 };
     await storage.set(mockItem, "References-API", [{ title: "Paper A" }]);
 
     const cached = storage.get(mockItem, "References-API");
@@ -60,7 +60,7 @@ describe("LocalStorage Suite", () => {
     try {
       const storage = new LocalStorage("test-cache-flush");
       await storage.lock.promise;
-      const mockItem = { key: "ITEMKEY2" };
+      const mockItem = { key: "ITEMKEY2", libraryID:1 };
       await storage.set(mockItem, "doi", "10.1038/test");
       await storage.flush();
 

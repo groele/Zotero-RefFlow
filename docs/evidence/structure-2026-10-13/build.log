@@ -1,0 +1,25 @@
+
+> zotero-refnexus@11.0.0 build-prod
+> cross-env NODE_ENV=production node scripts/build.mjs
+
+[Build] BUILD_DIR=build, VERSION=11.0.0, BUILD_TIME=2026-10-13 02:11:03, ENV=production
+[Build] Run esbuild OK
+[Build] Run replace in  [
+  'build/addon/chrome/content/preferences.xhtml : 45 / 45',
+  'build/addon/manifest.json : 7 / 7',
+  'build/addon/prefs.js : 26 / 26',
+  'build/addon/bootstrap.js : 6 / 6',
+  'build/addon/chrome.manifest : 4 / 4',
+  'build/update.json : 3 / 3'
+] [
+  'build/addon/locale/en-US/addon.ftl : OK',
+  'build/addon/locale/en-US/preferences.ftl : OK',
+  'build/addon/locale/it-IT/addon.ftl : OK',
+  'build/addon/locale/it-IT/preferences.ftl : OK',
+  'build/addon/locale/zh-CN/addon.ftl : OK',
+  'build/addon/locale/zh-CN/preferences.ftl : OK'
+] [ 'build/addon/chrome/content/preferences.xhtml : OK' ]
+[Build] Replace OK
+[Build] Addon prepare OK
+[Build] Addon pack OK
+[Build] Finished in 0.6 s.

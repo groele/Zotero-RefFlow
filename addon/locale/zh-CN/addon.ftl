@@ -101,3 +101,4 @@ pane-sidenav =
 cards-kept-results = 保留上次结果
 cards-refresh-empty-kept = 未获取新列表，保留上次结果
 cards-resolving-doi = 正在识别文献 DOI…
+cards-context-changed = 文献或文档已改变，请刷新

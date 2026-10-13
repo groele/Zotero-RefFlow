@@ -1,6 +1,6 @@
 {
   "name": "zotero-refnexus",
-  "version": "11.0.1",
+  "version": "11.0.2",
   "description": "Zotero 10 reference retrieval and citation graphs, derived from Zotero Reference / Ethereal Reference by Polygon / MuiseDestiny.",
   "config": {
     "addonName": "Zotero RefNexus",
@@ -34,7 +34,6 @@
   },
   "homepage": "https://github.com/groele/Zotero-diy/tree/main/RefNexus-Zotero10",
   "dependencies": {
-    "connectedpapers-js": "^0.1.5",
     "d3": "^7.8.2",
     "zotero-plugin-toolkit": "6.0.0"
   },
@@ -43,10 +42,10 @@
     "compressing": "^1.7.0",
     "concurrently": "^7.6.0",
     "cross-env": "^7.0.3",
-    "esbuild": "^0.17.7",
+    "esbuild": "0.28.2",
     "replace-in-file": "^6.3.5",
-    "typescript": "^4.9.5",
-    "zotero-types": "^1.0.9"
+    "typescript": "5.9.3",
+    "zotero-types": "4.1.3"
   },
   "contributors": [
     {

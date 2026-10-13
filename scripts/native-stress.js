@@ -62,16 +62,16 @@ await test('a second PDF attachment has a distinct cache identity',async()=>{
 });
 
 await test('native PDF deadline covers a promise that never settles',async()=>{
-  const fake={_iframeWindow:{PDFViewerApplication:{initializedPromise:Promise.resolve(),pdfDocument:{numPages:1,getPage:async()=>({getTextContent:()=>new Promise(()=>{})})}}}};
+  const original=Zotero.SDT.getReader;Zotero.SDT.getReader=async()=>({header:{schemaVersion:'1.2.0'},getCatalog:async()=>({pages:[{viewRect:[0,0,612,792]}]}),getPageBlocks:()=>new Promise(()=>{})});
   const start=Date.now();let name;
-  try{await views.utils.PDF.getReferences(fake,false,{notify:false,timeoutMs:80});}catch(error){name=error.name;}
+  try{await views.utils.PDF.getReferences(attachment,false,{notify:false,timeoutMs:80});}catch(error){name=error.name;}finally{Zotero.SDT.getReader=original;}
   check(name==='TimeoutError','Never-settling extraction did not time out');check(Date.now()-start<1000,'Deadline exceeded');return {ms:Date.now()-start,name};
 });
 
-await test('native PDF cancellation handles a stalled text layer',async()=>{
-  const fake={_iframeWindow:{PDFViewerApplication:{initializedPromise:Promise.resolve(),pdfDocument:{numPages:1,getPage:async()=>({getTextContent:()=>new Promise(()=>{})})}}}};
-  const controller=new window.AbortController();const pending=views.utils.PDF.getReferences(fake,false,{notify:false,signal:controller.signal});
-  window.setTimeout(()=>controller.abort(),30);let name;try{await pending;}catch(error){name=error.name;}
+await test('native PDF cancellation handles a stalled structured page',async()=>{
+  const original=Zotero.SDT.getReader;Zotero.SDT.getReader=async()=>({header:{schemaVersion:'1.2.0'},getCatalog:async()=>({pages:[{viewRect:[0,0,612,792]}]}),getPageBlocks:()=>new Promise(()=>{})});
+  const controller=new window.AbortController();const pending=views.utils.PDF.getReferences(attachment,false,{notify:false,signal:controller.signal});
+  window.setTimeout(()=>controller.abort(),30);let name;try{await pending;}catch(error){name=error.name;}finally{Zotero.SDT.getReader=original;}
   check(name==='AbortError','Cancellation did not abort PDF extraction');return {name};
 });
 

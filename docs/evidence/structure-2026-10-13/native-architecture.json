@@ -1,0 +1,71 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-12T18:14:05.802Z",
+  "tempDir": "<isolated-zotero-profile>/tmp/Zotero",
+  "scope": "native lifecycle, DOM, SQLite; controlled provider responses",
+  "tests": [
+    {
+      "name": "production cold startup",
+      "ok": true,
+      "detail": {
+        "alive": true
+      }
+    },
+    {
+      "name": "page extraction cannot read or overwrite the Auto full-document cache",
+      "ok": true,
+      "detail": {
+        "calls": 2,
+        "fullCachePreserved": true
+      }
+    },
+    {
+      "name": "graph import relates every origin atomically and rollback restores all links",
+      "ok": true,
+      "detail": {
+        "origins": 2,
+        "created": 1,
+        "rollback": true
+      }
+    },
+    {
+      "name": "native graph HTTP polling renders the official public test graph fixture",
+      "ok": true,
+      "detail": {
+        "nodes": 41,
+        "polls": 2,
+        "nativeEmbeddedViewer": true,
+        "provider": "controlled responses from official TEST_TOKEN fixture; live fetch recorded separately"
+      }
+    },
+    {
+      "name": "closing a secondary window cancels its pane jobs",
+      "ok": true,
+      "detail": {
+        "cancelled": true,
+        "styleCount": 1
+      }
+    },
+    {
+      "name": "disable disposes the old cache and rejects late writes",
+      "ok": true,
+      "detail": {
+        "lateWritesRejected": true,
+        "reEnabled": true
+      }
+    }
+  ],
+  "startupErrors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]"
+  ],
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"The connection was refused when attempting to contact wss:/stream.zotero.org/.\" {file: \"chrome:/zotero/content/xpcom/streamer.js\" line: 240}]",
+    "[JavaScript Error: \"WebSocket connection closed: 1006 \"]",
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"uncaught exception: undefined\"]"
+  ],
+  "finished": "2026-10-12T18:14:11.939Z",
+  "passed": 6,
+  "failed": 0
+}

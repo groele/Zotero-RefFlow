@@ -19,6 +19,8 @@ export default class ConnectedPapers {
   private itemIDs: number[] = []
   private zoteroColor: boolean = true
   private cleanup: Array<()=>void> = [];
+  private disposed = false;
+  private graphController?: AbortController;
   private selectListener=()=>{this.updateAddOrRemove();this.syncRelatedPane(this.graphVisible);};
   constructor(views: Views, win: Window = window) {
     this.win=win;this.doc=win.document;
@@ -32,14 +34,17 @@ export default class ConnectedPapers {
     this.initOnSelect()
     this.doc.querySelectorAll("#graph").forEach(e => e.remove());
     let waitCount = 0;
-    while (!this.doc.querySelector("#item-tree-main-default")) {
+    while (!this.doc.querySelector("#item-tree-main-default") && !this.disposed && !this.win.closed) {
       await Zotero.Promise.delay(100)
       if (++waitCount > 50) break;
     }
-    this.initItemsPane()
+    if (!this.disposed && !this.win.closed) this.initItemsPane()
   }
 
   public shutdown() {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.graphController?.abort();
     this.requests.dispose();
     (this.win.ZoteroPane.itemsView as any)?.onSelect?.removeListener(this.selectListener);
     this.cleanup.forEach(fn=>fn());this.cleanup=[];
@@ -404,11 +409,9 @@ export default class ConnectedPapers {
                 }
                 // 构建图谱
                 const items = this.itemIDs.map((id: number) => Zotero.Items.get(id)) as Zotero.Item[]
-                relatedContainer.querySelectorAll(".normal-items .item")?.forEach(e => e.remove())
-                relatedContainer.querySelectorAll(".prior-items .item")?.forEach(e => e.remove())
-                relatedContainer.querySelectorAll(".deriv-items .item")?.forEach(e => e.remove())
                 const graphdata = await this.refresh(items)
-                if(!graphdata) return;
+                if(!graphdata || !relatedContainer.isConnected || this.disposed) return;
+                relatedContainer.querySelectorAll(".normal-items .item, .prior-items .item, .deriv-items .item").forEach(e => e.remove());
                 ztoolkit.log("graphdata", graphdata)
                 // @ts-ignore
                 const app = this.frame.contentWindow.app
@@ -793,7 +796,7 @@ export default class ConnectedPapers {
                 const position = Zotero.Prefs.get("extensions.zotero.layout", true) == "stacked" ? "top center" : "left"
                 timer = this.win.setTimeout(async () => {
                   const rect = itemNode.getBoundingClientRect() as any
-                  tipUI = this.views.showTipUI(rect, info, position, info.identifiers.DOI)
+                  tipUI = this.views.showTipUI(rect, info, position, info.identifiers.DOI, false, this.win)
                   if (!itemNode.classList.contains("active")) {
                     tipUI.container.style.display = "none"
                   }
@@ -857,25 +860,23 @@ export default class ConnectedPapers {
               this.win.ZoteroPane.selectItem(info._itemID as number)
             } else {
               const DOI = info.identifiers.DOI
-              const originItems = this.itemIDs.map(id => Zotero.Items.get(id))
+              const originItems = this.itemIDs.map(id => Zotero.Items.get(id)).filter((item): item is Zotero.Item => Boolean(item));
               
               let add = async (collections: number[]) => {
                 let popupWin = new ztoolkit.ProgressWindow("[Pending] Adding", { closeTime: -1 })
                   .createLine({ text: DOI, type: "default" })
                   .show()
-                const newItem = await this.views.utils.createItemByZotero({ DOI }, collections) as Zotero.Item
-                originItems.forEach(async (item) => {
-                  newItem.addRelatedItem(item)
-                  item.addRelatedItem(newItem)
-                  await item.saveTx({ skipSelect: true, skipNotifier: true })
-                  await newItem.saveTx({ skipSelect: true, skipNotifier: true });
-                  // this.win.ZoteroPane.selectItem(item.id);
-                  // (this.doc.querySelector("#zotero-editpane-related-tab") as HTMLDivElement).click()
-                })
-                popupWin.changeHeadline("[Done] Adding")
-                popupWin.changeLine({ type: "success" })
-                popupWin.startCloseTimer(3000);
-                (this.doc.querySelector("#build-graph") as HTMLDivElement).click()
+                try {
+                  if (!originItems.length || originItems.some(item => !item)) throw new Error("Graph origins are unavailable");
+                  const result = await this.views.importReferences(originItems[0], [info], {
+                    collections, relatedParents: originItems.slice(1), downloadOA: false,
+                    createSubCollection: false, createManifestNote: false
+                  });
+                  if (result.failedCount) throw new Error("Graph reference import failed");
+                  popupWin.changeHeadline("[Done] Adding");popupWin.changeLine({ type: "success" });
+                  if (!this.disposed) (this.doc.querySelector("#build-graph") as HTMLDivElement)?.click();
+                } catch (error) { popupWin.changeLine({ text: String(error), type: "fail" }); ztoolkit.log(error); }
+                finally { popupWin.startCloseTimer(3000); }
               }
               // 获取分类
               const selectedCollections = (this.win.ZoteroPane as any).getSelectedCollections?.() || [];
@@ -898,7 +899,7 @@ export default class ConnectedPapers {
                       if (event.target.tagName == 'menuitem') {
                         ztoolkit.log(collection)
                         menuPopup.remove()
-                        add([collection.id])
+                        await add([collection.id])
                         event.stopPropagation();
                       }
                     }
@@ -908,7 +909,7 @@ export default class ConnectedPapers {
                 // @ts-ignore
                 menuPopup.openPopupAtScreen(rect.left, rect.top + rect.height, true);
               } else {
-                add(collections)
+                await add(collections)
               }
 
             }
@@ -920,44 +921,37 @@ export default class ConnectedPapers {
   }
 
 
-  private async getPaperID(item: Zotero.Item) {
+  private async getPaperID(item: Zotero.Item, signal?: AbortSignal) {
     const DOI = (item.getField("DOI") as string) || "";
     const title = (item.getField("title") as string) || "";
-    if (DOI) {
-      // 根据DOI精确确定id
-      let res = await this.requests.get(
-        `https://rest.connectedpapers.com/id_translator/doi/${encodeURIComponent(DOI)}`
-      )
-      return res?.paperId;
-    } else if (title) {
-      const api = `https://rest.connectedpapers.com/search/${encodeURIComponent(title)}/1`
-      let response = await this.requests.post(api)
-      if (response && response?.results?.length) {
-        let resItem = response.results[0]
-        return resItem.id
-      }
-    }
+    const provider=this.views.utils.API.semanticScholar;
+    try {
+      const paper=DOI?await provider.byDOI(DOI,signal):await provider.byTitle(title,(item.getCreators()[0] as any)?.lastName,String(item.getField("date")),signal);
+      return paper?.paperId;
+    }catch(error){if(!signal?.aborted)ztoolkit.log("Graph origin resolution failed",error);}
   }
 
-  private async buildGraphData(items: Zotero.Item[]) {
+  private async buildGraphData(items: Zotero.Item[], signal?: AbortSignal) {
     const popupWin = new ztoolkit.ProgressWindow("Connected Papers", { closeOtherProgressWindows: true, closeTime: -1 })
       .createLine({ text: "Initializing", type: "connectedpapers" })
       .show()
-    let id = (await Promise.all(items.map(async (item) => await this.getPaperID(item)))).join("+")
-    const graphData = await buildGraphData(id, popupWin)
+    let id = (await Promise.all(items.map(async (item) => await this.getPaperID(item, signal)))).join("+")
+    if (signal?.aborted) { popupWin.close(); return; }
+    const graphData = await buildGraphData(id, popupWin, 0, signal)
     if (!graphData) { return }
     const totalNum = Object.keys(graphData.nodes).length
     popupWin.changeLine({ text: `[1/${totalNum}] Indexing`, progress: 1, type: "default" })
-    let search: any = {}
-    for (let paperID in graphData.nodes) {
-      search[paperID] = this.views.utils.searchItem(this.paper2Info(graphData.nodes[paperID]))
-    }
+    const libraries = [...new Set(items.map(item => item.libraryID))];
     let i = 0
     for (let paperID in graphData.nodes) {
       i += 1
       let localItem
       try {
-        localItem = await search[paperID]
+        if (signal?.aborted) { popupWin.close(); return; }
+        for (const libraryID of libraries) {
+          localItem = await this.views.utils.searchLibraryItem(this.paper2Info(graphData.nodes[paperID]), libraryID);
+          if (localItem) break;
+        }
       } catch { }
       popupWin.changeLine({ text: `[${i}/${totalNum}] Indexing`, progress: 100 * i / totalNum });
       (graphData.nodes[paperID] as any)._itemID = localItem?.id
@@ -1048,11 +1042,17 @@ export default class ConnectedPapers {
   }
 
   private async refresh(items: Zotero.Item[]) {
+    if (this.disposed || !items.length || items.some(item => !item || item.deleted || !item.isRegularItem())) return;
+    this.graphController?.abort();
+    const controller = this.graphController = new this.win.AbortController() as AbortController;
+    const origins = this.itemIDs.join(",");
+    const current = () => !this.disposed && !controller.signal.aborted && this.graphController === controller && this.itemIDs.join(",") === origins;
     ztoolkit.log("refresh", items)
-    const graphData = await this.buildGraphData(items) as  Graph
-    if(!graphData?.nodes) return;
+    const graphData = await this.buildGraphData(items, controller.signal) as Graph
+    if(!graphData?.nodes || !current()) return;
     const readyDeadline=Date.now()+10000;
-    while(!(this.frame.contentWindow as any)?.app && Date.now()<readyDeadline)await Zotero.Promise.delay(100);
+    while(!(this.frame.contentWindow as any)?.app && Date.now()<readyDeadline && current())await Zotero.Promise.delay(100);
+    if (!current()) return;
     ztoolkit.log(graphData)
     const app = (this.frame.contentWindow! as any).app as any
     if(!app)throw new Error("Graph view did not finish loading");

@@ -73,3 +73,5 @@ openAlexKey-get = Get / view a free OpenAlex API key
 
 about-updates = Updates are provided by groele/Zotero-diy. Zotero 10 only.
 about-release-notes = Release notes
+semanticScholarKey-label = Semantic Scholar API Key (optional)
+semanticScholarKey-description = Uses the official Graph API. Leave empty for anonymous access; a configured key is sent using x-api-key.

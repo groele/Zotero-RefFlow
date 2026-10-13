@@ -11,8 +11,9 @@ $ErrorActionPreference='Stop'
 $testRoot=Join-Path ([IO.Path]::GetTempPath()) ('refnexus-z10-release-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[guid]::NewGuid().ToString('N').Substring(0,6))
 $profile=Join-Path $testRoot 'profile'
 $data=Join-Path $testRoot 'data'
+$nativeTemp=Join-Path $testRoot 'tmp'
 $driver=Join-Path $testRoot 'native-test-driver'
-New-Item -ItemType Directory -Path $profile,$data,$driver,(Join-Path $profile 'extensions') -Force | Out-Null
+New-Item -ItemType Directory -Path $profile,$data,$nativeTemp,$driver,(Join-Path $profile 'extensions') -Force | Out-Null
 if (-not $WithoutPlugin) { Copy-Item -LiteralPath ([IO.Path]::GetFullPath($XpiPath)) -Destination (Join-Path $profile 'extensions/refnexus@polygon.org.xpi') }
 $config=@{script=[IO.Path]::GetFullPath($ScriptPath);output=[IO.Path]::GetFullPath($OutputPath);fixtures=[IO.Path]::GetFullPath("$PSScriptRoot/../tests/native-fixtures");workspace=[IO.Path]::GetFullPath("$PSScriptRoot/..");profile=$profile;withoutPlugin=[bool]$WithoutPlugin;skipOnline=[bool]$SkipOnline;startupProbe=($ScriptPath -like '*native-startup-control.js');closeWhenDone=[bool]$CloseWhenDone} | ConvertTo-Json -Compress
 $driverManifest=Get-Content -LiteralPath "$PSScriptRoot/../build/addon/manifest.json" -Raw | ConvertFrom-Json
@@ -25,7 +26,7 @@ Copy-Item -LiteralPath "$PSScriptRoot/../addon/chrome/content/icons/favicon.png"
 Set-Content -LiteralPath (Join-Path $driver 'manifest.json') -Value $manifest -Encoding utf8NoBOM
 $bootstrap=@"
 const cfg = $config;
-function install() {} function uninstall() {} function shutdown() {}
+function install() {} function uninstall() {} function shutdown() {} function onMainWindowLoad() {} function onMainWindowUnload() {}
 function startup() { run().catch(async error=>{await Zotero.File.putContentsAsync(cfg.output,JSON.stringify({fatal:String(error),stack:error?.stack,errors:Zotero.getErrors?.(true)},null,2));}); }
 async function run() {
   await Zotero.initializationPromise;
@@ -48,13 +49,15 @@ user_pref("extensions.zotero.dataDir", $(ConvertTo-Json $data -Compress));
 user_pref("extensions.zotero.useDataDir", true);
 user_pref("extensions.autoDisableScopes", 0);
 user_pref("extensions.enabledScopes", 15);
+user_pref("extensions.update.enabled", false);
+user_pref("extensions.update.autoUpdateDefault", false);
 user_pref("extensions.zoteroWinWordIntegration.skipInstallation", true);
 user_pref("extensions.zoteroOpenOfficeIntegration.skipInstallation", true);
 user_pref("extensions.zotero.sync.autoSync", false);
 "@
 Set-Content -LiteralPath (Join-Path $profile 'user.js') -Value $prefs -Encoding utf8NoBOM
 if ($Wait) { Set-Content -LiteralPath ([IO.Path]::GetFullPath($OutputPath)) -Value '{"pending":true}' -Encoding utf8NoBOM }
-$process=Start-Process -FilePath 'C:\Program Files\Zotero\zotero.exe' -WindowStyle Hidden -ArgumentList @('-no-remote','-purgecaches','-profile',('"'+$profile+'"')) -PassThru
+$process=Start-Process -FilePath 'C:\Program Files\Zotero\zotero.exe' -WindowStyle Hidden -Environment @{TEMP=$nativeTemp;TMP=$nativeTemp} -ArgumentList @('-no-remote','-purgecaches','-profile',('"'+$profile+'"')) -PassThru
 @{profile=$profile;processID=$process.Id;output=[IO.Path]::GetFullPath($OutputPath);driver=$driver} | ConvertTo-Json
 
 if ($Wait) {

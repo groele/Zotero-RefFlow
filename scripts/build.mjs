@@ -220,13 +220,24 @@ async function esbuild() {
     entryPoints: ["src/index.ts"],
     define: {
       __env__: `"${env.NODE_ENV}"`,
-      // connectedpapers-js reads these from Node's process.env at module load.
-      // Zotero's privileged extension sandbox has no Node `process` global, so
-      // resolve the dependency's optional defaults at bundle time.
-      "process.env.CONNECTED_PAPERS_API_KEY": '"TEST_TOKEN"',
-      "process.env.CONNECTED_PAPERS_REST_API": '"https://rest.prod.connectedpapers.com"',
     },
     bundle: true,
+    plugins: [{
+      name: "toolkit-unused-wait-namespace",
+      setup(bundler) {
+        // Toolkit 6.0.0 emits an unannotated namespace registration. It keeps
+        // an unused private Reader helper alive even though RefNexus only
+        // imports the generic wait helper through ProgressWindow. Declaring
+        // that namespace registration pure allows normal tree shaking; an
+        // actual import of waitForReader would still retain it and fail audit.
+        bundler.onLoad({filter: /zotero-plugin-toolkit[\\/]dist[\\/]src-[^\\/]+\.js$/}, args => {
+          const contents=readFileSync(args.path,"utf8");
+          const marker="__export(wait_exports, {";
+          if(contents.split(marker).length!==2)throw new Error("Toolkit namespace changed; re-audit its Reader dependencies");
+          return {contents:contents.replace(marker,"/* @__PURE__ */ "+marker),loader:"js"};
+        });
+      }
+    }],
     target: "firefox140",
     outfile: path.join(
       buildDir,
@@ -279,7 +290,7 @@ async function main() {
   );
 
   console.log("[Build] Addon pack OK");
-  if(!isPreRelease)prepareRelease(details,buildDir,env.NODE_ENV==='production');
+  if(!isPreRelease)prepareRelease(details,buildDir,env.NODE_ENV==='production' && env.REFNEXUS_NO_PROMOTE!=='1');
   console.log(
     `[Build] Finished in ${(new Date().getTime() - t.getTime()) / 1000} s.`,
   );

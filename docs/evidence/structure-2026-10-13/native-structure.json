@@ -1,0 +1,91 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-12T18:12:47.683Z",
+  "scope": "native pane, cache files, SQLite and SDT; provider responses controlled",
+  "tests": [
+    {
+      "name": "all three title providers reject conflicting identities and accept one exact title",
+      "ok": true,
+      "detail": {
+        "providers": 3,
+        "ambiguousRejected": true,
+        "titleOnlyResolved": true
+      },
+      "ms": 4
+    },
+    {
+      "name": "federated DOI resolution reaches the official Semantic Scholar title endpoint",
+      "ok": true,
+      "detail": {
+        "providers": 3,
+        "officialEndpoint": true,
+        "doi": "10.1234/fallback"
+      },
+      "ms": 1
+    },
+    {
+      "name": "an earlier title lookup exception does not block Semantic Scholar",
+      "ok": true,
+      "detail": {
+        "laterProviderHealthy": true
+      },
+      "ms": 1
+    },
+    {
+      "name": "status-only partial online list continues into native SDT PDF fallback",
+      "ok": true,
+      "detail": {
+        "nativeSDT": 4,
+        "completeFallback": true
+      },
+      "ms": 2188
+    },
+    {
+      "name": "malformed row is isolated and partial contract survives file cache and native pane reload",
+      "ok": true,
+      "detail": {
+        "usableRows": 2,
+        "providerCalls": 1,
+        "partialSnapshot": true,
+        "fileFlushed": true
+      },
+      "ms": 364
+    },
+    {
+      "name": "old title-selection policy cache is rejected in native pane",
+      "ok": true,
+      "detail": {
+        "oldCacheRejected": true,
+        "providerCalls": 2
+      },
+      "ms": 396
+    },
+    {
+      "name": "OpenAlex duplicate rows cannot end pagination before the unique count is reached",
+      "ok": true,
+      "detail": {
+        "pages": 2,
+        "uniqueRecords": 2
+      },
+      "ms": 1
+    },
+    {
+      "name": "malformed neighborhood rows preserve native consumer evidence and partial flags",
+      "ok": true,
+      "detail": {
+        "semanticScholar": 1,
+        "openAlex": 1,
+        "lossExplicit": true
+      },
+      "ms": 1
+    }
+  ],
+  "finished": "2026-10-12T18:12:50.754Z",
+  "passed": 8,
+  "failed": 0,
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"The connection was refused when attempting to contact wss:/stream.zotero.org/.\" {file: \"chrome:/zotero/content/xpcom/streamer.js\" line: 240}]",
+    "[JavaScript Error: \"WebSocket connection closed: 1006 \"]"
+  ]
+}

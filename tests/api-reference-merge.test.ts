@@ -6,7 +6,7 @@ import API from "../src/modules/api";
 describe("API reference provider ordering", () => {
   test("Semantic Scholar is attempted when both primary indexes have no parent record",async()=>{
     const api=new API({} as any);(api.requests as any).get=async()=>undefined;(api.openAlex as any).getWorkByDOI=async()=>undefined;
-    (api as any).getDOIReferencesBySemanticScholar=async()=>[{title:'Independent fallback reference',text:'Independent fallback reference',authors:[],identifiers:{},sources:['SemanticScholar']}];
+    (api as any).getDOIReferenceListBySemanticScholar=async()=>({source:'SemanticScholar',references:[{title:'Independent fallback reference',text:'Independent fallback reference',authors:[],identifiers:{},sources:['SemanticScholar']}]});
     const info=await api.getDOIInfoByCrossref('10.1234/absent');assert.equal(info?.references?.length,1);assert.equal(info?.references?.[0].sources?.[0],'SemanticScholar');api.publisherReferences.dispose();
   });
   test("complete index lists skip publisher fetching",async()=>{
@@ -56,7 +56,7 @@ describe("API reference provider ordering", () => {
     ];
     (api.retractionChecker as any).checkLocal = () => ({ isRetracted: false });
     let semanticScholarCalls = 0;
-    (api as any).getDOIReferencesBySemanticScholar = async () => { semanticScholarCalls++; return []; };
+    (api as any).getDOIReferenceListBySemanticScholar = async () => { semanticScholarCalls++; return {references:[],source:'SemanticScholar'}; };
 
     const result = await api.getDOIInfoByCrossref("10.1000/source");
 

@@ -1,5 +1,7 @@
 import Requests from "./requests";
-import CitationVerifier, { CandidateWork } from "./verifier";
+import CitationVerifier from "./verifier";
+import {OperationBudget} from "./operationBudget";
+import {selectUniqueTitle} from "./titleResolution";
 
 export interface OpenAlexWorkSummary {
   openalexId: string;
@@ -26,6 +28,23 @@ export class OpenAlexProvider {
     return this.requests.get(url,"json",key?{Authorization:`Bearer ${key}`} : {},signal);
   }
 
+  private summarize(item:any):OpenAlexWorkSummary|undefined {
+    const id=typeof item?.id==="string"?item.id.replace(/^https?:\/\/openalex\.org\//i,"").trim().toUpperCase():"";
+    if(!/^W\d+$/.test(id)||typeof item.title!=="string"||!item.title.trim())return;
+    return {openalexId:`https://openalex.org/${id}`,doi:CitationVerifier.normalizeDOI(item.doi),title:item.title,
+      authors:(Array.isArray(item.authorships)?item.authorships:[]).map((author:any)=>author?.author?.display_name).filter((name:any)=>typeof name==="string"),
+      year:item.publication_year?String(item.publication_year):undefined,venue:item.primary_location?.source?.display_name,
+      isOA:Boolean(item.open_access?.is_oa),oaUrl:item.best_oa_location?.pdf_url||item.open_access?.oa_url||undefined,
+      citationCount:item.cited_by_count,isRetracted:Boolean(item.is_retracted)};
+  }
+
+  private toReference(work:OpenAlexWorkSummary):ItemBaseInfo {
+    return {title:work.title,text:work.title,authors:work.authors,year:work.year,publicationVenue:work.venue,
+      identifiers:work.doi?{DOI:work.doi}:{},url:work.doi?`https://doi.org/${work.doi}`:work.openalexId,
+      oaUrl:work.oaUrl,isOA:work.isOA,citationCount:work.citationCount,sources:["OpenAlex"],
+      retraction:work.isRetracted?{isRetracted:true,checked:true,reason:"OpenAlex retraction flag"}:undefined};
+  }
+
   /**
    * 通过 DOI 获取 OpenAlex Work 对象及其引用的文献列表 (referenced_works)
    */
@@ -35,6 +54,8 @@ export class OpenAlexProvider {
     const url = `https://api.openalex.org/works/doi:${encodeURIComponent(cleanDoi)}?select=${selectFields}`;
     const data = await this.get(url,signal);
     if (!data || !data.id) return undefined;
+    const returnedDOI=CitationVerifier.normalizeDOI(data.doi);
+    if(returnedDOI && returnedDOI!==CitationVerifier.normalizeDOI(cleanDoi))throw new Error("OpenAlex returned a conflicting DOI");
 
     return {
       work: data,
@@ -43,47 +64,55 @@ export class OpenAlexProvider {
   }
 
   /** Bounded citation/related snapshots. A truncated list is explicitly identified. */
-  async getNeighborhood(doi:string,kind:"Citations"|"Related",signal?:AbortSignal):Promise<{references:ItemBaseInfo[];total:number;truncated:boolean}> {
+  async getNeighborhood(doi:string,kind:"Citations"|"Related",signal?:AbortSignal,budgetMs=25000):Promise<{references:ItemBaseInfo[];total:number;truncated:boolean}> {
+    const budget=new OperationBudget(signal,budgetMs);
+    try {
     const checkCancelled=()=>{if(signal?.aborted){const error=new Error("Cancelled");error.name="AbortError";throw error;}};
     checkCancelled();
-    const base=await this.getWorkByDOI(doi,signal);
+    const base=await budget.run(child=>this.getWorkByDOI(doi,child));
     checkCancelled();
     if(!base)throw new Error("OpenAlex work lookup failed"+(this.requests.lastFailure?`: HTTP ${this.requests.lastFailure.status} ${this.requests.lastFailure.message}`:""));
-    let works:any[]=[],total=0;
+    const works:OpenAlexWorkSummary[]=[],seen=new Set<string>();let total=0;
     const fields="id,doi,title,authorships,publication_year,primary_location,open_access,best_oa_location,cited_by_count,is_retracted";
     if(kind==="Related") {
-      const summaries=await this.hydrateBatch((base.work.related_works||[]).slice(0,100),signal);
+      if(!Array.isArray(base.work.related_works))throw new Error("OpenAlex related metadata unavailable");
+      const summaries=await budget.run(child=>this.hydrateBatch(base.work.related_works.slice(0,100),child))||[];
       checkCancelled();
-      total=(base.work.related_works||[]).length;
+      total=base.work.related_works.length;
       if(total && !summaries.length)throw new Error("OpenAlex related metadata unavailable"+(this.requests.lastFailure?`: HTTP ${this.requests.lastFailure.status} ${this.requests.lastFailure.message}`:""));
-      const references=summaries.map(work=>({title:work.title,text:work.title,authors:work.authors,year:work.year,publicationVenue:work.venue,identifiers:work.doi?{DOI:work.doi}:{},url:work.doi?`https://doi.org/${work.doi}`:work.openalexId,oaUrl:work.oaUrl,isOA:work.isOA,citationCount:work.citationCount,sources:["OpenAlex"],retraction:work.isRetracted?{isRetracted:true,checked:true,reason:"OpenAlex retraction flag"}:undefined} as ItemBaseInfo));
+      const references=summaries.map(work=>this.toReference(work));
       return {references,total,truncated:references.length<total};
     }
-    const id=String(base.work.id).split("/").pop();let cursor="*";
-    const deadline=Date.now()+25000;
-    for(let page=0;page<5 && !signal?.aborted && Date.now()<deadline;page++) {
-      const result=await this.get(`https://api.openalex.org/works?filter=${encodeURIComponent(`cites:${id}`)}&per_page=100&cursor=${encodeURIComponent(cursor)}&select=${fields}`,signal);
+    const id=String(base.work.id).split("/").pop();let cursor="*",partial=false,hasMore=false;
+    for(let page=0;page<5 && !budget.expired;page++) {
+      const result=await budget.run(child=>this.get(`https://api.openalex.org/works?filter=${encodeURIComponent(`cites:${id}`)}&per_page=100&cursor=${encodeURIComponent(cursor)}&select=${fields}`,child));
       checkCancelled();
-      if(!Array.isArray(result?.results)){if(!works.length)throw new Error("OpenAlex citation request failed"+(this.requests.lastFailure?`: HTTP ${this.requests.lastFailure.status} ${this.requests.lastFailure.message}`:""));break;}
-      total=Number(result.meta?.count||0);works.push(...result.results);cursor=result.meta?.next_cursor;
-      if(!cursor || !result.results.length || works.length>=total)break;
+      if(!Array.isArray(result?.results)){if(!works.length)throw new Error("OpenAlex citation request failed"+(this.requests.lastFailure?`: HTTP ${this.requests.lastFailure.status} ${this.requests.lastFailure.message}`:""));partial=true;break;}
+      const count=result.meta?.count;
+      const knownTotal=Number.isSafeInteger(count)&&count>=0;
+      if(knownTotal)total=count;else partial=true;
+      for(const row of result.results){const work=this.summarize(row);if(!work){partial=true;continue;}
+        if(seen.has(work.openalexId))continue;seen.add(work.openalexId);works.push(work);}
+      const next=result.meta?.next_cursor;
+      hasMore=Boolean(next)&&!(knownTotal&&works.length>=total);
+      if(next===cursor&&hasMore){partial=true;break;}
+      cursor=next;
+      if(!hasMore || !result.results.length)break;
     }
-    const seen=new Set<string>();
-    const references=works.filter(work=>!seen.has(work.id)&&Boolean(seen.add(work.id))).map(work=>{
-      const doi=CitationVerifier.normalizeDOI(work.doi);const title=work.title||"Untitled";
-      return {title,text:title,authors:(work.authorships||[]).map((a:any)=>a.author?.display_name).filter(Boolean),year:String(work.publication_year||""),publicationVenue:work.primary_location?.source?.display_name,identifiers:doi?{DOI:doi}:{},url:doi?`https://doi.org/${doi}`:work.id,isOA:Boolean(work.open_access?.is_oa),oaUrl:work.best_oa_location?.pdf_url||work.open_access?.oa_url,citationCount:work.cited_by_count,sources:["OpenAlex"],retraction:work.is_retracted?{isRetracted:true,checked:true,reason:"OpenAlex retraction flag"}:undefined} as ItemBaseInfo;
-    });
-    return {references,total,truncated:references.length<total};
+    const references=works.map(work=>this.toReference(work));
+    return {references,total,truncated:partial||hasMore||references.length<total||budget.expired};
+    } finally {budget.dispose();}
   }
 
   /**
    * Batch ID hydration uses the current 100-ID API limit and selected fields.
    */
-  async hydrateBatch(workUrls: string[],signal?:AbortSignal): Promise<OpenAlexWorkSummary[]> {
+  async hydrateBatch(workUrls: string[],signal?:AbortSignal,budgetMs=25000): Promise<OpenAlexWorkSummary[]> {
     if (!workUrls || workUrls.length === 0 || signal?.aborted) return [];
 
     const cleanIds = [...new Set(workUrls
-      .map(url => url.replace(/^https?:\/\/openalex\.org\//i, "").trim())
+      .filter(url=>typeof url==="string")
+      .map(url => url.replace(/^https?:\/\/openalex\.org\//i, "").trim().toUpperCase())
       .filter(id=>/^W\d+$/i.test(id)))];
 
     const chunks: string[][] = [];
@@ -94,41 +123,34 @@ export class OpenAlexProvider {
 
     const selectFields = "id,doi,title,authorships,publication_year,primary_location,open_access,best_oa_location,cited_by_count,is_retracted";
 
-    // 并发执行所有 chunk 检索，极大缩减网络延迟
-    const responses = await Promise.allSettled(
-      chunks.map(chunk => {
+    const budget=new OperationBudget(signal,budgetMs);
+    try {
+    // Four producers bound promises and scheduler load even for large lists.
+    const responses:any[]=[];let nextChunk=0;
+    const worker=async()=>{
+      while(nextChunk<chunks.length&&!budget.expired){
+        const index=nextChunk++,chunk=chunks[index];
         const filter = encodeURIComponent(`openalex:${chunk.join("|")}`);
         const url = `https://api.openalex.org/works?filter=${filter}&per_page=100&select=${selectFields}`;
-        return this.get(url,signal);
-      })
-    );
+        try{responses[index]=await budget.run(child=>this.get(url,child));}
+        catch(error){budget.checkCancelled();responses[index]=undefined;}
+      }
+    };
+    await Promise.all(Array.from({length:Math.min(4,chunks.length)},worker));
+    budget.checkCancelled();
 
     const summaries: OpenAlexWorkSummary[] = [];
 
+    const requested=new Set(cleanIds),seen=new Set<string>();
     for (const res of responses) {
-      if (res.status === "fulfilled" && res.value && Array.isArray(res.value.results)) {
-        for (const item of res.value.results) {
-          const authors = (item.authorships || [])
-            .map((a: any) => a.author?.display_name)
-            .filter(Boolean);
-
-          let doi = item.doi ? item.doi.replace(/^https?:\/\/doi\.org\//i, "").replace(/^doi:\s*/i, "") : undefined;
-          const isOA = Boolean(item.open_access?.is_oa);
-          const oaUrl = item.open_access?.oa_url || item.best_oa_location?.pdf_url || undefined;
-          const isRetracted = Boolean(item.is_retracted);
-
-          summaries.push({
-            openalexId: item.id,
-            doi,
-            title: item.title || "Untitled",
-            authors,
-            year: item.publication_year ? String(item.publication_year) : undefined,
-            venue: item.primary_location?.source?.display_name,
-            isOA,
-            oaUrl,
-            citationCount: item.cited_by_count,
-            isRetracted
-          });
+      if (res && Array.isArray(res.results)) {
+        for (const item of res.results) {
+          const summary=this.summarize(item);
+          if(!summary)continue;
+          const id=summary.openalexId.replace(/^https?:\/\/openalex\.org\//i,"");
+          if(!requested.has(id)||seen.has(id))continue;
+          seen.add(id);
+          summaries.push(summary);
         }
       }
     }
@@ -143,6 +165,7 @@ export class OpenAlexProvider {
     });
 
     return summaries;
+    } finally {budget.dispose();}
   }
 
   /**
@@ -155,37 +178,10 @@ export class OpenAlexProvider {
     const url = `https://api.openalex.org/works?search=${encodeURIComponent(cleanQuery)}&per-page=3&select=${selectFields}`;
     const response = await this.get(url,signal);
 
-    if (response && Array.isArray(response.results) && response.results.length > 0) {
-      for (const item of response.results) {
-        const authors = (item.authorships || [])
-          .map((a: any) => a.author?.display_name)
-          .filter(Boolean);
-
-        const cand: CandidateWork = {
-          title: item.title || "",
-          authors,
-          year: item.publication_year ? String(item.publication_year) : undefined,
-          doi: item.doi ? item.doi.replace(/^https?:\/\/doi\.org\//i, "") : undefined
-        };
-
-        const result = CitationVerifier.evaluate({ title, author, year }, cand);
-        if (result.status === "ACCEPT") {
-          return {
-            openalexId: item.id,
-            doi: cand.doi,
-            title: item.title || title,
-            authors,
-            year: cand.year ? String(cand.year) : undefined,
-            venue: item.primary_location?.source?.display_name,
-            isOA: Boolean(item.open_access?.is_oa),
-            oaUrl: item.open_access?.oa_url || item.best_oa_location?.pdf_url || undefined,
-            citationCount: item.cited_by_count,
-            isRetracted: Boolean(item.is_retracted)
-          };
-        }
-      }
-    }
-    return undefined;
+    if(signal?.aborted)return;
+    const items=Array.isArray(response?.results)?response.results:[];
+    const summaries=items.map((item:any)=>this.summarize(item)).filter((work:OpenAlexWorkSummary|undefined)=>Boolean(work)) as OpenAlexWorkSummary[];
+    return selectUniqueTitle({title,author,year},summaries.map(work=>({value:work,id:work.openalexId,work})));
   }
 }
 export default OpenAlexProvider;

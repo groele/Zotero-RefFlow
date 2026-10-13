@@ -1,0 +1,98 @@
+[
+  {
+    "path": "src/modules/api.ts",
+    "new": false,
+    "before": "a05fbd54e62abb97087345bbebcb24e4dda2d7773eb75601420965db77980cdf",
+    "after": "c485996a0d8c657c7fa6776bd04e5f87b6abb94301d7033dae998f798779275d",
+    "added": 31,
+    "removed": 43
+  },
+  {
+    "path": "src/modules/openalex.ts",
+    "new": false,
+    "before": "f2b215ed577ac8ec9ee04e6969e0256deccead0a3ad24e23d52a64e341e60631",
+    "after": "109f8d0a9932921fcbd40a26248a91f6dcd77f618f16c02b099128e7e90692aa",
+    "added": 36,
+    "removed": 65
+  },
+  {
+    "path": "src/modules/referenceCache.ts",
+    "new": false,
+    "before": "9e6e804e0541efe61d8acd56d7f73b680f09a4cc11da64e1a0c4253a4b53416e",
+    "after": "ed5d55ee4a749003976b790fb0ce39b2432782ba2844109f8cbb9db91866d2a4",
+    "added": 24,
+    "removed": 5
+  },
+  {
+    "path": "src/modules/referenceData.ts",
+    "new": false,
+    "before": "83d82a8cfedabadb6d2f167e2b5ef04c1eed65703deda9ea0e04365830a5266b",
+    "after": "f222455c02632693117202e0b789f57d874d5f45db40870e1b3748b570e48159",
+    "added": 11,
+    "removed": 0
+  },
+  {
+    "path": "src/modules/referenceRetrieval.ts",
+    "new": false,
+    "before": "6f47cd93dbf37a417dae25eb8608882cd2dd8ee6949bca3e92014fa1c3e112c4",
+    "after": "b5cb1312e70f80c74c6449191dbadfb97e7c16855fc7efba5d027627e8f433d8",
+    "added": 56,
+    "removed": 29
+  },
+  {
+    "path": "src/modules/semanticScholar.ts",
+    "new": false,
+    "before": "9a4eba56384cc00562639989630d01b498009205df440a5d25989b2698a32b1f",
+    "after": "6d0e733fb4ad090f049a9d08b3af0a7b3c986608715b442330e959b4884b7fa7",
+    "added": 7,
+    "removed": 12
+  },
+  {
+    "path": "src/modules/titleResolution.ts",
+    "new": true,
+    "before": null,
+    "after": "d8f7888349aed9181fec537f43232d59444ed4fff5b18d1249d4f6946fa8f76b",
+    "added": 29,
+    "removed": 0
+  },
+  {
+    "path": "src/modules/verifier.ts",
+    "new": false,
+    "before": "6c24a61cb8c6918ffd9cd24254776b354a8a13dddbee4440fb779640c1a78ada",
+    "after": "fa3947e174267683c7f58ae899cd2f1e29ceba1442f7f8b8d9cc3cf5c4f19acc",
+    "added": 2,
+    "removed": 2
+  },
+  {
+    "path": "src/modules/views.ts",
+    "new": false,
+    "before": "514b052fbe73e865532d7c83641cfa3d7da9165f76a3afb07a78f0edd6fd0a80",
+    "after": "9230d9823a30b06d7512d63514fc7c80abfe6ccba2ca730327e5f58d53678e44",
+    "added": 18,
+    "removed": 17
+  },
+  {
+    "path": "tests/structure.test.ts",
+    "new": true,
+    "before": null,
+    "after": "0d9e4d76832b40b5231161c16c4800c597818711cceac8162b1a5d5f23dfa5a5",
+    "added": 132,
+    "removed": 0
+  },
+  {
+    "path": "scripts/native-structure.js",
+    "new": true,
+    "before": null,
+    "after": "1c3e31efcdf32db7f7fb26d3c864dcde0c298c7ddc12c05d29993a1318b6138a",
+    "added": 79,
+    "removed": 0
+  },
+  {
+    "path": "scripts/verify-pipeline-evidence.mjs",
+    "new": false,
+    "before": "83b2d9da080adbca94fb809547b47d0012ff2b5c0c87bb39feb366e137f902ae",
+    "after": "91c075f99daf20b82cd0a9d4bcf237a01dbccdc20671039031862093088af3ff",
+    "added": 4,
+    "removed": 2
+  }
+]

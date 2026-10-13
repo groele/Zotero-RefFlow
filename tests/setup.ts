@@ -5,6 +5,8 @@
 // Mock Zotero global environment
 (globalThis as any).PathUtils = {join: (...parts: string[]) => parts.join("/")};
 (globalThis as any).Zotero = (globalThis as any).Zotero || {
+  setTimeout: globalThis.setTimeout,
+  clearTimeout: globalThis.clearTimeout,
   Promise: {
     defer: () => {
       let resolve: any, reject: any;
@@ -82,6 +84,7 @@
 };
 
 (globalThis as any).window = (globalThis as any).window || {
+  AbortController: globalThis.AbortController,
   setTimeout: globalThis.setTimeout,
   clearTimeout: globalThis.clearTimeout,
   setInterval: globalThis.setInterval,

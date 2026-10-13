@@ -23,6 +23,7 @@ pref("extensions.zotero.__addonRef__.saveAPIReferences", true);
 
 pref("extensions.zotero.__addonRef__.notInLibarayOpacity", "1");
 
+pref("extensions.zotero.__addonRef__.semanticScholarKey", "");
 pref("extensions.zotero.__addonRef__.CNKI.username", "");
 pref("extensions.zotero.__addonRef__.CNKI.password", "");
 

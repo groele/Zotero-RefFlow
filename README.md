@@ -1,6 +1,6 @@
 # RefNexus for Zotero 10
 
-**11.0.1** · 参考文献获取、文献卡片与引用关系浏览。兼容 Zotero 10。
+**11.0.2** · 参考文献获取、文献卡片与引用关系浏览。加强多来源身份校验、部分结果处理与缓存一致性。
 
 本项目以用户提供的 `zotero-reference-zotero10.xpi` 的功能组织和使用习惯为基准，对获取流程、稳定性、性能和交互进行二次开发。该 XPI 的实际清单名称是 **Ethereal Reference**，版本 **1.8.17**；文件名中的“zotero10”不代表插件版本号。
 
@@ -11,8 +11,7 @@
 - 问题反馈：[GitHub Issues](https://github.com/groele/Zotero-diy/issues)。
 - 自动更新清单：[update.json](https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json)。
 - 设置页提供项目、反馈、原始项目、版本说明与免费 OpenAlex Key 入口。
-- 本插件独立发布标签：`refnexus-v11.0.1`；仓库还包含其他插件，请按插件名称选择安装包。
-- [11.0.1 版本说明](docs/RELEASE-NOTES.md)：设置页维护信息移至底部。
+- 本插件独立发布标签：`refnexus-v11.0.2`；仓库还包含其他插件，请按插件名称选择安装包。
 
 ## 来源与二次开发声明
 
@@ -33,7 +32,15 @@
 
 PDF 模式会复用匹配的阅读器，或在后台打开当前文献的 PDF 附件。没有可读取文本层的扫描件需要先做 OCR。
 
+## 11.0.2 稳定性更新
+
+- 统一 Crossref、OpenAlex 与 Semantic Scholar 的标题身份校验，并在 DOI 解析中接通 Semantic Scholar 回退。
+- 统一部分结果、损坏记录与缓存状态，避免错误报告为空或提前结束分页。
+- 完整验证与数据流边界见[逻辑结构审计](docs/LOGIC-STRUCTURE-AUDIT-2026-10-13.md)和[版本说明](docs/RELEASE-NOTES.md)。
+
 ## 11.0.0 大版本更新
+
+当前版本为 11.0.2。当前版本的变更与验收记录见[11.0.2 版本说明](docs/RELEASE-NOTES.md)及[逻辑结构审计](docs/LOGIC-STRUCTURE-AUDIT-2026-10-13.md)。
 
 - 刷新时保留已取得的卡片；网络失败、取消或空结果不会清掉同一文献类型的可用列表。
 - 刷新与排序保留搜索、选择及焦点；排序只处理本地结果，不再触发获取请求，来源编号保持不变。

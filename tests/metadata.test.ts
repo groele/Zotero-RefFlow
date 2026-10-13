@@ -21,7 +21,7 @@ test("project and automatic update URLs all resolve to the derivative repository
 test("Zotero 10 manifest uses the JSON update URL token",()=>{
   const manifest=JSON.parse(read("addon/manifest.json"));
   assert.equal(manifest.applications.zotero.update_url,"__updateURL__");
-  assert.equal(manifest.applications.zotero.strict_min_version,"10.0.0");
+  assert.equal(manifest.applications.zotero.strict_min_version,"10.0.6");
   assert.equal(manifest.applications.zotero.strict_max_version,"10.*");
   const template=JSON.parse(read("update-template.json"));
   assert.equal(template.addons["__addonID__"].updates[0].update_link,"__downloadURL__");

@@ -6,9 +6,10 @@ import LocalStorge from "./localStorage";
 import BatchImporter from "./batchImporter";
 import ReferenceCards from "./referenceCards";
 import ReferenceTasks, { ReferenceTaskContext } from "./referenceTasks";
-import { cacheReferences, readCachedReferences } from "./referenceCache";
+import { cacheReferences, readCachedReferences, cacheReferenceResult, readCachedReferenceResult, preferCachedReferences } from "./referenceCache";
 import { retrieveReferenceList, ReferenceProvider, ReferenceResult } from "./referenceRetrieval";
 import CitationVerifier from "./verifier";
+import {referenceData} from "./referenceData";
 
 
 export default class Views {
@@ -18,11 +19,27 @@ export default class Views {
   private paneID?: string;
   private notifierID?: string;
   private disposed = false;
+  private panes=new Set<HTMLElement>();
+  private libraryTimer?:ReturnType<typeof globalThis.setTimeout>;
+  private tips=new Map<Window,TipUI>();
   constructor() {
     initLocale();
-    (document as any).l10n?.addResourceIds([`${config.addonRef}-addon.ftl`]);
     this.utils = new Utils()
-    this.addStyle()
+  }
+
+  public attachWindow(win: Window) {
+    (win.document as any).l10n?.addResourceIds([`${config.addonRef}-addon.ftl`]);
+    if (!win.document.getElementById(`${config.addonRef}-style`)) this.addStyle(win.document);
+  }
+
+  public detachWindow(win: Window) {
+    this.tips.get(win)?.clear();this.tips.delete(win);
+    win.document.querySelectorAll(`item-pane-custom-section[data-pane$="-${config.addonRef}-references"] [data-type="body"]`).forEach(body => {
+      this.referenceTasks.invalidate(body);
+      (body as any)._cards?.dispose();
+      this.panes.delete(body as HTMLElement);
+    });
+    win.document.getElementById(`${config.addonRef}-style`)?.remove();
   }
 
   private addStyle(doc: Document = document) {
@@ -89,7 +106,14 @@ export default class Views {
    */
   public async onInit() {
     this.registerReferenceItemPane();
-    this.notifierID = Zotero.Notifier.registerObserver({ notify: () => this.utils.clearLibraryItemCache() }, ["item"], config.addonRef);
+    this.notifierID = Zotero.Notifier.registerObserver({ notify: () => {
+      this.utils.clearLibraryItemCache();
+      globalThis.clearTimeout(this.libraryTimer);
+      this.libraryTimer=globalThis.setTimeout(()=>{
+        if(this.disposed)return;
+        for(const body of this.panes)if(body.isConnected)(body as any)._cards?.invalidateLibraryMatches();
+      },100);
+    } }, ["item"], config.addonRef);
   }
 
   /** Register the reference list as a native Zotero 10 item-pane section. */
@@ -113,6 +137,7 @@ export default class Views {
         {type:"more",icon:`chrome://${config.addonRef}/content/icons/more.svg`,l10nID:"refnexus-pane-more",onClick:({body})=>(body as any)._cards?.menu()}
       ],
       onRender: ({ body, item, setL10nArgs }) => {
+        this.panes.add(body as HTMLElement);
         (body.ownerDocument as any).l10n?.addResourceIds([`${config.addonRef}-addon.ftl`]);
         if(!body.ownerDocument.getElementById(`${config.addonRef}-style`))this.addStyle(body.ownerDocument);
         const identity=String(item?.parentItem?.id || item?.id || "");
@@ -215,7 +240,7 @@ export default class Views {
         this.resetReferencePane(body);
         body.setAttribute("data-refnexus-item-id", String(item?.parentItem?.id || item?.id || ""));
       },
-      onDestroy: ({ body }) => {this.referenceTasks.invalidate(body);(body as any)._cards?.dispose();}
+      onDestroy: ({ body }) => {this.panes.delete(body as HTMLElement);this.referenceTasks.invalidate(body);(body as any)._cards?.dispose();}
     });
     if (!registered) {
       ztoolkit.log("Zotero refused to register the RefNexus item-pane section");
@@ -255,12 +280,14 @@ export default class Views {
 
   public async shutdown(): Promise<void> {
     this.disposed=true;
+    globalThis.clearTimeout(this.libraryTimer);this.panes.clear();
+    for(const tip of this.tips.values())tip.clear();this.tips.clear();
     this.referenceTasks.dispose();
     this.utils.API.requests.dispose();
     this.utils.API.publisherReferences.dispose();
     if (this.notifierID) Zotero.Notifier.unregisterObserver(this.notifierID);
     if (this.paneID) Zotero.ItemPaneManager.unregisterSection(this.paneID);
-    await this.storage.flush();
+    await this.storage.dispose();
     for(const win of Zotero.getMainWindows())win.document.getElementById(`${config.addonRef}-style`)?.remove();
   }
 
@@ -269,17 +296,17 @@ export default class Views {
 
   private getPanelItem(panel: Element): Zotero.Item | undefined {
     const id=Number(panel.getAttribute("data-refnexus-item-id"));
-    const item=id?Zotero.Items.get(id):this.utils.getItem();
+    const item=(id?Zotero.Items.get(id):this.utils.getItem(panel.ownerDocument.defaultView!)) || undefined;
     return item?.isAttachment()?item.parentItem:item;
   }
 
   private readerMatchesItem(reader: any,item: Zotero.Item): boolean {
-    const attachment=reader?._item || (reader?.itemID?Zotero.Items.get(reader.itemID):undefined);
-    return Boolean(attachment?.attachmentContentType==="application/pdf" && (attachment.parentID===item.id || attachment.id===item.id));
+    const attachment=reader?.itemID?Zotero.Items.get(reader.itemID):undefined;
+    return Boolean(attachment && attachment.attachmentContentType==="application/pdf" && (attachment.parentID===item.id || attachment.id===item.id));
   }
 
   private async pdfAttachment(item: Zotero.Item,reader?: any): Promise<Zotero.Item | undefined> {
-    if(this.readerMatchesItem(reader,item))return reader._item || Zotero.Items.get(reader.itemID);
+    if(this.readerMatchesItem(reader,item))return Zotero.Items.get(reader.itemID) || undefined;
     const best=await item.getBestAttachment();
     const attachments=await (Zotero.Items as any).getAsync(item.getAttachments()) as Zotero.Item[];
     const candidates=[best,...attachments].filter((candidate,index,list)=>candidate&&list.indexOf(candidate)===index) as Zotero.Item[];
@@ -300,27 +327,7 @@ export default class Views {
     if (!path) return "";
     const file=Zotero.File.pathToFile(path);
     if (!file.exists()) return "";
-    return `pdf-layout-v4:${attachment.libraryID}:${attachment.key}:${file.fileSize}:${file.lastModifiedTime}`;
-  }
-
-  private async getReaderForItem(item: Zotero.Item,signal?: AbortSignal): Promise<_ZoteroTypes.ReaderInstance | undefined> {
-    const isSameItem = (reader?: _ZoteroTypes.ReaderInstance) => this.readerMatchesItem(reader,item);
-    const active = this.utils.getReader();
-    if (isSameItem(active)) return active;
-
-    const attachment=await this.pdfAttachment(item);
-    if (!attachment || signal?.aborted) return undefined;
-
-    const opened = await Zotero.Reader.open(attachment.id, undefined, { openInBackground: true });
-    if (opened && isSameItem(opened)) return opened;
-    for (let attempt = 0; attempt < 50; attempt++) {
-      if(signal?.aborted)return undefined;
-      const readers = ((Zotero.Reader as any)._readers || []) as _ZoteroTypes.ReaderInstance[];
-      const reader = readers.find(isSameItem);
-      if (reader) return reader;
-      await Zotero.Promise.delay(100);
-    }
-    return undefined;
+    return `pdf-sdt-v2:${attachment.libraryID}:${attachment.key}:${file.fileSize}:${file.lastModifiedTime}`;
   }
 
   public async refreshReferences(
@@ -339,27 +346,45 @@ export default class Views {
     const item=itemOverride || this.getPanelItem(panel);
     const label=panel.querySelector("#reference-num");
     if (!item?.isRegularItem()) { if (label) label.textContent=getString("relatedbox-select-item"); return; }
-    const key=`${item.libraryID}:${item.key}|${literatureType}|${source}|${fromCurrentPage?"page":"full"}|${local?"cache":"force"}`;
+    const ownerID=panel.getAttribute("data-refnexus-item-id");
+    if(ownerID&&ownerID!==String(item.id))return;
+    const metadataIdentity=JSON.stringify([item.libraryID,item.key,item.getField("DOI"),item.getField("title"),item.getField("url"),item.getField("date"),item.getCreators()]);
+    const activeReader=readerOverride || this.utils.getReader(panel.ownerDocument.defaultView!);
+    const activeAttachment=this.readerMatchesItem(activeReader,item)?Zotero.Items.get(activeReader!.itemID!):undefined;
+    const pageIndex=fromCurrentPage&&activeAttachment?activeAttachment.getAttachmentLastPageIndex():undefined;
+    const boundIdentity=panel.getAttribute("data-refnexus-item-id");
+    const windowReader=this.utils.getReader(panel.ownerDocument.defaultView!);
+    const checkReader=literatureType==="References"&&source!=="Web"&&this.readerMatchesItem(windowReader,item);
+    const sameInput=()=>metadataIdentity===JSON.stringify([item.libraryID,item.key,item.getField("DOI"),item.getField("title"),item.getField("url"),item.getField("date"),item.getCreators()])&&(!checkReader||this.utils.getReader(panel.ownerDocument.defaultView!)?.itemID===activeReader?.itemID);
+    const key=`${metadataIdentity}|${activeAttachment?activeAttachment.id:"best"}|${literatureType}|${source}|${fromCurrentPage?"page:"+(pageIndex??"stored"):"full"}|${local?"cache":"force"}`;
     return this.referenceTasks.run(panel,key,async context=>{
       const boundItem=panel.getAttribute("data-refnexus-item-id");
-      const current=()=>context.isCurrent() && panel.isConnected && (panel.getAttribute("data-refnexus-type")||"References")===literatureType && panel.getAttribute("source")===source && panel.getAttribute("data-refnexus-item-id")===boundItem;
+      const ownsPanel=()=>context.isCurrent() && panel.isConnected && (panel.getAttribute("data-refnexus-type")||"References")===literatureType && panel.getAttribute("source")===source && panel.getAttribute("data-refnexus-item-id")===boundItem;
+      const current=()=>ownsPanel()&&sameInput();
       panel.setAttribute("aria-busy","true");
       panel.querySelectorAll("#refresh-button, #refnexus-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=true);
       const cancel=panel.querySelector("#refnexus-cancel") as HTMLElement;
       if (cancel) cancel.hidden=false;
       try {
-        await this.performReferences(panel,local,fromCurrentPage,item,readerOverride,{...context,isCurrent:current});
+        await this.performReferences(panel,local,fromCurrentPage,item,activeReader,{...context,pageIndex,isCurrent:current});
       } catch (error: any) {
         if (current() && label) {label.textContent=(error?.name==="TimeoutError"?getString("relatedbox-timeout"):getString("relatedbox-fetch-error"))+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");(label as HTMLElement).title=String(error?.message||error);}
         if (error?.name!=="AbortError") ztoolkit.log("Reference fetch failed",error);
       } finally {
-        if (current()) {
+        if (ownsPanel()) {
+          if(!sameInput()&&label)label.textContent=getString("cards-context-changed")+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");
           panel.removeAttribute("aria-busy");
           panel.querySelectorAll("#refresh-button, #refnexus-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
           if (cancel) cancel.hidden=true;
         }
       }
-    });
+    },{onTimeout:()=>{
+      if(!panel.isConnected||panel.getAttribute("data-refnexus-item-id")!==boundIdentity||panel.getAttribute("source")!==source||(panel.getAttribute("data-refnexus-type")||"References")!==literatureType)return;
+      if(label)label.textContent=getString(sameInput()?"relatedbox-timeout":"cards-context-changed")+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");
+      panel.removeAttribute("aria-busy");
+      panel.querySelectorAll("#refresh-button, #refnexus-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
+      const cancel=panel.querySelector("#refnexus-cancel") as HTMLElement;if(cancel)cancel.hidden=true;
+    }});
   }
 
   private async smartReferences(item:Zotero.Item,reader:any,task:ReferenceTaskContext,includePDF:boolean,fromCurrentPage:boolean,label:HTMLElement,webFirst=false):Promise<ReferenceResult> {
@@ -372,15 +397,15 @@ export default class Views {
     };
     const providers:ReferenceProvider[]=[];
     if(includePDF)providers.push({name:"PDF",run:async()=>{
-      reader=reader||await this.getReaderForItem(item,task.signal);
-      if(!reader||!task.isCurrent())return;
-      const references=await this.utils.PDF.getReferences(reader,fromCurrentPage,{signal:task.signal,notify:false,onProgress:pages=>{if(task.isCurrent())label.textContent=`${getString("relatedbox-loading")} PDF · ${pages} ${getString("relatedbox-pages-label")}`;}});
-      return {references,source:"PDF"};
+      const attachment=await this.pdfAttachment(item,reader);
+      if(!attachment||!task.isCurrent())return;
+      const references=await this.utils.PDF.getReferences(attachment,fromCurrentPage,{signal:task.signal,pageIndex:task.pageIndex,notify:false,onProgress:pages=>{if(task.isCurrent())label.textContent=`${getString("relatedbox-loading")} PDF · ${pages} ${getString("relatedbox-pages-label")}`;}});
+      return {references,source:"PDF",partial:this.utils.PDF.getDiagnostics(attachment)?.scanLimited};
     }});
     providers.push({name:"Snapshot",run:async()=>{
       for(const id of item.getAttachments().slice(0,20)) {
         if(!task.isCurrent())return;
-        const attachment=Zotero.Items.get(id);if(attachment?.attachmentContentType!=="text/html"||attachment.deleted)continue;
+        const attachment=Zotero.Items.get(id);if(!attachment||attachment.attachmentContentType!=="text/html"||attachment.deleted)continue;
         const path=await attachment.getFilePathAsync();if(!path)continue;
         const file=Zotero.File.pathToFile(path);if(!file.exists()||file.fileSize>8*1024*1024)continue;
         const html=await Zotero.File.getContentsAsync(path);
@@ -402,6 +427,10 @@ export default class Views {
     return retrieveReferenceList(providers,task.signal,source=>{if(task.isCurrent())label.textContent=`${getString("relatedbox-loading")} ${source}`;});
   }
 
+  private referenceDescription(result:ReferenceResult):string {
+    return result.source+(result.partial?` (${result.references.length}${result.expected?"/"+result.expected:"+"} · ${getString("cards-partial")})`:"");
+  }
+
   private async snapshotSignature(item:Zotero.Item):Promise<any[]> {
     const signatures:any[]=[];
     for(const id of item.getAttachments().slice(0,20)) {
@@ -415,14 +444,14 @@ export default class Views {
   }
 
   private async performReferences(panel: XUL.TabPanel, local: boolean, fromCurrentPage: boolean, item: Zotero.Item, readerOverride: _ZoteroTypes.ReaderInstance | undefined, task: ReferenceTaskContext) {
-    let label = panel.querySelector("label#reference-num") as XUL.Label;
+    let label = panel.querySelector("label#reference-num") as HTMLLabelElement;
     const literatureType=panel.getAttribute("data-refnexus-type")||"References";
     const initialSource = panel.getAttribute("source") || "PDF";
     label.textContent = `${getString("relatedbox-loading")} [${initialSource}]`;
-    const source=initialSource;
-    let reader = readerOverride || this.utils.getReader();
+    const source=fromCurrentPage && literatureType==="References"?"PDF":initialSource;
+    let reader = readerOverride || this.utils.getReader(panel.ownerDocument.defaultView!);
     if(!this.readerMatchesItem(reader,item))reader=undefined as any;
-    const signature=source==="PDF"?await this.pdfCacheSignature(item,reader):JSON.stringify(["retrieval-v2",item.getField("DOI"),item.getField("url"),item.getField("title"),item.getField("date"),item.getCreators(),source==="Auto"?await this.pdfCacheSignature(item,reader):"",["Auto","Web"].includes(source)?await this.snapshotSignature(item):[]]);
+    const signature=source==="PDF"?await this.pdfCacheSignature(item,reader):JSON.stringify(["retrieval-v5",item.getField("DOI"),item.getField("url"),item.getField("title"),item.getField("date"),item.getCreators(),source==="Auto"?await this.pdfCacheSignature(item,reader):"",["Auto","Web"].includes(source)?await this.snapshotSignature(item):[]]);
     if (!task.isCurrent()) return;
 
     // Keep the last successful same-type list interactive while refreshing.
@@ -432,7 +461,7 @@ export default class Views {
     }
 
     let references: ItemBaseInfo[]=[];
-    if (!local && source==="API") this.utils.API.requests.clearCache();
+    if (!local && ["API","Auto","Web"].includes(source)) this.utils.API.requests.clearCache();
     if(!local&&["API","Auto","Web"].includes(source))this.utils.API.publisherReferences.clearCache();
 
     let resultSource=source;
@@ -453,10 +482,10 @@ export default class Views {
           if(!task.isCurrent())return;
           if(previous){references=previous;resultSource=describe(cached?.snapshot?.source||provider,Number(cached?.snapshot?.total||references.length),Boolean(cached?.snapshot?.truncated))+` · ${getString("cards-cached-offline")}`;label.title=String(error);}
           else if(literatureType==="Citations") {
-            const fallback=await this.utils.API.getDOIRelatedArray(doi,100,task.signal);
+            const fallback=await this.utils.API.semanticScholar.neighborhood(doi,"Citations",task.signal);
             if(!task.isCurrent())return;
-            if(!fallback?.length)throw error;
-            result={references:fallback,total:undefined,truncated:true};provider="Semantic Scholar";
+            if(!fallback || fallback.status==="unavailable" || (!fallback.references.length&&fallback.partial))throw error;
+            result={references:fallback.references,total:fallback.partial?undefined:fallback.references.length,truncated:Boolean(fallback.partial)};provider="Semantic Scholar";
           }else throw error;
         }
         if(!task.isCurrent())return;
@@ -467,52 +496,59 @@ export default class Views {
     } else if (source === "Auto" || source === "Web") {
       const key=`References-${source}`;
       const cached=await this.storage.getAsync(item,key);
-      const previous=readCachedReferences(cached,signature,cached?.snapshot?.partial?15*60*1000:24*60*60*1000);
+      const previous=!fromCurrentPage ? readCachedReferenceResult(cached,signature) : undefined;
       let result:ReferenceResult;
-      if(local&&previous)result={references:previous,...cached.snapshot};
+      if(local&&previous)result=previous;
       else {
         result=await this.smartReferences(item,reader,task,source!=="Web",fromCurrentPage,label,source==="Web");
         if(!task.isCurrent())return;
-        if(!result.references.length&&previous)result={references:previous,...cached.snapshot,source:cached.snapshot.source+` · ${getString("cards-cached-offline")}`,attempts:result.attempts};
-        else if(result.references.length)await this.storage.set(item,key,{...cacheReferences(result.references,signature),snapshot:{source:result.source,partial:result.partial,expected:result.expected}});
+        if(result.references.length&&!fromCurrentPage)await this.storage.set(item,key,cacheReferenceResult(result,signature));
+        result=preferCachedReferences(result,previous,getString("cards-cached-offline"));
       }
-      references=result.references;resultSource=result.source;
-      if(result.partial)resultSource+=` (${references.length}${result.expected?"/"+result.expected:"+"} · ${getString("cards-partial")})`;
+      if(result.status==="unavailable"&&!result.references.length)throw new Error(result.attempts?.join("; ")||"Reference providers unavailable");
+      references=result.references;resultSource=this.referenceDescription(result);
       label.title=result.attempts?.join("\n")||"";
     } else if (source == "PDF") {
       // 优先本地读取
       const key = "References-PDF";
-      references = local && !fromCurrentPage && signature ? readCachedReferences(await this.storage.getAsync(item,key),signature,Number.MAX_SAFE_INTEGER) as any : undefined;
+      const cached=await this.storage.getAsync(item,key);
+      let partial=Boolean(cached?.snapshot?.partial);
+      references = local && !fromCurrentPage && signature ? readCachedReferences(cached,signature,partial?15*60*1000:Number.MAX_SAFE_INTEGER) as any : undefined;
       if (!task.isCurrent()) return;
       if (references) {
         resultSource="PDF";
+        if(partial)resultSource+=` · ${getString("relatedbox-scan-limited")}`;
       } else {
-        if (!reader) reader=await this.getReaderForItem(item,task.signal) as any;
+        const attachment=await this.pdfAttachment(item,reader);
         if (!task.isCurrent()) return;
-        if (!reader) {
+        if (!attachment) {
           references = [];
         } else {
-          try{references = await this.utils.PDF.getReferences(reader, fromCurrentPage,{signal:task.signal,notify:false,onProgress:scanned=>{if(task.isCurrent()) label.textContent=`${getString("relatedbox-loading")} PDF · ${scanned} ${getString("relatedbox-pages-label")}`;}});}
+          try{references = await this.utils.PDF.getReferences(attachment, fromCurrentPage,{signal:task.signal,pageIndex:task.pageIndex,notify:false,onProgress:scanned=>{if(task.isCurrent()) label.textContent=`${getString("relatedbox-loading")} PDF · ${scanned} ${getString("relatedbox-pages-label")}`;}});}
           catch(error:any){if(error?.name==="AbortError"||fromCurrentPage)throw error;references=[];ztoolkit.log("PDF failed; trying structured sources",error);}
         }
         if (!task.isCurrent()) return;
+        partial=Boolean(attachment&&this.utils.PDF.getDiagnostics(attachment)?.scanLimited);
+        if(partial)resultSource+=` · ${getString("relatedbox-scan-limited")}`;
         if (references.length && signature && !fromCurrentPage && Zotero.Prefs.get(`${config.addonRef}.savePDFReferences`)) {
-          await this.storage.set(item,key,cacheReferences(references,signature));
+          await this.storage.set(item,key,{...cacheReferences(references,signature),snapshot:{source:"PDF",partial}});
         }
       }
       // An empty/scanned/missing PDF should not require a manual source switch.
       if(!references?.length&&!fromCurrentPage){
         const result=await this.smartReferences(item,undefined,task,false,false,label);
         if(!task.isCurrent())return;
-        references=result.references;resultSource=result.source;label.title=result.attempts?.join("\n")||"";
+        if(result.status==="unavailable"&&!result.references.length)throw new Error(result.attempts?.join("; ")||"Reference providers unavailable");
+        references=result.references;resultSource=this.referenceDescription(result);
+        label.title=result.attempts?.join("\n")||"";
       }
     } else {
       const key = "References-API";
       const cached=await this.storage.getAsync(item,key);
-      const previous=readCachedReferences(cached,signature,cached?.snapshot?.partial?15*60*1000:24*60*60*1000);
+      const previous=!fromCurrentPage ? readCachedReferenceResult(cached,signature) : undefined;
       if(!task.isCurrent())return;
       let result:ReferenceResult;
-      if(local&&previous)result={references:previous,...cached.snapshot,source:cached?.snapshot?.source||"Online"};
+      if(local&&previous)result=previous;
       else {
         const api=this.utils.API;
         result=await retrieveReferenceList([
@@ -523,9 +559,9 @@ export default class Views {
             if(!doi){
               let fileName=this.utils.parseCNKIURL(url)?.fileName;
               if(fileName||this.utils.isChinese(title)){
-                if(!fileName)fileName=this.utils.parseCNKIURL(await api.getCNKIURL(title)||"")?.fileName;
+                if(!fileName){const matched=await api.getTitleInfoByCNKI(title,task.signal);fileName=this.utils.parseCNKIURL(matched?.identifiers?.CNKI||"")?.fileName;}
                 if(!task.isCurrent())return;
-                if(fileName){const refs=(await api.getCNKIFileInfo(fileName))?.references||[];if(refs.length)return {references:refs,source:"CNKI"};}
+                if(fileName){const info=await api.getCNKIFileInfo(fileName,0,task.signal);if(info?.references?.length)return {references:info.references,source:"CNKI",partial:info.referencePartial};}
               }
               if(!task.isCurrent())return;
               label.textContent=getString("cards-resolving-doi");
@@ -536,18 +572,18 @@ export default class Views {
             return api.getReferenceList(doi,url,title,task.signal);
           }},
           {name:"PDF fallback",run:async()=>{
-            reader=reader||await this.getReaderForItem(item,task.signal);
-            if(!reader||!task.isCurrent())return;
-            const refs=await this.utils.PDF.getReferences(reader,fromCurrentPage,{signal:task.signal,notify:false});
-            return {references:refs,source:"PDF fallback"};
+            const attachment=await this.pdfAttachment(item,reader);
+            if(!attachment||!task.isCurrent())return;
+            const refs=await this.utils.PDF.getReferences(attachment,fromCurrentPage,{signal:task.signal,pageIndex:task.pageIndex,notify:false});
+            return {references:refs,source:"PDF fallback",partial:this.utils.PDF.getDiagnostics(attachment)?.scanLimited};
           }}
         ],task.signal,source=>{if(task.isCurrent())label.textContent=`${getString("relatedbox-loading")} ${source}`;});
         if(!task.isCurrent())return;
-        if(!result.references.length&&previous)result={references:previous,...cached.snapshot,source:(cached?.snapshot?.source||"Online")+` · ${getString("cards-cached-offline")}`,attempts:result.attempts};
-        else if(result.references.length&&result.source!=="PDF fallback"&&Zotero.Prefs.get(`${config.addonRef}.saveAPIReferences`))await this.storage.set(item,key,{...cacheReferences(result.references,signature),snapshot:{source:result.source,partial:result.partial,expected:result.expected}});
+        if(result.references.length&&!fromCurrentPage&&result.source!=="PDF fallback"&&Zotero.Prefs.get(`${config.addonRef}.saveAPIReferences`))await this.storage.set(item,key,cacheReferenceResult(result,signature));
+        result=preferCachedReferences(result,previous,getString("cards-cached-offline"));
       }
-      references=result.references;resultSource=result.source;
-      if(result.partial)resultSource+=` (${references.length}${result.expected?"/"+result.expected:"+"} · ${getString("cards-partial")})`;
+      if(result.status==="unavailable"&&!result.references.length)throw new Error(result.attempts?.join("; ")||"Reference providers unavailable");
+      references=result.references;resultSource=this.referenceDescription(result);
       label.title=result.attempts?.join("\n")||"";
     }
 
@@ -555,6 +591,7 @@ export default class Views {
     if (!references) {
       references = [];
     }
+    references=references.map(referenceData);
     if(!references.length && (panel as any).references?.length){
       label.textContent=`${(panel as any).references.length} · ${getString("cards-refresh-empty-kept")}`;
       return;
@@ -580,7 +617,6 @@ export default class Views {
     if(!task.isCurrent())return;
     (panel as any)._setL10nArgs?.(JSON.stringify({count:referenceNum}));
     label.innerText = `${referenceNum} ${getString("relatedbox-number-label")} [${currentSource}]`;
-    if (reader && this.utils.PDF.getDiagnostics(reader)?.scanLimited) label.textContent+=` · ${getString("relatedbox-scan-limited")}`;
     (panel as any)._cards?.updateStatus();
   }
 
@@ -596,13 +632,15 @@ export default class Views {
     (panel as any)._cards?.updateStatus();
   }
 
-  public showTipUI(refRect: Rect, reference: ItemInfo, position: string, idText?: string, localOnly: boolean = false) {
+  public showTipUI(refRect: Rect, reference: ItemInfo, position: string, idText?: string, localOnly: boolean = false, win: Window = window) {
     let toTimeInfo = (t: string) => {
       if (!t) { return undefined }
       let info = (new Date(t)).toString().split(" ")
       return `${info[1]} ${info[3]}`
     }
-    let tipUI = new TipUI()
+    this.tips.get(win)?.clear();
+    let tipUI = new TipUI(this.utils, win)
+    this.tips.set(win,tipUI);
     tipUI.onInit(refRect, position)
     const refText = reference.text!;
     let getDefalutInfoByReference = async () => {
@@ -654,17 +692,15 @@ export default class Views {
       according = "arXiv"
       coroutines = [
         getDefalutInfoByReference(),
-        this.utils.API.getArXivInfo(reference.identifiers.arXiv)
+        this.utils.API.getArXivInfo(reference.identifiers.arXiv,tipUI.signal)
       ]
       prefIndex = parseInt(Zotero.Prefs.get(`${config.addonRef}.${according}InfoIndex`) as string)
     } else if (reference?.identifiers.DOI) {
       according = "DOI"
       coroutines = [
         getDefalutInfoByReference(),
-        this.utils.API.getDOIInfoBySemanticscholar(reference.identifiers.DOI),
-        this.utils.API.getTitleInfoByReadpaper(refText, {}, reference.identifiers.DOI),
-        this.utils.API.getTitleInfoByConnectedpapers(reference.identifiers.DOI),
-        this.utils.API.getDOIInfoByCrossref(reference.identifiers.DOI)
+        this.utils.API.getDOIInfoBySemanticscholar(reference.identifiers.DOI,tipUI.signal),
+        this.utils.API.getDOIInfoByCrossref(reference.identifiers.DOI,tipUI.signal)
       ]
       prefIndex = parseInt(Zotero.Prefs.get(`${config.addonRef}.${according}InfoIndex`) as string)
     } else {
@@ -672,9 +708,9 @@ export default class Views {
       const searchTitle = reference.title || reference.text || "";
       coroutines = [
         getDefalutInfoByReference(),
-        this.utils.API.getTitleInfoByReadpaper(searchTitle),
-        this.utils.API.getTitleInfoByCrossref(searchTitle),
-        this.utils.API.openAlex.searchWorkByTitle(searchTitle).then(oa => {
+        this.utils.API.semanticScholar.byTitle(searchTitle,reference.authors?.[0],reference.year,tipUI.signal).then(paper=>paper?this.utils.API.semanticScholar.toInfo(paper):undefined),
+        this.utils.API.getTitleInfoByCrossref(searchTitle,reference.authors?.[0],reference.year,tipUI.signal),
+        this.utils.API.openAlex.searchWorkByTitle(searchTitle,reference.authors?.[0],reference.year,tipUI.signal).then(oa => {
           if (!oa) return undefined;
           return {
             identifiers: oa.doi ? { DOI: oa.doi } : {},
@@ -689,11 +725,14 @@ export default class Views {
             tags: oa.citationCount ? [{ text: `Cited: ${oa.citationCount}`, color: "#d9480f", tip: "Citations (OpenAlex)" }] : []
           } as ItemInfo;
         }),
-        this.utils.API.getTitleInfoByConnectedpapers(searchTitle),
-        this.utils.API.getTitleInfoByCNKI(searchTitle)
+        this.utils.API.getTitleInfoByCNKI(searchTitle,tipUI.signal)
       ];
       prefIndex = parseInt(Zotero.Prefs.get(`${config.addonRef}.${according}InfoIndex`) as string);
     }
+    if(!Number.isInteger(prefIndex)||prefIndex<0||prefIndex>=coroutines.length)prefIndex=0;
+    // Attach rejection handlers immediately; the UI timers may be deferred in
+    // a background window while cancelled provider promises settle earlier.
+    coroutines=coroutines.map(promise=>promise.catch(error=>{if(error?.name!=="AbortError")ztoolkit.log("Tip coroutine error",error);return undefined;}));
     const sourceConfig = {
       arXiv: { color: "#b31b1b", tip: "arXiv is a free distribution service and an open-access archive for 2,186,475 scholarly articles in the fields of physics, mathematics, computer science, quantitative biology, quantitative finance, statistics, electrical engineering and systems science, and economics. Materials on this site are not peer-reviewed by arXiv." },
       readpaper: { color: "#1f71e0", tip: "论文阅读平台ReadPaper共收录近2亿篇论文、2.7亿位作者、近3万所高校及研究机构，几乎涵盖了全人类所有学科。科研工作离不开论文的帮助，如何读懂论文，读好论文，这本身就是一个很大的命题，我们的使命是：“让天下没有难读的论文”" },
@@ -707,12 +746,12 @@ export default class Views {
     }
     for (let i = 0; i < coroutines.length; i++) {
       // 不阻塞
-      window.setTimeout(async () => {
+      globalThis.setTimeout(async () => {
         let info = await coroutines[i].catch(e => {
           ztoolkit.log("Tip coroutine error:", e);
           return undefined;
         });
-        if (!info) { return }
+        if (!info || tipUI.signal.aborted || win.closed) { return }
         const tagDefaultColor = "#59C1BD"
         let tags = (info.tags || []).map((tag: object | string) => {
           if (typeof tag == "object") {
