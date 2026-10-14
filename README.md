@@ -7,11 +7,11 @@
 ## 项目信息
 
 - 二次开发与维护：**[groele](https://github.com/groele)**。
-- 项目与下载：[groele/Zotero-diy · RefNexus-Zotero10](https://github.com/groele/Zotero-diy/tree/main/RefNexus-Zotero10)。
-- 问题反馈：[GitHub Issues](https://github.com/groele/Zotero-diy/issues)。
-- 自动更新清单：[update.json](https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json)。
+- 项目与下载：[groele/RefNexus-Zotero10](https://github.com/groele/RefNexus-Zotero10)。
+- 问题反馈：[GitHub Issues](https://github.com/groele/RefNexus-Zotero10/issues)。
+- 自动更新清单：[update.json](https://raw.githubusercontent.com/groele/RefNexus-Zotero10/main/update.json)。
 - 设置页提供项目、反馈、原始项目、版本说明与免费 OpenAlex Key 入口。
-- 本插件独立发布标签：`refnexus-v11.0.2`；仓库还包含其他插件，请按插件名称选择安装包。
+- 本插件发布标签：`refnexus-v11.0.2`。
 
 ## 来源与二次开发声明
 

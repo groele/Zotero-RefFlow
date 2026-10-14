@@ -4,7 +4,7 @@
       "updates": [
         {
           "version": "11.0.2",
-          "update_link": "https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/zotero-refnexus.xpi",
+          "update_link": "https://raw.githubusercontent.com/groele/RefNexus-Zotero10/main/zotero-refnexus.xpi",
           "applications": {
             "zotero": {
               "strict_min_version": "10.0.6",
@@ -12,7 +12,7 @@
             }
           },
           "update_hash": "sha256:622015b65a587e94fd6fd04652eae4e8b23a7f2a9353103b88d9004721dd3054",
-          "update_info_url": "https://github.com/groele/Zotero-diy/releases/tag/refnexus-v11.0.2"
+          "update_info_url": "https://github.com/groele/RefNexus-Zotero10/releases/tag/refnexus-v11.0.2"
         }
       ]
     }
