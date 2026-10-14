@@ -1,4 +1,6 @@
-# RefNexus for Zotero 10
+# Zotero-RefFlow (原 RefNexus) for Zotero 10
+
+> **Zotero Flow Series** 系列成员：专注文献参考文献获取、文献卡片与引用网络关系浏览。
 
 **11.0.2** · 参考文献获取、文献卡片与引用关系浏览。加强多来源身份校验、部分结果处理与缓存一致性。
 
@@ -7,9 +9,9 @@
 ## 项目信息
 
 - 二次开发与维护：**[groele](https://github.com/groele)**。
-- 项目与下载：[groele/RefNexus-Zotero10](https://github.com/groele/RefNexus-Zotero10)。
-- 问题反馈：[GitHub Issues](https://github.com/groele/RefNexus-Zotero10/issues)。
-- 自动更新清单：[update.json](https://raw.githubusercontent.com/groele/RefNexus-Zotero10/main/update.json)。
+- 项目与下载：[groele/Zotero-RefFlow](https://github.com/groele/Zotero-RefFlow)。
+- 问题反馈：[GitHub Issues](https://github.com/groele/Zotero-RefFlow/issues)。
+- 自动更新清单：[update.json](https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json)。
 - 设置页提供项目、反馈、原始项目、版本说明与免费 OpenAlex Key 入口。
 - 本插件发布标签：`refnexus-v11.0.2`。
 

@@ -71,7 +71,7 @@ about-issues = Segnala un problema
 about-upstream = Progetto originale
 openAlexKey-get = Ottieni / visualizza una chiave API OpenAlex gratuita
 
-about-updates = Aggiornamenti da groele/RefNexus-Zotero10. Solo Zotero 10.
+about-updates = Aggiornamenti da groele/Zotero-RefFlow. Solo Zotero 10.
 about-release-notes = Note di rilascio
 semanticScholarKey-label = Semantic Scholar API Key (optional)
 semanticScholarKey-description = Uses the official Graph API. Leave empty for anonymous access; a configured key is sent using x-api-key.
