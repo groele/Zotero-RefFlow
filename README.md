@@ -60,8 +60,6 @@ Update feed: [update.json](https://github.com/groele/Zotero-RefFlow/blob/main/up
 
 Online retrieval depends on external services and their rate limits. Scanned PDFs without a text layer may require OCR. Optional OpenAlex API credentials can be configured in Zotero settings.
 
-**Installation / coexistence note:** RefFlow uses its own add-on ID. Disable older reference-list plugins before using it to avoid duplicate panes. API keys stored in Zotero preferences should be treated as local configuration, not encrypted secrets.
-
 ## Development & Testing
 
 Run the following commands from the repository root. Follow project-specific test prerequisites before running native desktop validation.
