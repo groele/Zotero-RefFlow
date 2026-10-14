@@ -1,5 +1,5 @@
-if(!/refnexus-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
-const views=Zotero.ZoteroRefNexus.views,api=views.utils.API;
+if(!/refflow-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
+const views=Zotero.ZoteroRefFlow.views,api=views.utils.API;
 const report={version:Zotero.version,at:new Date().toISOString(),scope:'native pane, cache files, SQLite and SDT; provider responses controlled',tests:[]};
 const delay=ms=>Zotero.Promise.delay(ms),check=(value,message)=>{if(!value)throw new Error(message);};
 const save=()=>Zotero.File.putContentsAsync(cfg.output,JSON.stringify(report,null,2));
@@ -10,8 +10,8 @@ const cr=id=>({DOI:'10.1234/'+id,title:[title],author:[{family:'Smith'}],publish
 const oa=id=>({id:'https://openalex.org/'+id,title,doi:'10.1234/'+id,authorships:[{author:{display_name:'Alice Smith'}}],publication_year:2024});
 const row=index=>({title:'Native structure evidence '+stamp+' '+index,authors:['Alice Smith'],identifiers:{DOI:'10.1234/structure-'+stamp+'-'+index},sources:['SemanticScholar']});
 const make=async(name)=>{const item=new Zotero.Item('journalArticle');item.setField('title',name+' '+stamp);item.setField('DOI','10.1234/structure-'+stamp);await item.saveTx({skipSelect:true});return item;};
-const panel=async(item,source='API')=>{window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(item.id);await delay(120);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');check(body,'Missing native pane');body.setAttribute('source',source);body.setAttribute('data-refnexus-type','References');return body;};
-Zotero.Prefs.set('refnexus.autoRefresh',false);Zotero.Prefs.set('refnexus.saveAPIReferences',true);
+const panel=async(item,source='API')=>{window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(item.id);await delay(120);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');check(body,'Missing native pane');body.setAttribute('source',source);body.setAttribute('data-refflow-type','References');return body;};
+Zotero.Prefs.set('refflow.autoRefresh',false);Zotero.Prefs.set('refflow.saveAPIReferences',true);
 
 await test('all three title providers reject conflicting identities and accept one exact title',async()=>{
   const original=api.requests.get;
@@ -42,16 +42,16 @@ await test('status-only partial online list continues into native SDT PDF fallba
   const body=await panel(item),original=api.getReferenceList;
   try{api.getReferenceList=async()=>({references:[row(1),row(2)],source:'Controlled index',status:'partial'});
     await views.refreshReferences(body,false,false,false,item,{itemID:attachment.id});
-    check(body.references.length===4,'Fallback did not select complete native PDF');check(body.getAttribute('data-refnexus-result-source')==='PDF fallback','Wrong list selected');
+    check(body.references.length===4,'Fallback did not select complete native PDF');check(body.getAttribute('data-refflow-result-source')==='PDF fallback','Wrong list selected');
     return {nativeSDT:body.references.length,completeFallback:true};
   }finally{api.getReferenceList=original;}
 });
 await test('malformed row is isolated and partial contract survives file cache and native pane reload',async()=>{
   const item=await make('Owned result snapshot'),body=await panel(item),original=api.getReferenceList;let calls=0;
   try{api.getReferenceList=async()=>{calls++;return {references:[row(1),null,row(2)],source:'SemanticScholar',status:'success'};};
-    await views.refreshReferences(body,false,false,false,item);check(body.references.length===2,'Good rows lost');check(body.getAttribute('data-refnexus-result-source').includes('(2+'),'Partial result shown as complete');
+    await views.refreshReferences(body,false,false,false,item);check(body.references.length===2,'Good rows lost');check(body.getAttribute('data-refflow-result-source').includes('(2+'),'Partial result shown as complete');
     const cached=await views.storage.getAsync(item,'References-API');check(cached.snapshot.partial&&cached.snapshot.status==='partial','Cache dropped loss flag');check(cached.signature.includes('retrieval-v5'),'Cache policy not updated');
-    await views.storage.flush();await views.refreshReferences(body,true,false,false,item);check(calls===1,'Owned cached contract not reused');check(body.getAttribute('data-refnexus-result-source').includes('(2+'),'Reload lost partial display');
+    await views.storage.flush();await views.refreshReferences(body,true,false,false,item);check(calls===1,'Owned cached contract not reused');check(body.getAttribute('data-refflow-result-source').includes('(2+'),'Reload lost partial display');
     cached.references[0].identifiers.DOI='10.1234/mutated';check((await views.storage.getAsync(item,'References-API')).references[0].identifiers.DOI!=='10.1234/mutated','Cache leaked mutable state');
     return {usableRows:2,providerCalls:calls,partialSnapshot:true,fileFlushed:true};
   }finally{api.getReferenceList=original;}

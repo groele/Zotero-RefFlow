@@ -10,7 +10,9 @@ if (!registry[config.addonInstance]) {
   _globalThis.addon = new Addon();
   defineGlobal("ztoolkit", () => _globalThis.addon.data.ztoolkit);
   registry[config.addonInstance] = addon;
-  addon.hooks.onStartup().catch(error => Zotero.logError(error || new Error("RefNexus startup failed without error details")));
+  // The bootstrap awaits this promise so a failed startup releases its chrome
+  // registration and partially initialized resources before being reported.
+  _globalThis.startupPromise = addon.hooks.onStartup();
 }
 
 function defineGlobal(name:string,getter:()=>any) {

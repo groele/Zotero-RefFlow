@@ -1,5 +1,5 @@
-if(!/refnexus-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
-const views=Zotero.ZoteroRefNexus.views,api=views.utils.API,HTTP=api.requests.constructor,Store=views.storage.constructor,OA=api.openAlex.constructor;
+if(!/refflow-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
+const views=Zotero.ZoteroRefFlow.views,api=views.utils.API,HTTP=api.requests.constructor,Store=views.storage.constructor,OA=api.openAlex.constructor;
 const report={version:Zotero.version,at:new Date().toISOString(),scope:'native XHR, atomic cache files, SQLite search; remote responses controlled',tests:[]};
 const delay=ms=>Zotero.Promise.delay(ms),check=(value,message)=>{if(!value)throw new Error(message);};
 const save=()=>Zotero.File.putContentsAsync(cfg.output,JSON.stringify(report,null,2));
@@ -95,13 +95,13 @@ await test('Zotero 10 resultLevel search excludes child matches and finds the re
 });
 await test('whole-pane deadline releases busy state, preserves cards and blocks late results',async()=>{
   const parent=new Zotero.Item('journalArticle');parent.setField('title','Whole pipeline deadline '+stamp);parent.setField('DOI','10.1234/pane-deadline');await parent.saveTx({skipSelect:true});
-  Zotero.Prefs.set('refnexus.autoRefresh',false);window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(100);
-  const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');check(body,'Pane missing');body.setAttribute('source','API');body.setAttribute('data-refnexus-type','References');
+  Zotero.Prefs.set('refflow.autoRefresh',false);window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(100);
+  const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');check(body,'Pane missing');body.setAttribute('source','API');body.setAttribute('data-refflow-type','References');
   const get=api.getReferenceList,previous=views.referenceTasks.timeoutMs;let release;
   api.getReferenceList=async()=>({references:[{title:'Kept before deadline',identifiers:{}}],source:'Controlled'});
   try{await views.refreshReferences(body,false,false,false,parent);const old=body.references;api.getReferenceList=async()=>new Promise(resolve=>{release=resolve;});views.referenceTasks.timeoutMs=80;
     const start=Date.now();await views.refreshReferences(body,false,false,false,parent);
-    check(Date.now()-start<1000,'Whole refresh stayed pending');check(!body.hasAttribute('aria-busy')&&body.querySelector('#refnexus-cancel').hidden,'Timeout left busy state');check(body.references===old,'Timeout discarded cards');check(/超时|timed out|timeout/i.test(body.querySelector('#reference-num').textContent),'No timeout status');
+    check(Date.now()-start<1000,'Whole refresh stayed pending');check(!body.hasAttribute('aria-busy')&&body.querySelector('#refflow-cancel').hidden,'Timeout left busy state');check(body.references===old,'Timeout discarded cards');check(/超时|timed out|timeout/i.test(body.querySelector('#reference-num').textContent),'No timeout status');
     release({references:[{title:'LATE DEADLINE DATA',identifiers:{}}],source:'Late'});await delay(30);check(body.references===old,'Late timeout response committed');return {released:true,kept:true,lateCommitRejected:true};
   }finally{api.getReferenceList=get;views.referenceTasks.timeoutMs=previous;}
 });
@@ -116,7 +116,7 @@ await test('native import rejects conflicting translator identity and stores nor
 });
 await test('metadata edits during retrieval reject the old result and release busy state',async()=>{
   const parent=new Zotero.Item('journalArticle');parent.setField('title','Metadata snapshot '+stamp);parent.setField('DOI','10.1234/meta-before');await parent.saveTx({skipSelect:true});
-  window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(100);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');body.setAttribute('source','API');body.setAttribute('data-refnexus-type','References');
+  window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(100);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');body.setAttribute('source','API');body.setAttribute('data-refflow-type','References');
   const get=api.getReferenceList;let release;
   api.getReferenceList=async()=>new Promise(resolve=>{release=resolve;});
   try{const pending=views.refreshReferences(body,false,false,false,parent);for(let i=0;i<50&&!release;i++)await delay(10);check(release,'Request not started');parent.setField('DOI','10.1234/meta-after');await parent.saveTx({skipSelect:true});release({references:[{title:'STALE METADATA DATA',identifiers:{}}],source:'Old metadata'});await pending;
@@ -126,7 +126,7 @@ await test('metadata edits during retrieval reject the old result and release bu
 await test('same-parent PDF requests remain distinct and only the newest document commits',async()=>{
   const parent=new Zotero.Item('journalArticle');parent.setField('title','PDF context snapshot '+stamp);await parent.saveTx({skipSelect:true});
   const a=await Zotero.Attachments.importFromFile({file:cfg.fixtures+'\\single.pdf',parentItemID:parent.id}),b=await Zotero.Attachments.importFromFile({file:cfg.fixtures+'\\columns.pdf',parentItemID:parent.id});
-  window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(100);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');body.setAttribute('source','PDF');body.setAttribute('data-refnexus-type','References');
+  window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(100);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');body.setAttribute('source','PDF');body.setAttribute('data-refflow-type','References');
   const get=views.utils.PDF.getReferences;let release,calls=0;
   views.utils.PDF.getReferences=async attachment=>{calls++;return attachment.id===a.id?new Promise(resolve=>{release=resolve;}):[{title:'Current PDF B',identifiers:{}}];};
   try{const first=views.refreshReferences(body,false,false,false,parent,{itemID:a.id});for(let i=0;i<50&&!release;i++)await delay(10);check(release,'First PDF not started');await views.refreshReferences(body,false,false,false,parent,{itemID:b.id});await first;check(calls===2,'Different PDFs coalesced');check(body.references[0].title==='Current PDF B','Wrong PDF committed');release([{title:'Stale PDF A',identifiers:{}}]);await delay(30);check(body.references[0].title==='Current PDF B','Late PDF replaced current result');return {calls,newestDocument:true,lateCommitRejected:true,readerSelection:'controlled public itemID overrides; native attachment files'};}
@@ -143,7 +143,7 @@ await test('CNKI title identity and DOM parsing work without a DOCTYPE and do no
 await test('legacy PDF algorithm cache is invalidated before native extraction',async()=>{
   const parent=new Zotero.Item('journalArticle');parent.setField('title','Cache algorithm revision '+stamp);await parent.saveTx({skipSelect:true});
   const attachment=await Zotero.Attachments.importFromFile({file:cfg.fixtures+'\\single.pdf',parentItemID:parent.id});
-  window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(100);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');body.setAttribute('source','PDF');body.setAttribute('data-refnexus-type','References');
+  window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(100);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');body.setAttribute('source','PDF');body.setAttribute('data-refflow-type','References');
   const current=await views.pdfCacheSignature(parent,{itemID:attachment.id});check(current.startsWith('pdf-sdt-v2:'),'Extraction policy version missing');
   await views.storage.set(parent,'References-PDF',{schema:3,signature:current.replace('pdf-sdt-v2:','pdf-sdt-v1:'),savedAt:Date.now(),references:[{title:'OLD ALGORITHM DATA',identifiers:{}}],snapshot:{source:'PDF',partial:false}});
   await views.refreshReferences(body,true,false,false,parent,{itemID:attachment.id});check(body.references.length===4&&!body.references.some(ref=>ref.title==='OLD ALGORITHM DATA'),'Old extraction policy cache reused');return {oldCacheRejected:true,nativeReferences:4};

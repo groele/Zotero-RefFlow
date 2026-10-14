@@ -1,4 +1,4 @@
-/** Remove the exact host mutation left by RefNexus <= 10.3.1 after a hot upgrade. */
+/** Remove the exact host mutation left by RefFlow <= 10.3.1 after a hot upgrade. */
 export function restoreLegacySidebarLayout(doc: Document): boolean {
   const host = doc.getElementById("zotero-item-pane");
   const content = doc.getElementById("zotero-item-pane-content");

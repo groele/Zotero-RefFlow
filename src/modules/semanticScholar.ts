@@ -8,7 +8,7 @@ const FIELDS="paperId,title,authors,abstract,year,journal,fieldsOfStudy,external
 export default class SemanticScholarProvider {
   constructor(private requests:Requests) {}
   private get(url:string,signal?:AbortSignal) {
-    const key=String(Zotero.Prefs.get("refnexus.semanticScholarKey") || "").trim();
+    const key=String(Zotero.Prefs.get("refflow.semanticScholarKey") || "").trim();
     return this.requests.get(url,"json",key?{"x-api-key":key}:{},signal);
   }
   private cancelled(signal?:AbortSignal) {

@@ -10,6 +10,7 @@ class Addon {
     // Env type, see build.js
     env: "development" | "production";
     ztoolkit: ZToolkit;
+    preferenceCleanups: Set<() => void>;
     locale?: {
       current: any;
       default?: any;
@@ -32,6 +33,7 @@ class Addon {
       alive: true,
       env: __env__,
       ztoolkit: createZToolkit(),
+      preferenceCleanups: new Set(),
     };
     this.hooks = hooks;
     this.api = {};

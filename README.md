@@ -1,8 +1,8 @@
-# Zotero-RefFlow (原 RefNexus) for Zotero 10
+# Zotero RefFlow for Zotero 10 / 11
 
-> **Zotero Flow Series** 系列成员：专注文献参考文献获取、文献卡片与引用网络关系浏览。
+**V10 / 10.0.0** · 参考文献获取、文献卡片与引用关系浏览。加强多来源身份校验、部分结果处理与缓存一致性。
 
-**11.0.2** · 参考文献获取、文献卡片与引用关系浏览。加强多来源身份校验、部分结果处理与缓存一致性。
+**RefFlow V10（10.0.0）**：名称为 `Zotero RefFlow`，ID 为 `refflow@groele.github.io`，支持范围为 `10.0.6–11.*`。安装包与配套更新清单位于 `zotero-refflow.xpi` 和 `update.json`；发布标签为 **`V10`**。插件版本按维护者要求重新编号为 `10.0.0`，Zotero 兼容范围仍为 `10.0.6–11.*`。项目、反馈和自动更新均指向本仓库。详见[名称及 ID 迁移记录](docs/REFFLOW-IDENTITY-2026-10-14.md)和[平台适配记录](docs/GECKO153-ADAPTATION-2026-10-14.md)。
 
 本项目以用户提供的 `zotero-reference-zotero10.xpi` 的功能组织和使用习惯为基准，对获取流程、稳定性、性能和交互进行二次开发。该 XPI 的实际清单名称是 **Ethereal Reference**，版本 **1.8.17**；文件名中的“zotero10”不代表插件版本号。
 
@@ -13,7 +13,7 @@
 - 问题反馈：[GitHub Issues](https://github.com/groele/Zotero-RefFlow/issues)。
 - 自动更新清单：[update.json](https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json)。
 - 设置页提供项目、反馈、原始项目、版本说明与免费 OpenAlex Key 入口。
-- 本插件发布标签：`refnexus-v11.0.2`。
+- 当前插件发布标签：`V10`；`refnexus-v11.0.2` 属于旧插件发布记录。
 
 ## 来源与二次开发声明
 
@@ -23,7 +23,9 @@
 
 ## 安装与使用
 
-下载本目录的 [zotero-refnexus.xpi](zotero-refnexus.xpi)，在 Zotero 中打开 **工具 → 插件 → 齿轮 → 从文件安装插件**。
+从 [V10 Release](https://github.com/groele/Zotero-RefFlow/releases/tag/V10) 下载 [zotero-refflow.xpi](zotero-refflow.xpi)。在 Zotero 中打开 **工具 → 插件 → 齿轮 → 从文件安装插件**。
+
+从 RefNexus 切换：先停用旧插件，再安装 RefFlow，确认功能和设置后可卸载旧插件。新 ID 会被 Zotero 视为独立插件，不能通过旧 ID 的自动更新原地替换；不要同时启用两者。RefFlow 首次启动复制旧插件明确设置过的偏好和 API Key，保留旧配置，已有 RefFlow 设置优先。旧参考文献缓存文件保留，新缓存按需重建；导入日志格式保留，因此仍可撤回旧批次导入。
 
 1. 选中文献，在右侧图标栏进入 **参考文献**。
 2. 点击面板标题旁的刷新图标获取列表。新安装默认 **自动获取**：本地 PDF → 已保存网页 → 在线索引及出版社网页 / XML。已有用户可在 **更多 → 来源 → 自动获取（推荐）** 启用。也可手动选择 PDF、出版社网页 / XML 或在线数据。
@@ -101,7 +103,7 @@ OpenAlex 的匿名使用存在预算限制，可在设置中填写自己的免�
 
 ## 兼容范围与验证边界
 
-声明支持 Zotero `10.*`，最低 `10.0.0`；本次实际验证的是 **Windows / Zotero 10.0.6**。不保留 Zotero 6–9 兼容分支，不声明尚未测试的未来版本已通过实机验证。
+声明支持 Zotero `10.0.6–11.*`。实际验证对象为 **Windows / Zotero 10.0.6 / Gecko 140** 和 **Zotero 11.0-dev.5+dac1ad489 / Gecko 153**。Zotero 11 尚处开发阶段；此声明按维护者要求扩展，不能视为未来 Zotero 11 稳定版及全部后续版本均已验收。
 
 详细结果、修复理由、性能数据和未覆盖项目见 [AUDIT.md](AUDIT.md)；本轮新增证据见 [docs/PUBLISHERS.md](docs/PUBLISHERS.md)。测试使用独立配置、真实 Reader、真实 SQLite 和真实 HTTP；故障场景另有明确标注的注入测试。功能测试通过不等于任何 PDF 或第三方服务都能得到完整结果。原插件的全部服务功能不在本次等价性承诺范围内。
 
@@ -111,6 +113,7 @@ OpenAlex 的匿名使用存在预算限制，可在设置中填写自己的免�
 npm ci
 npm run tsc
 npm test
+$env:REFFLOW_NO_PROMOTE = '1'
 npm run build-prod
 npm run native:fixtures
 Invoke-WebRequest https://arxiv.org/pdf/1706.03762 -OutFile tests/native-fixtures/real-arxiv-1706.03762.pdf

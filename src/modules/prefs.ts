@@ -6,10 +6,10 @@ export async function registerPrefs() {
     pluginID: config.addonID,
     id: `${config.addonRef}-preferences`,
     src: rootURI + "chrome/content/preferences.xhtml",
-    label: config.addonName || "RefNexus",
+    label: config.addonName || "RefFlow",
     image: `chrome://${config.addonRef}/content/icons/favicon.png`,
-    // extraDTD: [`chrome://${config.addonRef}/locale/overlay.dtd`],
-    // defaultXUL: true,
+    scripts: [rootURI + "chrome/content/scripts/preferences.js"],
+    defaultXUL: true,
   };
   await (Zotero as any).PreferencePanes.register(prefOptions);
 }
@@ -22,5 +22,8 @@ export function registerPrefsScripts(_window: Window) {
   } else {
     addon.data.prefs.window = _window;
   }
-  const doc = addon.data.prefs!.window.document
+}
+
+export function unregisterPrefs() {
+  return (Zotero as any).PreferencePanes.unregister(`${config.addonRef}-preferences`);
 }

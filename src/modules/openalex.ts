@@ -24,7 +24,7 @@ export class OpenAlexProvider {
   }
 
   private get(url:string,signal?:AbortSignal) {
-    const key=String(Zotero.Prefs.get("refnexus.openAlexKey")||"").trim();
+    const key=String(Zotero.Prefs.get("refflow.openAlexKey")||"").trim();
     return this.requests.get(url,"json",key?{Authorization:`Bearer ${key}`} : {},signal);
   }
 

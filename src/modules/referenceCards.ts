@@ -3,6 +3,7 @@ import {getString} from "../utils/locale";
 import type Views from "./views";
 import type TipUI from "./tip";
 import {referenceIdentity} from "./referenceIdentity";
+import { cleanupSync } from "../utils/lifecycle";
 
 /** Compact reference cards and selection behavior aligned with the supplied XPI. */
 export default class ReferenceCards {
@@ -23,14 +24,20 @@ export default class ReferenceCards {
   private matchGeneration=0;
   private matchCurrent?:()=>boolean;
   private providerRetractions=new WeakMap<ItemBaseInfo,ItemBaseInfo["retraction"]>();
+  private menus=new Set<Element>();
+  private cleanup:Array<()=>void>=[];
 
   constructor(private views:Views,private body:HTMLElement,private grid:HTMLElement,private search:HTMLInputElement) {
-    search.addEventListener("input",()=>{globalThis.clearTimeout(this.searchTimer);this.searchTimer=globalThis.setTimeout(()=>this.filter(),80);});
-    search.addEventListener("keydown",event=>{if(event.key==="Escape"){event.preventDefault();globalThis.clearTimeout(this.searchTimer);search.value="";this.filter();}});
+    const onInput=()=>{globalThis.clearTimeout(this.searchTimer);this.searchTimer=globalThis.setTimeout(()=>this.filter(),80);};
+    const onKeyDown=(event:KeyboardEvent)=>{if(event.key==="Escape"){event.preventDefault();globalThis.clearTimeout(this.searchTimer);search.value="";this.filter();}};
+    const onContextMenu=(event:MouseEvent)=>{event.preventDefault();this.menu(event);};
+    search.addEventListener("input",onInput);
+    search.addEventListener("keydown",onKeyDown);
     grid.setAttribute("role","listbox");grid.setAttribute("aria-multiselectable","true");
-    grid.addEventListener("contextmenu",event=>{event.preventDefault();this.menu(event);});
+    grid.addEventListener("contextmenu",onContextMenu);
+    this.cleanup.push(()=>search.removeEventListener("input",onInput),()=>search.removeEventListener("keydown",onKeyDown),()=>grid.removeEventListener("contextmenu",onContextMenu));
   }
-  dispose(){this.disposed=true;globalThis.clearTimeout(this.searchTimer);this.clear();}
+  dispose(){if(this.disposed)return;this.disposed=true;this.cleanup.forEach(cleanupSync);this.cleanup=[];for(const menu of this.menus)cleanupSync(()=>menu.remove());this.menus.clear();globalThis.clearTimeout(this.searchTimer);this.clear();}
   clear(){this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.tip?.clear();this.tip=undefined;this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
   private drainMatches(){while(this.matchActive<4&&this.matchQueue.length){const match=this.matchQueue.shift()!;this.matchActive++;void match().catch(error=>ztoolkit.log(error)).finally(()=>{this.matchActive--;if(!this.disposed)this.drainMatches();});}}
   private queueLibraryMatch(row:HTMLElement,parent:Zotero.Item,current:()=>boolean){
@@ -69,7 +76,7 @@ export default class ReferenceCards {
     this.drainMatches();
   }
 
-  private parent():Zotero.Item{return Zotero.Items.get(Number(this.body.getAttribute("data-refnexus-item-id"))) as Zotero.Item;}
+  private parent():Zotero.Item{return Zotero.Items.get(Number(this.body.getAttribute("data-refflow-item-id"))) as Zotero.Item;}
   private label():HTMLElement{return this.body.querySelector("#reference-num")!;}
   private visible(){return this.rows.filter(row=>!row.hidden);}
   private subset():ItemBaseInfo[]{return this.selected.size?[...this.selected]:this.visible().map(row=>(row as any).reference);}
@@ -84,7 +91,7 @@ export default class ReferenceCards {
   private filter(){
     const tokens=this.search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     for(const row of this.rows){const ref=(row as any).reference as ItemBaseInfo;const hay=[ref.text,ref.title,...(ref.authors||[]),ref.year,ref.publicationVenue,ref.identifiers?.DOI].join(" ").toLocaleLowerCase();row.hidden=!tokens.every(token=>hay.includes(token));if(row.hidden)this.selected.delete(ref);}
-    this.updateSelection();this.label().textContent=`${this.visible().length} / ${this.rows.length} · ${this.body.getAttribute("data-refnexus-result-source")||""}`;
+    this.updateSelection();this.label().textContent=`${this.visible().length} / ${this.rows.length} · ${this.body.getAttribute("data-refflow-result-source")||""}`;
     if(this.empty)this.empty.hidden=this.visible().length>0||this.rows.length===0;
   }
   async render(refs:ItemBaseInfo[],current:()=>boolean){
@@ -105,7 +112,7 @@ export default class ReferenceCards {
     const original:ItemBaseInfo[]=(this.body as any).references||refs;
     const positions=new Map(original.map((ref,index)=>[ref,index+1]));
     const numbers=refs.map((ref,index)=>Number.isSafeInteger(Number(ref.number))&&Number(ref.number)>0?Number(ref.number):(positions.get(ref)||index+1));
-    this.grid.style.setProperty("--refnexus-number-width",`${numbers.reduce((width,number)=>Math.max(width,String(number).length+1),2)}ch`);
+    this.grid.style.setProperty("--refflow-number-width",`${numbers.reduce((width,number)=>Math.max(width,String(number).length+1),2)}ch`);
     if((this.body.ownerDocument.defaultView as any).IntersectionObserver)this.observer=new (this.body.ownerDocument.defaultView as any).IntersectionObserver((entries:IntersectionObserverEntry[])=>{
       for(const entry of entries)if(entry.isIntersecting){this.observer?.unobserve(entry.target);
         this.queueLibraryMatch(entry.target as HTMLElement,parent,current);
@@ -159,7 +166,7 @@ export default class ReferenceCards {
     }
     if(current()&&!this.disposed){
       this.grid.append(fragment);
-      this.empty=this.body.ownerDocument.createElement("p");this.empty.className="refnexus-empty-result";this.empty.setAttribute("role","status");this.empty.textContent=getString("cards-no-search-results");this.empty.hidden=true;this.grid.after(this.empty);
+      this.empty=this.body.ownerDocument.createElement("p");this.empty.className="refflow-empty-result";this.empty.setAttribute("role","status");this.empty.textContent=getString("cards-no-search-results");this.empty.hidden=true;this.grid.after(this.empty);
       for(const ref of refs)if(selected.has(referenceIdentity(ref)))this.selected.add(ref);
       this.anchor=Math.max(0,refs.findIndex(ref=>referenceIdentity(ref)===anchorKey));
       this.updateSelection();
@@ -181,24 +188,26 @@ export default class ReferenceCards {
   updateStatus(){if(this.search.value.trim())this.filter();}
   private open(ref:ItemBaseInfo){if(ref._item)this.views.utils.selectItemInLibrary(ref._item, this.body.ownerDocument.defaultView!);else{const url=ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:undefined);if(url&&/^https?:\/\//i.test(url))Zotero.launchURL(url);}}
   menu(event?:MouseEvent){
+    if(this.disposed)return;
     const parentAtOpen=this.parent(),refsAtOpen=this.subset(),allAtOpen=[...this.refs];
-    const samePanel=()=>!this.disposed&&this.body.isConnected&&Number(this.body.getAttribute("data-refnexus-item-id"))===parentAtOpen.id;
-    const doc:any=this.body.ownerDocument,popup=doc.createXULElement("menupopup") as any;popup.setAttribute("data-refnexus-menu","references");
-    const add=(key:string,action:()=>any,checked?:boolean)=>{const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(checked!==undefined){item.setAttribute("type","checkbox");item.setAttribute("checked",String(checked));}item.addEventListener("command",()=>Promise.resolve(action()).catch(error=>{this.label().textContent=String(error);ztoolkit.log(error);}));popup.append(item);};
+    const samePanel=()=>!this.disposed&&this.body.isConnected&&Number(this.body.getAttribute("data-refflow-item-id"))===parentAtOpen.id;
+    const doc:any=this.body.ownerDocument,popup=doc.createXULElement("menupopup") as any;popup.setAttribute("data-refflow-menu","references");
+    const add=(key:string,action:()=>any,checked?:boolean)=>{const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(checked!==undefined){item.setAttribute("type","checkbox");item.checked=checked;}item.addEventListener("command",()=>Promise.resolve().then(()=>{if(!this.disposed)return action();}).catch(error=>{this.label().textContent=String(error);ztoolkit.log(error);}));popup.append(item);};
     const separator=()=>popup.append(doc.createXULElement("menuseparator"));
     add("cards-copy-text",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.text||ref.title).join("\n"),false));
     add("cards-copy-doi",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.identifiers?.DOI).filter(Boolean).join("\n"),false));
     add("cards-copy-url",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean).join("\n"),false));
     add("cards-open",()=>refsAtOpen.slice(0,20).forEach(ref=>this.open(ref)));
     separator();
-    const importRefs=async(all:boolean)=>{const parent=parentAtOpen,id=parent.id;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;await this.views.importReferences(parent,refs,{downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true});if(Number(this.body.getAttribute("data-refnexus-item-id"))===id)await this.views.refreshReferences(this.body as any,true,false,false,parent);};
+    const importRefs=async(all:boolean)=>{const parent=parentAtOpen,id=parent.id;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;await this.views.importReferences(parent,refs,{downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true});if(Number(this.body.getAttribute("data-refflow-item-id"))===id)await this.views.refreshReferences(this.body as any,true,false,false,parent);};
     add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
-    add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const matches=[...String(parent.getField("extra")||"").matchAll(/^refnexus_batch_parent: (refnexus_batch_\w+)$/gm)];const id=matches[matches.length-1]?.[1];if(id){await this.views.rollbackReferences(parent,id);if(Number(this.body.getAttribute("data-refnexus-item-id"))===parent.id)await this.views.refreshReferences(this.body as any,true,false,false,parent);}});
+    add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const matches=[...String(parent.getField("extra")||"").matchAll(/^refnexus_batch_parent: (refnexus_batch_\w+)$/gm)];const id=matches[matches.length-1]?.[1];if(id){await this.views.rollbackReferences(parent,id);if(Number(this.body.getAttribute("data-refflow-item-id"))===parent.id)await this.views.refreshReferences(this.body as any,true,false,false,parent);}});
     separator();
     for(const source of ["Auto","PDF","Web","API"])add(source==="Auto"?"cards-source-auto":source==="Web"?"cards-source-web":source==="PDF"?"cards-source-pdf":"cards-source-online",()=>{if(!samePanel())return;this.body.querySelector<HTMLSelectElement>("select")!.value=source;this.body.querySelector("select")!.dispatchEvent(new (this.body.ownerDocument.defaultView as any).Event("change"));},this.body.getAttribute("source")===source);
     for(const sort of ["Original","Recency","Cited Count"])add(sort==="Original"?"cards-sort-original":sort==="Recency"?"cards-sort-recency":"cards-sort-cited",async()=>{if(!samePanel())return;Zotero.Prefs.set(`${config.addonRef}.sortBy`,sort);await this.views.sortReferences(this.body);},Zotero.Prefs.get(`${config.addonRef}.sortBy`)===sort);
     add("relatedbox-download-oa",()=>Zotero.Prefs.set(`${config.addonRef}.downloadOA`,!Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)));
-    popup.addEventListener("popuphidden",()=>popup.remove(),{once:true});doc.documentElement.append(popup);
+    this.menus.add(popup);
+    popup.addEventListener("popuphidden",()=>{this.menus.delete(popup);popup.remove();},{once:true});doc.documentElement.append(popup);
     if(event)popup.openPopupAtScreen(event.screenX,event.screenY,true);else popup.openPopup(this.body.closest("item-pane-custom-section"),"after_end",0,0,false,false);
   }
 }

@@ -10,6 +10,7 @@ import { cacheReferences, readCachedReferences, cacheReferenceResult, readCached
 import { retrieveReferenceList, ReferenceProvider, ReferenceResult } from "./referenceRetrieval";
 import CitationVerifier from "./verifier";
 import {referenceData} from "./referenceData";
+import { cleanupSync, cleanupAsync } from "../utils/lifecycle";
 
 
 export default class Views {
@@ -22,24 +23,35 @@ export default class Views {
   private panes=new Set<HTMLElement>();
   private libraryTimer?:ReturnType<typeof globalThis.setTimeout>;
   private tips=new Map<Window,TipUI>();
+  private localizationDocuments=new Set<Document>();
+  private menus=new Set<Element>();
   constructor() {
     initLocale();
     this.utils = new Utils()
   }
 
   public attachWindow(win: Window) {
-    (win.document as any).l10n?.addResourceIds([`${config.addonRef}-addon.ftl`]);
+    this.attachDocument(win.document);
     if (!win.document.getElementById(`${config.addonRef}-style`)) this.addStyle(win.document);
   }
 
   public detachWindow(win: Window) {
-    this.tips.get(win)?.clear();this.tips.delete(win);
+    for(const menu of this.menus)if(menu.ownerDocument===win.document){cleanupSync(()=>menu.remove());this.menus.delete(menu);}
+    cleanupSync(() => this.tips.get(win)?.clear());this.tips.delete(win);
     win.document.querySelectorAll(`item-pane-custom-section[data-pane$="-${config.addonRef}-references"] [data-type="body"]`).forEach(body => {
-      this.referenceTasks.invalidate(body);
-      (body as any)._cards?.dispose();
+      cleanupSync(() => this.referenceTasks.invalidate(body));
+      cleanupSync(() => (body as any)._cards?.dispose());
       this.panes.delete(body as HTMLElement);
     });
-    win.document.getElementById(`${config.addonRef}-style`)?.remove();
+    cleanupSync(() => win.document.getElementById(`${config.addonRef}-style`)?.remove());
+    cleanupSync(() => (win.document as any).l10n?.removeResourceIds([`${config.addonRef}-addon.ftl`]));
+    this.localizationDocuments.delete(win.document);
+  }
+
+  public attachDocument(doc: Document) {
+    if (this.localizationDocuments.has(doc)) return;
+    (doc as any).l10n?.addResourceIds([`${config.addonRef}-addon.ftl`]);
+    this.localizationDocuments.add(doc);
   }
 
   private addStyle(doc: Document = document) {
@@ -47,15 +59,15 @@ export default class Views {
       id: `${config.addonRef}-style`,
       properties: {
         innerHTML: `
-          .refnexus-card-search {box-sizing:border-box;width:100%;margin:4px 0 6px;padding:5px 8px;border:1px solid var(--material-border,#ccc);border-radius:4px;background:var(--material-background,#fff);color:inherit;}
-          .refnexus-status {font-size:.85em;opacity:.75;border:0!important;padding:0!important;min-height:18px;}
+          .refflow-card-search {box-sizing:border-box;width:100%;margin:4px 0 6px;padding:5px 8px;border:1px solid var(--material-border,#ccc);border-radius:4px;background:var(--material-background,#fff);color:inherit;}
+          .refflow-status {font-size:.85em;opacity:.75;border:0!important;padding:0!important;min-height:18px;}
           .reference-item {display:flex;gap:6px;align-items:flex-start;padding:6px 4px;border-radius:4px;cursor:default;min-width:0;}
           .reference-item[hidden] {display:none!important;}
           .reference-item:hover {background:var(--material-mix-quinary,rgba(128,128,128,.08));}
           .reference-item.selected {background:var(--color-accent-10,rgba(60,120,200,.16));}
           .reference-item:focus-visible {outline:1px solid var(--color-accent,#3678b5);}
           .reference-state {width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px;}
-          .reference-marker {display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 var(--refnexus-number-width,3ch);min-width:0;}
+          .reference-marker {display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 var(--refflow-number-width,3ch);min-width:0;}
           .reference-number {align-self:stretch;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:.9em;line-height:1.35;color:inherit;white-space:nowrap;}
           .reference-marker .reference-state {margin-top:0;}
           .reference-description {display:flex;flex-direction:column;gap:3px;min-width:0;flex:1;overflow-wrap:anywhere;}
@@ -107,6 +119,7 @@ export default class Views {
   public async onInit() {
     this.registerReferenceItemPane();
     this.notifierID = Zotero.Notifier.registerObserver({ notify: () => {
+      if (this.disposed) return;
       this.utils.clearLibraryItemCache();
       globalThis.clearTimeout(this.libraryTimer);
       this.libraryTimer=globalThis.setTimeout(()=>{
@@ -129,19 +142,19 @@ export default class Views {
     const registered = paneManager.registerSection({
       paneID,
       pluginID: config.addonID,
-      sidenav: { l10nID: "refnexus-pane-sidenav", icon },
-      header: { l10nID: "refnexus-pane-title",l10nArgs:JSON.stringify({count:0}), icon: `chrome://${config.addonRef}/content/icons/reference.svg` },
+      sidenav: { l10nID: "refflow-pane-sidenav", icon },
+      header: { l10nID: "refflow-pane-title",l10nArgs:JSON.stringify({count:0}), icon: `chrome://${config.addonRef}/content/icons/reference.svg` },
       sectionButtons:[
-        {type:"type",icon:`chrome://${config.addonRef}/content/icons/type.svg`,l10nID:"refnexus-pane-type",onClick:({body,item})=>this.typeMenu(body,item)},
-        {type:"refresh",icon:`chrome://${config.addonRef}/content/icons/refresh.svg`,l10nID:"refnexus-pane-refresh",onClick:({body,item})=>this.refreshReferences(body as any,false,false,false,item?.parentItem||item)},
-        {type:"more",icon:`chrome://${config.addonRef}/content/icons/more.svg`,l10nID:"refnexus-pane-more",onClick:({body})=>(body as any)._cards?.menu()}
+        {type:"type",icon:`chrome://${config.addonRef}/content/icons/type.svg`,l10nID:"refflow-pane-type",onClick:({body,item})=>this.typeMenu(body,item)},
+        {type:"refresh",icon:`chrome://${config.addonRef}/content/icons/refresh.svg`,l10nID:"refflow-pane-refresh",onClick:({body,item})=>this.refreshReferences(body as any,false,false,false,item?.parentItem||item)},
+        {type:"more",icon:`chrome://${config.addonRef}/content/icons/more.svg`,l10nID:"refflow-pane-more",onClick:({body})=>(body as any)._cards?.menu()}
       ],
       onRender: ({ body, item, setL10nArgs }) => {
         this.panes.add(body as HTMLElement);
-        (body.ownerDocument as any).l10n?.addResourceIds([`${config.addonRef}-addon.ftl`]);
+        this.attachDocument(body.ownerDocument);
         if(!body.ownerDocument.getElementById(`${config.addonRef}-style`))this.addStyle(body.ownerDocument);
         const identity=String(item?.parentItem?.id || item?.id || "");
-        if((body as any)._cards && body.getAttribute("data-refnexus-item-id")===identity && body.querySelector(".refnexus-card-search")) {
+        if((body as any)._cards && body.getAttribute("data-refflow-item-id")===identity && body.querySelector(".refflow-card-search")) {
           (body as any)._setL10nArgs=setL10nArgs;
           setL10nArgs(JSON.stringify({count:(body as any).references?.length||0}));
           return;
@@ -149,9 +162,9 @@ export default class Views {
         this.referenceTasks.invalidate(body);
         body.replaceChildren();
         (body as any).references = [];
-        body.setAttribute("data-refnexus-type",String(Zotero.Prefs.get(`${config.addonRef}.type`)||"References"));
+        body.setAttribute("data-refflow-type",String(Zotero.Prefs.get(`${config.addonRef}.type`)||"References"));
         body.classList.add("zotero-editpane-related");
-        body.setAttribute("data-refnexus-item-id", String(item?.parentItem?.id || item?.id || ""));
+        body.setAttribute("data-refflow-item-id", String(item?.parentItem?.id || item?.id || ""));
         body.setAttribute("source", (Zotero.Prefs.get(`${config.addonRef}.prioritySource`) as string) || "PDF");
 
         const controls = body.ownerDocument.createElement("div");
@@ -174,7 +187,7 @@ export default class Views {
         source.value = body.getAttribute("source") || "PDF";
         source.addEventListener("change", () => {
           this.resetReferencePane(body);
-          body.setAttribute("data-refnexus-type", "References");
+          body.setAttribute("data-refflow-type", "References");
           Zotero.Prefs.set(`${config.addonRef}.type`, "References");
           body.setAttribute("source", source.value);
           Zotero.Prefs.set(`${config.addonRef}.prioritySource`, source.value);
@@ -186,7 +199,7 @@ export default class Views {
         refresh.id = "refresh-button";
         refresh.textContent = getString("relatedbox-fetch-label") || "获取参考文献";
         refresh.addEventListener("click", async () => {
-          const currentItem = Zotero.Items.get(Number(body.getAttribute("data-refnexus-item-id"))) as Zotero.Item | undefined;
+          const currentItem = Zotero.Items.get(Number(body.getAttribute("data-refflow-item-id"))) as Zotero.Item | undefined;
           if (!currentItem || !currentItem.isRegularItem()) {
             count.textContent = getString("relatedbox-select-item") || "请先选择一篇文献";
             return;
@@ -199,20 +212,20 @@ export default class Views {
           } finally { if (!body.hasAttribute("aria-busy")) refresh.disabled = false; }
         });
         const force = body.ownerDocument.createElement("button");
-        force.type = "button"; force.id = "refnexus-force-refresh";
+        force.type = "button"; force.id = "refflow-force-refresh";
         force.textContent = getString("relatedbox-force-label");
         force.addEventListener("click", () => this.refreshReferences(body as any, false).catch(error => ztoolkit.log(error)));
         const cancel = body.ownerDocument.createElement("button");
-        cancel.type = "button"; cancel.id = "refnexus-cancel"; cancel.hidden = true;
+        cancel.type = "button"; cancel.id = "refflow-cancel"; cancel.hidden = true;
         cancel.textContent = getString("relatedbox-cancel-label");
         cancel.addEventListener("click", () => { this.cancelReferencePane(body); count.textContent=getString("relatedbox-cancelled")+((body as any).references?.length?` · ${getString("cards-kept-results")}`:""); });
         controls.style.flexWrap = "wrap";
         controls.style.gap = "6px";
-        controls.classList.add("refnexus-status");
+        controls.classList.add("refflow-status");
         // The original XPI keeps operations in the collapsible-section header.
         source.hidden=true;refresh.hidden=true;force.hidden=true;
         controls.append(count, source, refresh, force, cancel);
-        const search=body.ownerDocument.createElement("input");search.type="search";search.className="refnexus-card-search";
+        const search=body.ownerDocument.createElement("input");search.type="search";search.className="refflow-card-search";
         search.placeholder=getString("relatedbox-search-placeholder");search.setAttribute("aria-label",search.placeholder);
 
         const grid = body.ownerDocument.createElement("div");
@@ -236,14 +249,14 @@ export default class Views {
       },
       onItemChange: ({ body, item }) => {
         const identity=String(item?.parentItem?.id || item?.id || "");
-        if(body.getAttribute("data-refnexus-item-id")===identity)return;
+        if(body.getAttribute("data-refflow-item-id")===identity)return;
         this.resetReferencePane(body);
-        body.setAttribute("data-refnexus-item-id", String(item?.parentItem?.id || item?.id || ""));
+        body.setAttribute("data-refflow-item-id", String(item?.parentItem?.id || item?.id || ""));
       },
       onDestroy: ({ body }) => {this.panes.delete(body as HTMLElement);this.referenceTasks.invalidate(body);(body as any)._cards?.dispose();}
     });
     if (!registered) {
-      ztoolkit.log("Zotero refused to register the RefNexus item-pane section");
+      ztoolkit.log("Zotero refused to register the RefFlow item-pane section");
     }
     if (registered) this.paneID = registered;
   }
@@ -258,44 +271,60 @@ export default class Views {
     const count=body.querySelector("#reference-num");
     if (count) count.textContent=`0 ${getString("relatedbox-number-label")}`;
     body.querySelectorAll("button").forEach(button=>{ (button as HTMLButtonElement).disabled=false; });
-    const cancel=body.querySelector("#refnexus-cancel") as HTMLElement;
+    const cancel=body.querySelector("#refflow-cancel") as HTMLElement;
     if (cancel) cancel.hidden=true;
   }
 
   private cancelReferencePane(body:Element):void {
     this.referenceTasks.invalidate(body);
     body.removeAttribute("aria-busy");
-    body.querySelectorAll("#refresh-button, #refnexus-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
-    const cancel=body.querySelector("#refnexus-cancel") as HTMLElement;if(cancel)cancel.hidden=true;
+    body.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
+    const cancel=body.querySelector("#refflow-cancel") as HTMLElement;if(cancel)cancel.hidden=true;
   }
 
   private typeMenu(body:HTMLElement,item?:Zotero.Item) {
+    if(this.disposed)return;
     const doc:any=body.ownerDocument,popup=doc.createXULElement("menupopup");
+    const ownerID=body.getAttribute("data-refflow-item-id");
+    popup.setAttribute("data-refflow-menu", "literature");
     for(const [type,key] of [["References","cards-type-references"],["Citations","cards-type-citations"],["Related","cards-type-related"]]) {
-      const entry=doc.createXULElement("menuitem");entry.setAttribute("label",getString(key));entry.setAttribute("type","radio");entry.setAttribute("checked",String(body.getAttribute("data-refnexus-type")===type));
-      entry.addEventListener("command",async()=>{this.resetReferencePane(body);body.setAttribute("data-refnexus-type",type);Zotero.Prefs.set(`${config.addonRef}.type`,type);body.setAttribute("source",type==="References"?String(Zotero.Prefs.get(`${config.addonRef}.prioritySource`)||"PDF"):"API");await this.refreshReferences(body as any,true,false,false,item?.parentItem||item);});popup.append(entry);
+      const entry=doc.createXULElement("menuitem");entry.setAttribute("label",getString(key));entry.setAttribute("type","radio");entry.checked=body.getAttribute("data-refflow-type")===type;
+      entry.addEventListener("command",()=>Promise.resolve().then(async()=>{if(this.disposed||!body.isConnected||body.getAttribute("data-refflow-item-id")!==ownerID)return;this.resetReferencePane(body);body.setAttribute("data-refflow-type",type);Zotero.Prefs.set(`${config.addonRef}.type`,type);body.setAttribute("source",type==="References"?String(Zotero.Prefs.get(`${config.addonRef}.prioritySource`)||"PDF"):"API");await this.refreshReferences(body as any,true,false,false,item?.parentItem||item);}).catch(error=>ztoolkit.log(error)));popup.append(entry);
     }
-    popup.addEventListener("popuphidden",()=>popup.remove(),{once:true});doc.documentElement.append(popup);popup.openPopup(body.closest("item-pane-custom-section"),"after_end",0,0,false,false);
+    this.menus.add(popup);
+    popup.addEventListener("popuphidden",()=>{this.menus.delete(popup);popup.remove();},{once:true});doc.documentElement.append(popup);popup.openPopup(body.closest("item-pane-custom-section"),"after_end",0,0,false,false);
   }
 
   public async shutdown(): Promise<void> {
+    if (this.disposed) return;
     this.disposed=true;
-    globalThis.clearTimeout(this.libraryTimer);this.panes.clear();
-    for(const tip of this.tips.values())tip.clear();this.tips.clear();
-    this.referenceTasks.dispose();
-    this.utils.API.requests.dispose();
-    this.utils.API.publisherReferences.dispose();
-    if (this.notifierID) Zotero.Notifier.unregisterObserver(this.notifierID);
-    if (this.paneID) Zotero.ItemPaneManager.unregisterSection(this.paneID);
-    await this.storage.dispose();
-    for(const win of Zotero.getMainWindows())win.document.getElementById(`${config.addonRef}-style`)?.remove();
+    cleanupSync(() => globalThis.clearTimeout(this.libraryTimer));
+    for(const menu of this.menus)cleanupSync(()=>menu.remove());this.menus.clear();
+    for (const body of this.panes) cleanupSync(() => (body as any)._cards?.dispose());
+    this.panes.clear();
+    for(const tip of this.tips.values()) cleanupSync(() => tip.clear());
+    this.tips.clear();
+    cleanupSync(() => this.referenceTasks.dispose());
+    cleanupSync(() => this.utils.API.requests.dispose());
+    cleanupSync(() => this.utils.API.publisherReferences.dispose());
+    const notifierID = this.notifierID, paneID = this.paneID;
+    this.notifierID = this.paneID = undefined;
+    if (notifierID) cleanupSync(() => Zotero.Notifier.unregisterObserver(notifierID));
+    if (paneID) cleanupSync(() => Zotero.ItemPaneManager.unregisterSection(paneID));
+    await cleanupAsync(() => this.storage.dispose());
+    for(const win of Zotero.getMainWindows()) cleanupSync(() => {
+      win.document.getElementById(`${config.addonRef}-style`)?.remove();
+    });
+    for (const doc of this.localizationDocuments) cleanupSync(() =>
+      (doc as any).l10n?.removeResourceIds([`${config.addonRef}-addon.ftl`]));
+    this.localizationDocuments.clear();
   }
 
   public importReferences(parent: Zotero.Item, refs: ItemBaseInfo[], options: any) { return BatchImporter.importAll(parent,refs,options); }
   public rollbackReferences(parent: Zotero.Item, batchID: string) { return BatchImporter.rollbackBatch(parent,batchID); }
 
   private getPanelItem(panel: Element): Zotero.Item | undefined {
-    const id=Number(panel.getAttribute("data-refnexus-item-id"));
+    const id=Number(panel.getAttribute("data-refflow-item-id"));
     const item=(id?Zotero.Items.get(id):this.utils.getItem(panel.ownerDocument.defaultView!)) || undefined;
     return item?.isAttachment()?item.parentItem:item;
   }
@@ -340,30 +369,30 @@ export default class Views {
   ) {
     if (this.disposed || !panel?.isConnected) return;
     if (toggleSource) panel.setAttribute("source", panel.getAttribute("source")==="PDF"?"API":"PDF");
-    const literatureType=panel.getAttribute("data-refnexus-type")||"References";
+    const literatureType=panel.getAttribute("data-refflow-type")||"References";
     const source=literatureType==="References"?(panel.getAttribute("source") || (Zotero.Prefs.get(`${config.addonRef}.prioritySource`) as string) || "PDF"):"API";
     panel.setAttribute("source",source);
     const item=itemOverride || this.getPanelItem(panel);
     const label=panel.querySelector("#reference-num");
     if (!item?.isRegularItem()) { if (label) label.textContent=getString("relatedbox-select-item"); return; }
-    const ownerID=panel.getAttribute("data-refnexus-item-id");
+    const ownerID=panel.getAttribute("data-refflow-item-id");
     if(ownerID&&ownerID!==String(item.id))return;
     const metadataIdentity=JSON.stringify([item.libraryID,item.key,item.getField("DOI"),item.getField("title"),item.getField("url"),item.getField("date"),item.getCreators()]);
     const activeReader=readerOverride || this.utils.getReader(panel.ownerDocument.defaultView!);
     const activeAttachment=this.readerMatchesItem(activeReader,item)?Zotero.Items.get(activeReader!.itemID!):undefined;
     const pageIndex=fromCurrentPage&&activeAttachment?activeAttachment.getAttachmentLastPageIndex():undefined;
-    const boundIdentity=panel.getAttribute("data-refnexus-item-id");
+    const boundIdentity=panel.getAttribute("data-refflow-item-id");
     const windowReader=this.utils.getReader(panel.ownerDocument.defaultView!);
     const checkReader=literatureType==="References"&&source!=="Web"&&this.readerMatchesItem(windowReader,item);
     const sameInput=()=>metadataIdentity===JSON.stringify([item.libraryID,item.key,item.getField("DOI"),item.getField("title"),item.getField("url"),item.getField("date"),item.getCreators()])&&(!checkReader||this.utils.getReader(panel.ownerDocument.defaultView!)?.itemID===activeReader?.itemID);
     const key=`${metadataIdentity}|${activeAttachment?activeAttachment.id:"best"}|${literatureType}|${source}|${fromCurrentPage?"page:"+(pageIndex??"stored"):"full"}|${local?"cache":"force"}`;
     return this.referenceTasks.run(panel,key,async context=>{
-      const boundItem=panel.getAttribute("data-refnexus-item-id");
-      const ownsPanel=()=>context.isCurrent() && panel.isConnected && (panel.getAttribute("data-refnexus-type")||"References")===literatureType && panel.getAttribute("source")===source && panel.getAttribute("data-refnexus-item-id")===boundItem;
+      const boundItem=panel.getAttribute("data-refflow-item-id");
+      const ownsPanel=()=>context.isCurrent() && panel.isConnected && (panel.getAttribute("data-refflow-type")||"References")===literatureType && panel.getAttribute("source")===source && panel.getAttribute("data-refflow-item-id")===boundItem;
       const current=()=>ownsPanel()&&sameInput();
       panel.setAttribute("aria-busy","true");
-      panel.querySelectorAll("#refresh-button, #refnexus-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=true);
-      const cancel=panel.querySelector("#refnexus-cancel") as HTMLElement;
+      panel.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=true);
+      const cancel=panel.querySelector("#refflow-cancel") as HTMLElement;
       if (cancel) cancel.hidden=false;
       try {
         await this.performReferences(panel,local,fromCurrentPage,item,activeReader,{...context,pageIndex,isCurrent:current});
@@ -374,16 +403,16 @@ export default class Views {
         if (ownsPanel()) {
           if(!sameInput()&&label)label.textContent=getString("cards-context-changed")+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");
           panel.removeAttribute("aria-busy");
-          panel.querySelectorAll("#refresh-button, #refnexus-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
+          panel.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
           if (cancel) cancel.hidden=true;
         }
       }
     },{onTimeout:()=>{
-      if(!panel.isConnected||panel.getAttribute("data-refnexus-item-id")!==boundIdentity||panel.getAttribute("source")!==source||(panel.getAttribute("data-refnexus-type")||"References")!==literatureType)return;
+      if(!panel.isConnected||panel.getAttribute("data-refflow-item-id")!==boundIdentity||panel.getAttribute("source")!==source||(panel.getAttribute("data-refflow-type")||"References")!==literatureType)return;
       if(label)label.textContent=getString(sameInput()?"relatedbox-timeout":"cards-context-changed")+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");
       panel.removeAttribute("aria-busy");
-      panel.querySelectorAll("#refresh-button, #refnexus-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
-      const cancel=panel.querySelector("#refnexus-cancel") as HTMLElement;if(cancel)cancel.hidden=true;
+      panel.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
+      const cancel=panel.querySelector("#refflow-cancel") as HTMLElement;if(cancel)cancel.hidden=true;
     }});
   }
 
@@ -445,7 +474,7 @@ export default class Views {
 
   private async performReferences(panel: XUL.TabPanel, local: boolean, fromCurrentPage: boolean, item: Zotero.Item, readerOverride: _ZoteroTypes.ReaderInstance | undefined, task: ReferenceTaskContext) {
     let label = panel.querySelector("label#reference-num") as HTMLLabelElement;
-    const literatureType=panel.getAttribute("data-refnexus-type")||"References";
+    const literatureType=panel.getAttribute("data-refflow-type")||"References";
     const initialSource = panel.getAttribute("source") || "PDF";
     label.textContent = `${getString("relatedbox-loading")} [${initialSource}]`;
     const source=fromCurrentPage && literatureType==="References"?"PDF":initialSource;
@@ -456,7 +485,7 @@ export default class Views {
 
     // Keep the last successful same-type list interactive while refreshing.
     // Different literature types must never display each other's results.
-    if(panel.getAttribute("data-refnexus-result-type")&&panel.getAttribute("data-refnexus-result-type")!==literatureType){
+    if(panel.getAttribute("data-refflow-result-type")&&panel.getAttribute("data-refflow-result-type")!==literatureType){
       (panel as any)._cards?.clear();(panel as any).references=[];
     }
 
@@ -597,12 +626,12 @@ export default class Views {
       return;
     }
     const referenceNum = references.length;
-    panel.setAttribute("data-refnexus-result-type",literatureType);
+    panel.setAttribute("data-refflow-result-type",literatureType);
     // @ts-ignore
     panel.references = references;
 
     const currentSource = resultSource;
-    panel.setAttribute("data-refnexus-result-source",resultSource);
+    panel.setAttribute("data-refflow-result-source",resultSource);
     const refreshBtn = panel.querySelector("#refresh-button") as HTMLButtonElement;
     if (refreshBtn) {
       const tooltipTpl = getString("relatedbox-source-tooltip") || "当前来源: { $source } (点击切换模式，长按强制更新)";
@@ -625,10 +654,10 @@ export default class Views {
     const sort=Zotero.Prefs.get(`${config.addonRef}.sortBy`);
     if(sort==="Recency")displayed.sort((a,b)=>Number(b.year||0)-Number(a.year||0));
     if(sort==="Cited Count")displayed.sort((a,b)=>Number(b.citationCount||0)-Number(a.citationCount||0));
-    const identity=panel.getAttribute('data-refnexus-item-id');
+    const identity=panel.getAttribute('data-refflow-item-id');
     // A committed list outlives the fetching task. Lazy matching must remain
     // valid after the task has been removed from ReferenceTasks.
-    await (panel as any)._cards?.render(displayed,()=>panel.isConnected&&panel.getAttribute('data-refnexus-item-id')===identity&&(panel as any).references===refs);
+    await (panel as any)._cards?.render(displayed,()=>panel.isConnected&&panel.getAttribute('data-refflow-item-id')===identity&&(panel as any).references===refs);
     (panel as any)._cards?.updateStatus();
   }
 

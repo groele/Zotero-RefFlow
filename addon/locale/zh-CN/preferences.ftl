@@ -77,7 +77,7 @@ about-issues = 反馈问题
 about-upstream = 原始项目
 openAlexKey-get = 申请 / 查看免费的 OpenAlex API Key
 
-about-updates = 插件更新由 groele/Zotero-RefFlow 提供，仅支持 Zotero 10。
+about-updates = 插件更新由 groele/Zotero-RefFlow 提供，支持 Zotero 10.0.6–11.*。
 about-release-notes = 版本说明
 semanticScholarKey-label = Semantic Scholar API Key（可选）
 semanticScholarKey-description = 保留官方 Graph API。未填写时使用匿名访问；填写后用于官方 x-api-key 请求头。

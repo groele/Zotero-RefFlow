@@ -12,19 +12,24 @@ test("maintainer metadata preserves the upstream attribution and license",()=>{
   assert.match(details.description,/derived from Zotero Reference \/ Ethereal Reference/);
 });
 test("project and automatic update URLs all resolve to the derivative repository",()=>{
-  assert.equal(details.homepage,"https://github.com/groele/Zotero-diy/tree/main/RefNexus-Zotero10");
-  assert.equal(details.config.updateURL,"https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/update.json");
-  assert.equal(details.config.downloadURL,"https://raw.githubusercontent.com/groele/Zotero-diy/main/RefNexus-Zotero10/zotero-refnexus.xpi");
-  assert.equal(details.config.issuesURL,"https://github.com/groele/Zotero-diy/issues");
-  assert.equal(details.config.addonID,"refnexus@polygon.org");
+  assert.equal(details.homepage,"https://github.com/groele/Zotero-RefFlow");
+  assert.equal(details.config.updateURL,"https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json");
+  assert.equal(details.config.downloadURL,"https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/zotero-refflow.xpi");
+  assert.equal(details.config.issuesURL,"https://github.com/groele/Zotero-RefFlow/issues");
+  assert.equal(details.config.addonID,"refflow@groele.github.io");
 });
-test("Zotero 10 manifest uses the JSON update URL token",()=>{
+test("Zotero 10 and 11 manifest and update template share the same compatibility range",()=>{
   const manifest=JSON.parse(read("addon/manifest.json"));
   assert.equal(manifest.applications.zotero.update_url,"__updateURL__");
   assert.equal(manifest.applications.zotero.strict_min_version,"10.0.6");
-  assert.equal(manifest.applications.zotero.strict_max_version,"10.*");
+  assert.equal(manifest.applications.zotero.strict_max_version,"11.*");
   const template=JSON.parse(read("update-template.json"));
   assert.equal(template.addons["__addonID__"].updates[0].update_link,"__downloadURL__");
+  assert.deepEqual(template.addons["__addonID__"].updates[0].applications.zotero,
+    {strict_min_version: "10.0.6", strict_max_version: "11.*"});
+  assert.equal(details.config.addonName,"Zotero RefFlow");
+  assert.equal(details.config.addonRef,"refflow");
+  assert.equal(details.config.addonInstance,"ZoteroRefFlow");
 });
 test("native settings expose maintainer, source attribution and feedback links in each locale",()=>{
   const prefs=read("addon/chrome/content/preferences.xhtml");

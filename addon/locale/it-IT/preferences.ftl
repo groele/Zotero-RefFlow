@@ -41,7 +41,7 @@ clickLink-splitHorizontally =
   .label = Orizzontalmente
 clickLink-splitVertically = 
   .label = Verticalmente
-clickLink-end = 
+clickLink-end = { "" }
 hoverLink = 
   .label = Passa il mouse sul link per mostrare una finestra fluttuante
 
@@ -55,7 +55,7 @@ saveAPIReferences =
 
 caption-match = Abbina
 notInLibarayOpacity-start = Abbina elementi e rendi gli elementi che non sono nella biblioteca trasparenti
-notInLibarayOpacity-end = 
+notInLibarayOpacity-end = { "" }
 caption-online = Servizi online
 openAlexKey-label = Chiave API OpenAlex (facoltativa)
 openAlexKey-description = Per richieste frequenti, usa la tua chiave gratuita. La chiave viene salvata nelle preferenze locali di Zotero.
@@ -71,7 +71,7 @@ about-issues = Segnala un problema
 about-upstream = Progetto originale
 openAlexKey-get = Ottieni / visualizza una chiave API OpenAlex gratuita
 
-about-updates = Aggiornamenti da groele/Zotero-RefFlow. Solo Zotero 10.
+about-updates = Aggiornamenti da groele/Zotero-RefFlow. Zotero 10.0.6–11.* supportato.
 about-release-notes = Note di rilascio
 semanticScholarKey-label = Semantic Scholar API Key (optional)
 semanticScholarKey-description = Uses the official Graph API. Leave empty for anonymous access; a configured key is sent using x-api-key.

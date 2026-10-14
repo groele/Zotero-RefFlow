@@ -7,16 +7,16 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $resolvedProfile = [IO.Path]::GetFullPath($ProfilePath)
-if ($resolvedProfile -notmatch 'refnexus-z10-[^\\]+\\profile$') { throw 'Only an isolated RefNexus test profile is allowed' }
+if ($resolvedProfile -notmatch 'refflow-z10-[^\\]+\\profile$') { throw 'Only an isolated RefFlow test profile is allowed' }
 $config = @{ script = [IO.Path]::GetFullPath($ScriptPath); output = [IO.Path]::GetFullPath($OutputPath); fixtures = [IO.Path]::GetFullPath($FixtureDirectory); reload = [bool]$Reload } | ConvertTo-Json -Compress
 $run = @"
 const cfg = $config;
 if (cfg.reload) {
   Services.obs.notifyObservers(null, 'startupcache-invalidate', null);
   const { AddonManager } = ChromeUtils.importESModule('resource://gre/modules/AddonManager.sys.mjs');
-  await (await AddonManager.getAddonByID('refnexus@polygon.org')).reload();
+  await (await AddonManager.getAddonByID('refflow@groele.github.io')).reload();
   for (let i=0;i<150;i++) {
-    if(Zotero.ZoteroRefNexus?.views?.referenceTasks)break;
+    if(Zotero.ZoteroRefFlow?.views?.referenceTasks)break;
     await Zotero.Promise.delay(100);
   }
 }
@@ -27,6 +27,6 @@ try {
   await Zotero.File.putContentsAsync(cfg.output, JSON.stringify({fatal:String(error),stack:error?.stack}, null, 2));
 }
 "@
-$url = 'zotero://ztoolkit-debug/?app=RefNexusNativeTest&password=refnexus-smoke-local-only&run=' + [Uri]::EscapeDataString($run)
+$url = 'zotero://ztoolkit-debug/?app=RefFlowNativeTest&password=refflow-smoke-local-only&run=' + [Uri]::EscapeDataString($run)
 Start-Process -FilePath 'C:\Program Files\Zotero\zotero.exe' -WindowStyle Hidden -ArgumentList @('-profile', ('"' + $resolvedProfile + '"'), '-url', ('"' + $url + '"'))
 Write-Output "Dispatched isolated Zotero test; output: $($config)"

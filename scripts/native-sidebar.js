@@ -1,4 +1,4 @@
-if(!/refnexus-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
+if(!/refflow-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
 const report={version:Zotero.version,at:new Date().toISOString(),tests:[]};
 const check=(ok,message)=>{if(!ok)throw new Error(message);};
 const delay=ms=>Zotero.Promise.delay(ms);
@@ -20,20 +20,20 @@ const checkLayout=win=>{
  check(Math.abs(m.rail.height-m.host.height)<1,'Rail height no longer matches host');
  check(JSON.stringify(m.children)===JSON.stringify(['zotero-item-pane-content','zotero-view-item-sidenav']),'Foreign node inserted between host deck and rail');return m;
 };
-const graphSection=win=>win.document.querySelector('#zotero-item-details item-pane-custom-section[data-pane$="-refnexus-graph"]');
-const graphButton=win=>win.document.getElementById('refnexus-show-hide-graph-view');
+const graphSection=win=>win.document.querySelector('#zotero-item-details item-pane-custom-section[data-pane$="-refflow-graph"]');
+const graphButton=win=>win.document.getElementById('refflow-show-hide-graph-view');
 await test('cold production startup retains Zotero native sidebar geometry',async()=>{
- const addon=await AddonManager.getAddonByID('refnexus@polygon.org');const expected=JSON.parse(await Zotero.File.getContentsAsync(cfg.workspace+'\\package.json')).version;check(addon?.version===expected&&addon.isActive,'Wrong production XPI');
+ const addon=await AddonManager.getAddonByID('refflow@groele.github.io');const expected=JSON.parse(await Zotero.File.getContentsAsync(cfg.workspace+'\\package.json')).version;check(addon?.version===expected&&addon.isActive,'Wrong production XPI');
  check(graphSection(window)?.hidden,'Graph section should be hidden by default');return {addonVersion:addon.version,...checkLayout(window)};
 });
 await test('reference icon uses a tooltip without a visible label',async()=>{
- const button=window.document.querySelector('#zotero-view-item-sidenav [data-pane$="-refnexus-references"]');check(button,'Reference sidenav entry missing');
+ const button=window.document.querySelector('#zotero-view-item-sidenav [data-pane$="-refflow-references"]');check(button,'Reference sidenav entry missing');
  await window.document.l10n.translateElements([button]);check(button.getAttribute('tooltiptext')?.trim(),'Missing tooltip');check(!button.getAttribute('label'),'Visible text added to icon rail');return {tooltip:button.getAttribute('tooltiptext')};
 });
 await test('graph open mounts the related list only inside a native custom section',async()=>{
  graphButton(window).click();await delay(300);const section=graphSection(window);check(section&&!section.hidden,'Graph native section did not open');
  const panel=window.document.getElementById('connected-papers-relatedsplit-after');check(panel?.closest('item-pane-custom-section')===section,'Related panel outside native section');
- check(section.querySelector('#refnexus-related-container'),'Related controls missing');check(window.document.getElementById('graph-view')?.style.display!=='none','Main graph did not open');
+ check(section.querySelector('#refflow-related-container'),'Related controls missing');check(window.document.getElementById('graph-view')?.style.display!=='none','Main graph did not open');
  return {geometry:checkLayout(window),panelParent:panel.parentElement.localName};
 });
 await test('repeated graph toggles preserve host geometry and do not duplicate panels',async()=>{
@@ -51,7 +51,7 @@ await test('note and regular-item switching keeps native layout and graph availa
 await test('a second native main window has independent graph controls and normal layout',async()=>{
  const other=window.openDialog('chrome://zotero/content/zoteroPane.xhtml','_blank','chrome,dialog=no,resizable');
  try{
-  for(let i=0;i<150&&!other.document.getElementById('refnexus-show-hide-graph-view');i++)await delay(100);
+  for(let i=0;i<150&&!other.document.getElementById('refflow-show-hide-graph-view');i++)await delay(100);
   await other.ZoteroPane.selectItem(regular.id);await delay(200);checkLayout(other);check(graphSection(other).hidden,'Second window inherited graph visibility');
   graphButton(other).click();await delay(200);check(!graphSection(other).hidden,'Second-window native graph did not open');checkLayout(other);checkLayout(window);
   graphButton(other).click();await delay(150);check(graphSection(other).hidden,'Second-window graph did not hide');check(!graphSection(window).hidden,'Second window changed first window graph');return {windows:2,independent:true};
@@ -66,20 +66,20 @@ await test('PDF reader context hides the library-only graph section and retains 
  try{
   const context=window.document.getElementById('zotero-context-pane-inner');
   context.collapsed=false;await delay(200);
-  const sections=[...context.querySelectorAll('item-pane-custom-section[data-pane$="-refnexus-graph"]')];
+  const sections=[...context.querySelectorAll('item-pane-custom-section[data-pane$="-refflow-graph"]')];
   check(sections.length>0,'Reader graph section not initialized');check(sections.every(section=>section.hidden),'Library graph section leaked into reader context');
   const rail=window.document.getElementById('zotero-context-pane-sidenav'),r=rail.getBoundingClientRect();
   check(r.width===37&&r.height>0,'Reader icon rail geometry changed');return {readerRailWidth:r.width,libraryGraphHidden:true};
  }finally{reader.close();window.Zotero_Tabs.select('zotero-pane');await delay(150);checkLayout(window);}
 });
 await test('disable and hot-upgrade recovery repair the legacy vertical mutation',async()=>{
- const addon=await AddonManager.getAddonByID('refnexus@polygon.org');
+ const addon=await AddonManager.getAddonByID('refflow@groele.github.io');
  for(let i=0;i<2;i++){
   await addon.disable();await delay(200);checkLayout(window);check(!window.document.getElementById('connected-papers-relatedsplit-after'),'Graph panel leaked after disable');
   window.document.getElementById('zotero-item-pane').setAttribute('orient','vertical');
-  await addon.enable();for(let n=0;n<100&&!Zotero.ZoteroRefNexus?.views?.referenceTasks;n++)await delay(100);
+  await addon.enable();for(let n=0;n<100&&!Zotero.ZoteroRefFlow?.views?.referenceTasks;n++)await delay(100);
   await window.ZoteroPane.selectItem(regular.id);await delay(300);checkLayout(window);
-  for(const id of ['refnexus-references','refnexus-graph'])check(window.document.querySelectorAll('#zotero-item-details item-pane-custom-section[data-pane$="-'+id+'"]').length===1,'Missing or duplicate native section '+id);
+  for(const id of ['refflow-references','refflow-graph'])check(window.document.querySelectorAll('#zotero-item-details item-pane-custom-section[data-pane$="-'+id+'"]').length===1,'Missing or duplicate native section '+id);
  }
  return {cycles:2,legacyRecovered:true,geometry:checkLayout(window)};
 });

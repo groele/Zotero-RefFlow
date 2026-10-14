@@ -1,4 +1,4 @@
-prefs-label = RefNexus
+prefs-label = RefFlow
 pane-title =
     .label = { $count ->
         [0] 参考文献
@@ -19,7 +19,7 @@ relatedbox-fetch-label = 获取参考文献
 relatedbox-source-label = 参考文献来源
 relatedbox-select-item = 请先选择一篇文献
 relatedbox-fetch-error = 获取失败，请重试
-tabpanel-reader-tab-label = RefNexus 引文
+tabpanel-reader-tab-label = RefFlow 引文
 relatedbox-number-label = 条参考文献：
 relatedbox-refresh-label = 刷新
 relatedbox-search-placeholder = 搜索参考文献

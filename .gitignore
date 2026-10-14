@@ -17,3 +17,13 @@ zotero-cmd.json
 /tests/native-fixtures/*.html
 /tests/native-fixtures/*.xml
 /tests/native-fixtures/*.json
+
+/tests/gecko153-*.json
+/tests/gecko153-*.log
+
+/tests/refflow-*.json
+/tests/refflow-*.log
+/tests/refflow-*.pid
+
+# Synthetic SDT captures required for reproducible unit tests.
+!/tests/native-fixtures/sdt-*.json

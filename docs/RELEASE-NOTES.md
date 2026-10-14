@@ -1,6 +1,19 @@
-# Zotero RefNexus 11.0.2
+# Zotero RefFlow
 
-## v11.0.2 - 2026-10-13
+## V10 / 10.0.0 - 2026-10-14
+
+- 当前 RefFlow 11.0.3 本地候选版按维护者要求重新编号为 10.0.0；使用独立 GitHub 标签 V10。
+- 插件更名为 Zotero RefFlow；新 ID `refflow@groele.github.io`，运行时、chrome 与 Fluent 标识同步迁移。
+- 项目、问题反馈、安装包下载及自动更新清单统一指向 `groele/Zotero-RefFlow`。
+- Zotero 兼容声明扩展为 `10.0.6–11.*`，包含此前 Gecko 153 生命周期、设置页、菜单及 D3 适配修复。
+- 首次启动保留并复制 RefNexus 用户偏好，已有 RefFlow 设置优先；批次导入日志保留原格式。新 ID 需要手动安装并停用旧插件。
+- Windows / Zotero 11 开发版的验证不代表未来稳定版完整验收。插件版本重设为 `10.0.0`，GitHub 标签为 `V10`。
+
+### 升级说明
+
+旧 RefNexus 的 ID 与 RefFlow 不同，需要手动安装并停用旧插件。测试过 RefFlow 11.0.3 本地候选包的用户，也需要从文件安装 V10；自动更新不会把同一 ID 的 11.0.3 降级为 10.0.0。
+
+## RefNexus v11.0.2 - 2026-10-13
 
 ### Fixed
 

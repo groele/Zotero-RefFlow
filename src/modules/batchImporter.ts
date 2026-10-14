@@ -27,6 +27,7 @@ export class BatchImporter {
   private static sequence=0;
 
   public static generateBatchId(): string {
+    // Keep the persisted journal format so RefFlow can undo existing RefNexus batches.
     const date=new Date();const pad=(n:number,w=2)=>String(n).padStart(w,"0");
     return `refnexus_batch_${date.getFullYear()}${pad(date.getMonth()+1)}${pad(date.getDate())}_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}_${pad(date.getMilliseconds(),3)}_${++this.sequence}`;
   }

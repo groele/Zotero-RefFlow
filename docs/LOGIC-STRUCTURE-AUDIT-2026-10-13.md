@@ -64,9 +64,9 @@ flowchart TD
 | 类型与生产构建 | 通过；[类型日志](evidence/structure-2026-10-13/tsc.log)、[构建日志](evidence/structure-2026-10-13/build.log) |
 | 退役接口扫描 | 43 个生产源码/构建文件，指定退役成员与旧网址命中 0；[AST 记录](evidence/structure-2026-10-13/interface-audit.json) |
 
-评估包 build/zotero-refnexus.xpi 为 231120 字节，SHA-256：`6e2e27d9ee785494e40a922dcb969d320392eb84d783613bb1c02d5cc795333d`。源码版本保持 11.0.0。原根目录 XPI 与 update.json 哈希未变，无提交、标签、发布或推送。
+此审计截点的评估包 build/zotero-refnexus.xpi 为 231120 字节，SHA-256：`6e2e27d9ee785494e40a922dcb969d320392eb84d783613bb1c02d5cc795333d`；当时源码版号为 11.0.0。随后的 11.0.2 发布包与清单以[版本说明](RELEASE-NOTES.md)及发布记录为准。
 
-已有修改按本轮开始时的备份保留；[变更清单](evidence/structure-2026-10-13/changes.json)与 diffs 子目录以该备份为基线，不把此前脏工作树计入本轮修改。另有 typing/global.d.ts 的 checked 可选字段声明，以及本报告和规范条款更新。[只读收尾](evidence/structure-2026-10-13/repo-closeout.json)仍确认当前 checkout 指向上游 bootstrap。
+已有修改按本轮开始时的备份保留；[变更清单](evidence/structure-2026-10-13/changes.json)与 diffs 子目录以该备份为基线，不把此前脏工作树计入本轮修改。另有 typing/global.d.ts 的 checked 可选字段声明，以及本报告和规范条款更新。源码最初来自上游 bootstrap；11.0.2 发布改在正式仓库最新 main 的独立工作树中完成。
 
 ## 尚未完成的架构事项
 

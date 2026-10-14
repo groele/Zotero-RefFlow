@@ -1,6 +1,6 @@
 // Real Zotero DOM, PDF.js, XHR and SQLite; controlled faults are explicitly identified.
-if (!/refnexus-z10-/.test(Zotero.DataDirectory.dir)) throw new Error('Isolated test library required');
-const views=Zotero.ZoteroRefNexus?.views;
+if (!/refflow-z10-/.test(Zotero.DataDirectory.dir)) throw new Error('Isolated test library required');
+const views=Zotero.ZoteroRefFlow?.views;
 if(!views?.referenceTasks)throw new Error('Updated plugin unavailable');
 const report={version:Zotero.version,at:new Date().toISOString(),tests:[],metrics:{},scope:'isolated native Zotero; loopback HTTP faults; metadata translator fault injection'};
 const check=(ok,message)=>{if(!ok)throw new Error(message)};
@@ -13,9 +13,9 @@ const test=async(name,fn)=>{
 };
 const make=async(title,doi)=>{const item=new Zotero.Item('journalArticle');item.setField('title',title);if(doi)item.setField('DOI',doi);await item.saveTx();return item;};
 const stamp=Date.now();
-const parent=await make(`RefNexus stress parent ${stamp}`,'10.1234/stress-parent-'+stamp);
-const other=await make(`RefNexus alternative item ${stamp}`,'10.1234/stress-other-'+stamp);
-const select=async(item)=>{window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(item.id);await delay(80);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');check(body,'Native pane missing');return body;};
+const parent=await make(`RefFlow stress parent ${stamp}`,'10.1234/stress-parent-'+stamp);
+const other=await make(`RefFlow alternative item ${stamp}`,'10.1234/stress-other-'+stamp);
+const select=async(item)=>{window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(item.id);await delay(80);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');check(body,'Native pane missing');return body;};
 const attachment=await Zotero.Attachments.importFromFile({file:cfg.fixtures+'\\columns.pdf',parentItemID:parent.id});
 const reader=await Zotero.Reader.open(attachment.id);await delay(1000);
 const originalPerform=views.performReferences;
@@ -32,7 +32,7 @@ await test('native fetch button and force refresh render six PDF rows',async()=>
 });
 
 await test('PDF cache hit avoids reopening and rescanning the reader',async()=>{
-  Zotero.Prefs.set('refnexus.savePDFReferences',true);
+  Zotero.Prefs.set('refflow.savePDFReferences',true);
   const body=await select(parent);body.setAttribute('source','PDF');
   await views.refreshReferences(body,false,false,false,parent,reader);
   const originalPDF=views.utils.PDF.getReferences,originalOpen=Zotero.Reader.open;
@@ -92,7 +92,7 @@ await test('thirty rapid item switches never commit stale results',async()=>{
 await test('cancel button releases native busy state and ignores late responses',async()=>{
   const original=views.utils.API.getDOIInfoByCrossref;
   views.utils.API.getDOIInfoByCrossref=async()=>{await delay(150);return {references:[{text:'CANCELLED LATE ROW',identifiers:{}}]};};
-  try{const body=await select(parent);body.setAttribute('source','API');const pending=views.refreshReferences(body,false,false,false,parent);await delay(20);body.querySelector('#refnexus-cancel').click();check(!body.hasAttribute('aria-busy'),'Cancel left busy state');await pending;check(!body.references?.length,'Cancelled result committed');return {label:body.querySelector('#reference-num').textContent};}
+  try{const body=await select(parent);body.setAttribute('source','API');const pending=views.refreshReferences(body,false,false,false,parent);await delay(20);body.querySelector('#refflow-cancel').click();check(!body.hasAttribute('aria-busy'),'Cancel left busy state');await pending;check(!body.references?.length,'Cancelled result committed');return {label:body.querySelector('#reference-num').textContent};}
   finally{views.utils.API.getDOIInfoByCrossref=original;}
 });
 
@@ -174,7 +174,7 @@ await test('real open-access PDF download is awaited and recorded for rollback',
 
 await test('graph UI initializes lazily and its application loads in Zotero',async()=>{
   const frame=window.document.querySelector('#graph-view iframe');check(frame,'Graph iframe missing');check(!frame.getAttribute('src'),'Graph eagerly loaded before user request');
-  const button=window.document.getElementById('refnexus-show-hide-graph-view');button.click();
+  const button=window.document.getElementById('refflow-show-hide-graph-view');button.click();
   for(let i=0;i<100;i++){if(frame.contentWindow?.wrappedJSObject?.app)break;await delay(100);}
   check(frame.contentWindow?.wrappedJSObject?.app,'Graph application failed to load');button.click();return {appLoaded:true};
 });

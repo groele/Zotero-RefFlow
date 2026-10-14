@@ -117,7 +117,7 @@ export default class Requests {
 
   // 遵守学术 API 规范的 Polite Headers
   private defaultHeaders: Record<string, string> = {
-    "User-Agent": `ZoteroRefNexus/${version} (${homepage})`,
+    "User-Agent": `ZoteroRefFlow/${version} (${homepage})`,
     "Accept": "application/json"
   };
 

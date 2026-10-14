@@ -1,9 +1,11 @@
 import { config } from "../package.json";
-import { registerPrefsScripts, registerPrefs } from "./modules/prefs";
+import { registerPrefsScripts, registerPrefs, unregisterPrefs } from "./modules/prefs";
 import Views from "./modules/views";
 import ConnectedPapers from "./modules/connectedpapers";
 import { restoreLegacySidebarLayout } from "./modules/sidebarLayout";
 import type Addon from "./addon";
+import { cleanupSync, cleanupAsync } from "./utils/lifecycle";
+import { migrateRefNexusPreferences } from "./utils/identityMigration";
 const registry = Zotero as typeof Zotero & Record<string, Addon | undefined>;
 
 const initializedWindows = new WeakSet<Window>();
@@ -21,10 +23,10 @@ function registerGraphPane() {
   graphPaneID = Zotero.ItemPaneManager.registerSection({
     paneID: `${config.addonRef}-graph`,
     pluginID: config.addonID,
-    header: { l10nID: "refnexus-graph-pane-title", icon: `chrome://${config.addonRef}/content/icons/connectedpapers.png` },
-    sidenav: { l10nID: "refnexus-graph-pane-sidenav", icon: `chrome://${config.addonRef}/content/icons/connectedpapers.png` },
+    header: { l10nID: "refflow-graph-pane-title", icon: `chrome://${config.addonRef}/content/icons/connectedpapers.png` },
+    sidenav: { l10nID: "refflow-graph-pane-sidenav", icon: `chrome://${config.addonRef}/content/icons/connectedpapers.png` },
     onInit: ({ body, tabType, setEnabled }) => {
-      (body.ownerDocument as any).l10n?.addResourceIds([`${config.addonRef}-addon.ftl`]);
+      activeViews?.attachDocument(body.ownerDocument);
       setEnabled(tabType === "library" && Boolean(getGraph(body)?.graphVisible));
     },
     onItemChange: ({ body, item, tabType, setEnabled }) => {
@@ -43,17 +45,19 @@ async function onStartup() {
     Zotero.unlockPromise,
     Zotero.uiReadyPromise,
   ]);
+  if (shuttingDown || !addon.data.alive) return;
+  migrateRefNexusPreferences((_globalThis as any).prefService);
   await Promise.all(Zotero.getMainWindows().map(win => onMainWindowLoad(win)));
 }
 
 function initializeViews(): Promise<Views> {
   return initializingViews ??= (async () => {
     await registerPrefs();
-    if (shuttingDown) throw new Error("RefNexus stopped during startup");
+    if (shuttingDown) throw new Error("RefFlow stopped during startup");
     const views = new Views();
     activeViews = views;
     await views.onInit();
-    if (shuttingDown) throw new Error("RefNexus stopped during startup");
+    if (shuttingDown) throw new Error("RefFlow stopped during startup");
     registry[config.addonInstance]!.views = views;
     registerGraphPane();
     return views;
@@ -80,7 +84,7 @@ function onMainWindowLoad(win: Window): Promise<void> {
     const ready = () => Boolean((win as any).ZoteroPane?.itemsView && (win as any).ZoteroPane?.collectionsView?.itemTreeView);
     while (!ready() && current() && Date.now() < deadline) await Zotero.Promise.delay(50);
     if (!current()) return;
-    if (!ready()) throw new Error("RefNexus: native Zotero item tree did not finish initialization");
+    if (!ready()) throw new Error("RefFlow: native Zotero item tree did not finish initialization");
     const views = await initializeViews();
     if (!current()) return;
     restoreLegacySidebarLayout(win.document);
@@ -105,11 +109,11 @@ function onMainWindowLoad(win: Window): Promise<void> {
 
 async function onMainWindowUnload(win: Window): Promise<void> {
   if (win) {
-    windowControllers.get(win)?.abort();
+    cleanupSync(() => windowControllers.get(win)?.abort());
     initializedWindows.delete(win);
-    activeViews?.detachWindow(win);
+    cleanupSync(() => activeViews?.detachWindow(win));
   }
-  graphs.get(win)?.shutdown();
+  cleanupSync(() => graphs.get(win)?.shutdown());
   graphs.delete(win);
 
 }
@@ -118,21 +122,24 @@ async function onMainWindowUnload(win: Window): Promise<void> {
 async function onShutdown(): Promise<void> {
   shuttingDown = true;
   addon.data.alive = false;
-  for (const controller of windowControllers.values()) controller.abort();
-  for (const graph of graphs.values()) graph.shutdown();
+  for (const controller of windowControllers.values()) cleanupSync(() => controller.abort());
+  for (const graph of graphs.values()) cleanupSync(() => graph.shutdown());
   graphs.clear();
   await Promise.allSettled([...loadingWindows.values(), ...(initializingViews ? [initializingViews] : [])]);
-  if (graphPaneID) Zotero.ItemPaneManager.unregisterSection(graphPaneID);
+  if (graphPaneID) cleanupSync(() => Zotero.ItemPaneManager.unregisterSection(graphPaneID!));
   graphPaneID = undefined;
-  try { await activeViews?.shutdown(); }
-  catch (error) { Zotero.logError(error instanceof Error ? error : new Error(String(error))); }
+  for (const dispose of [...addon.data.preferenceCleanups]) cleanupSync(dispose);
+  addon.data.preferenceCleanups.clear();
+  delete addon.data.prefs;
+  await cleanupAsync(unregisterPrefs);
+  await cleanupAsync(() => activeViews?.shutdown());
   activeViews=undefined;
   initializingViews=undefined;
-  ztoolkit.unregisterAll();
+  cleanupSync(() => ztoolkit.unregisterAll());
   // Remove addon object
   addon.data.alive = false;
-  addon.data.dialog?.window?.close();
-  delete registry[config.addonInstance];
+  cleanupSync(() => addon.data.dialog?.window?.close());
+  if (registry[config.addonInstance] === addon) delete registry[config.addonInstance];
 }
 
 /**

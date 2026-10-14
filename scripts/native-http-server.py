@@ -44,5 +44,5 @@ class Handler(BaseHTTPRequestHandler):
         finally:
             with lock: active -= 1
 
-print('RefNexus fault server http://127.0.0.1:18796', flush=True)
+print('RefFlow fault server http://127.0.0.1:18796', flush=True)
 ThreadingHTTPServer(('127.0.0.1', 18796), Handler).serve_forever()

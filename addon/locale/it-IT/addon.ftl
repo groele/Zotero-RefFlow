@@ -1,8 +1,8 @@
-prefs-label = RefNexus
+prefs-label = RefFlow
 pane-title =
     .label = Riferimenti
     .tooltiptext = Riferimenti
-tabpanel-reader-tab-label = Citazioni RefNexus
+tabpanel-reader-tab-label = Citazioni RefFlow
 relatedbox-number-label = riferimenti:
 relatedbox-refresh-label = Aggiorna
 relatedbox-search-placeholder = Cerca riferimenti

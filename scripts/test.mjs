@@ -30,7 +30,7 @@ async function runTests() {
     target: "node18",
     format: "cjs",
     outfile: outfile,
-    external: ["node:*"],
+    external: ["node:*", "esbuild"],
     loader: { ".json": "json" }
   });
 

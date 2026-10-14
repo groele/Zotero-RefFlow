@@ -1,15 +1,15 @@
 // Real Zotero DOM/SQLite/XHR; provider substitutes below are controlled faults.
-if(!/refnexus-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
-const views=Zotero.ZoteroRefNexus.views;
+if(!/refflow-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
+const views=Zotero.ZoteroRefFlow.views;
 const report={version:Zotero.version,at:new Date().toISOString(),scope:'native Zotero DOM, cache and loopback XHR; explicitly controlled provider faults',tests:[]};
 const delay=ms=>Zotero.Promise.delay(ms);
 const check=(ok,message)=>{if(!ok)throw new Error(message);};
 const save=()=>Zotero.File.putContentsAsync(cfg.output,JSON.stringify(report,null,2));
 const test=async(name,fn)=>{const start=Date.now();try{const detail=await fn();report.tests.push({name,ok:true,ms:Date.now()-start,detail});}catch(error){report.tests.push({name,ok:false,ms:Date.now()-start,error:String(error),stack:error.stack});}await save();};
-Zotero.Prefs.set('refnexus.autoRefresh',false);
+Zotero.Prefs.set('refflow.autoRefresh',false);
 const parent=new Zotero.Item('journalArticle');parent.setField('title','Native usability fixture');parent.setField('DOI','10.1234/usability');await parent.saveTx();
 window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(200);
-const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');check(body,'Native reference pane unavailable');
+const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');check(body,'Native reference pane unavailable');
 const refs=[{title:'Alpha fixture',text:'Alpha citation',identifiers:{}},{title:'Beta fixture',text:'Beta citation',identifiers:{}},{title:'Gamma fixture',text:'Gamma citation',identifiers:{}}];
 const render=async(list)=>{body.references=list;await body._cards.render(list,()=>true);};
 await test('search query survives refresh and Escape restores all stable numbered cards',async()=>{
@@ -20,7 +20,7 @@ await test('search query survives refresh and Escape restores all stable numbere
 });
 await test('empty search displays a localized recovery hint',async()=>{
  const search=body.querySelector('input[type=search]');search.value='no-such-reference';search.dispatchEvent(new window.Event('input',{bubbles:true}));await delay(120);
- const empty=body.querySelector('.refnexus-empty-result');check(empty&&!empty.hidden&&empty.textContent.includes('Esc'),'No empty-result recovery hint');search.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));check(empty.hidden,'Recovery hint remained visible');return {text:empty.textContent};
+ const empty=body.querySelector('.refflow-empty-result');check(empty&&!empty.hidden&&empty.textContent.includes('Esc'),'No empty-result recovery hint');search.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));check(empty.hidden,'Recovery hint remained visible');return {text:empty.textContent};
 });
 await test('Ctrl+C copies selection and Escape clears selection without changing references',async()=>{
  const rows=[...body.querySelectorAll('.reference-item')];rows[0].dispatchEvent(new window.MouseEvent('click',{bubbles:true}));const copy=views.utils.copyText;let copied;
@@ -34,7 +34,7 @@ await test('action buttons retain native Enter handling and accessible labels',a
  try{action.dispatchEvent(new window.KeyboardEvent('keydown',{key:'Enter',bubbles:true,cancelable:true}));check(rowOpens===0,'Row opened the reference instead of leaving the button key alone');check(action.getAttribute('aria-label')===action.title,'Accessible action label missing');return {rowNavigationCalls:rowOpens,accessibleLabel:true};}finally{cards.open=original;}
 });
 await test('an open context menu copies its original snapshot after the list changes',async()=>{
- const copy=views.utils.copyText;let copied;body._cards.menu();const popup=window.document.querySelector('menupopup[data-refnexus-menu=references]');check(popup,'Context menu missing');const command=popup.children[0];
+ const copy=views.utils.copyText;let copied;body._cards.menu();const popup=window.document.querySelector('menupopup[data-refflow-menu=references]');check(popup,'Context menu missing');const command=popup.children[0];
  try{views.utils.copyText=text=>{copied=text;};await render([{title:'Changed list',text:'Wrong snapshot',identifiers:{}}]);command.dispatchEvent(new window.Event('command'));await delay(20);check(copied==='Alpha citation\nBeta citation\nGamma citation','Menu copied a later list');return {snapshotPreserved:true};}finally{views.utils.copyText=copy;popup.hidePopup();await render(refs);}
 });
 await test('automatic retrieval prefers a complete smaller source over partial PDF extraction',async()=>{

@@ -5,6 +5,7 @@ import Views from "./views";
 import TipUI from "./tip";
 import buildGraphData from "./GraphData";
 import { hsl } from "d3";
+import { cleanupSync } from "../utils/lifecycle";
 
 export default class ConnectedPapers {
   private doc: Document;
@@ -44,13 +45,14 @@ export default class ConnectedPapers {
   public shutdown() {
     if (this.disposed) return;
     this.disposed = true;
-    this.graphController?.abort();
-    this.requests.dispose();
-    (this.win.ZoteroPane.itemsView as any)?.onSelect?.removeListener(this.selectListener);
-    this.cleanup.forEach(fn=>fn());this.cleanup=[];
-    this.graphContainer?.remove();this.boxAfter?.remove();
-    this.doc.getElementById(`${config.addonRef}-show-hide-graph-view`)?.remove();
-    this.doc.getElementById(`${config.addonRef}-graph-style`)?.remove();
+    cleanupSync(() => this.graphController?.abort());
+    cleanupSync(() => this.requests.dispose());
+    cleanupSync(() => this.win.ZoteroPane?.itemsView?.onSelect?.removeListener(this.selectListener));
+    this.cleanup.forEach(cleanupSync);this.cleanup=[];
+    cleanupSync(() => this.graphContainer?.remove());
+    cleanupSync(() => this.boxAfter?.remove());
+    cleanupSync(() => this.doc.getElementById(`${config.addonRef}-show-hide-graph-view`)?.remove());
+    cleanupSync(() => this.doc.getElementById(`${config.addonRef}-graph-style`)?.remove());
   }
 
   private addStyle() {
@@ -189,7 +191,7 @@ export default class ConnectedPapers {
   private syncRelatedPane(visible: boolean) {
     const item = this.win.ZoteroPane.getSelectedItems()[0];
     const enabled = visible && Boolean(item?.isRegularItem());
-    const section = this.doc.querySelector('#zotero-item-details item-pane-custom-section[data-pane$="-refnexus-graph"]') as HTMLElement | null;
+    const section = this.doc.querySelector('#zotero-item-details item-pane-custom-section[data-pane$="-refflow-graph"]') as HTMLElement | null;
     if (!section) return;
     section.hidden = !enabled;
     const body = section.querySelector('[data-type="body"]') as HTMLElement | null;

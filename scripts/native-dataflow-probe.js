@@ -1,4 +1,4 @@
-if(!/refnexus-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
+if(!/refflow-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
 const report={version:Zotero.version,structuredAPI:typeof Zotero.PDFWorker?.getStructuredDocumentText,results:[]};
 for(const name of ['single','columns','author-year','numbered-prose','large']) {
   const item=new Zotero.Item('journalArticle');item.setField('title','Dataflow native structured '+name);await item.saveTx();

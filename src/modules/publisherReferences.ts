@@ -126,7 +126,7 @@ export default class PublisherReferences {
       await Zotero.Promise.delay(Math.max(0,350-(Date.now()-this.pmcLast)));
       if(signal?.aborted||this.disposed)return [];
       this.pmcLast=Date.now();
-      const data=await request(`https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/?ids=${encodeURIComponent(key)}&idtype=doi&format=json&tool=RefNexus`);
+      const data=await request(`https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/?ids=${encodeURIComponent(key)}&idtype=doi&format=json&tool=RefFlow`);
       if(signal?.aborted)return [];
       const record=data?.records?.find((record:any)=>doi(record.doi)===key&&/^PMC\d+$/.test(record.pmcid));
       if(!record)return [];

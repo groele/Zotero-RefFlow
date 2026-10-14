@@ -1,8 +1,8 @@
 // Runs inside a real Zotero 10 window via the toolkit debug bridge.
 // Library writes are guarded to the explicitly named isolated test data directory.
-if (!/refnexus-z10-/.test(Zotero.DataDirectory.dir)) throw new Error('Refusing to test in the main library');
+if (!/refflow-z10-/.test(Zotero.DataDirectory.dir)) throw new Error('Refusing to test in the main library');
 const report = { version: Zotero.version, at: new Date().toISOString(), tests: [], metrics: {} };
-const views = Zotero.ZoteroRefNexus?.views;
+const views = Zotero.ZoteroRefFlow?.views;
 report.implementation={taskCoordinator:Boolean(views?.referenceTasks),pdfDiagnostics:Boolean(views?.utils?.PDF?.getDiagnostics)};
 const check = (ok, message) => { if (!ok) throw new Error(message); };
 const delay = ms => Zotero.Promise.delay(ms);
@@ -17,7 +17,7 @@ window.Zotero_Tabs.select('zotero-pane');
 const items = {};
 for (const name of ['single','columns','author-year','numbered-prose','large']) {
   const item = new Zotero.Item('journalArticle');
-  item.setField('title', `RefNexus Native ${name} ${Date.now()}`);
+  item.setField('title', `RefFlow Native ${name} ${Date.now()}`);
   await item.saveTx();
   const attachment = await Zotero.Attachments.importFromFile({ file: cfg.fixtures + (Zotero.isWin ? '\\' : '/') + name + '.pdf', parentItemID: item.id });
   items[name] = { item, attachment };
@@ -26,7 +26,7 @@ const select = async name => {
   window.Zotero_Tabs.select('zotero-pane');
   await window.ZoteroPane.selectItem(items[name].item.id);
   await delay(150);
-  const section = window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"]');
+  const section = window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"]');
   const body = section?.querySelector('[data-type="body"]');
   check(body, 'Native item-pane body unavailable');
   return { section, body };
@@ -67,7 +67,7 @@ await test('late response cannot populate a different selected item', async () =
     const {body} = await select('single'); body.setAttribute('source','API');
     const pending = views.refreshReferences(body,false,false,false,items.single.item);
     await delay(100); await select('columns'); await pending;
-    const current = window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');
+    const current = window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');
     check(!current.querySelector('#related-grid').textContent.includes('STALE'), 'Old item references rendered after selection changed');
   } finally { api.getDOIInfoByCrossref=original; }
 });

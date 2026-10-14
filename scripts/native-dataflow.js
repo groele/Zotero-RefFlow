@@ -1,11 +1,11 @@
-if(!/refnexus-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
-const views=Zotero.ZoteroRefNexus.views,api=views.utils.API;
+if(!/refflow-z10-release-/.test(Zotero.DataDirectory.dir))throw new Error('Isolated profile required');
+const views=Zotero.ZoteroRefFlow.views,api=views.utils.API;
 const report={version:Zotero.version,at:new Date().toISOString(),tempDir:Zotero.getTempDirectory().path,scope:'native SDT, DOM, SQLite, request cancellation; external provider responses controlled',tests:[]};
 const delay=ms=>Zotero.Promise.delay(ms),check=(value,message)=>{if(!value)throw new Error(message);};
 const save=()=>Zotero.File.putContentsAsync(cfg.output,JSON.stringify(report,null,2));
 const test=async(name,run)=>{const start=Date.now();try{report.tests.push({name,ok:true,ms:Date.now()-start,detail:await run()});report.tests.at(-1).ms=Date.now()-start;}catch(error){report.tests.push({name,ok:false,error:String(error),stack:error.stack});}await save();};
 const make=async(title,doi)=>{const item=new Zotero.Item('journalArticle');item.setField('title',title);if(doi)item.setField('DOI',doi);await item.saveTx({skipSelect:true});return item;};
-Zotero.Prefs.set('refnexus.autoRefresh',false);
+Zotero.Prefs.set('refflow.autoRefresh',false);
 for(const [name,count] of [['single',4],['columns',6],['author-year',3],['numbered-prose',0],['large',12]])await test('SDT extracts '+name+' without opening Reader',async()=>{
   const item=await make('Native dataflow '+name),attachment=await Zotero.Attachments.importFromFile({file:cfg.fixtures+'\\'+name+'.pdf',parentItemID:item.id});
   const original=Zotero.Reader.open;let opens=0;Zotero.Reader.open=async()=>{opens++;throw new Error('Reader open forbidden for SDT fixture');};
@@ -17,7 +17,7 @@ for(const [name,count] of [['single',4],['columns',6],['author-year',3],['number
 });
 const parent=await make('Native notifier dataflow parent','10.1234/notifier-parent'),stamp=Date.now();
 window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(150);
-const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refnexus-references"] [data-type="body"]');check(body,'Pane unavailable');body.setAttribute('source','API');body.setAttribute('data-refnexus-type','References');
+const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');check(body,'Pane unavailable');body.setAttribute('source','API');body.setAttribute('data-refflow-type','References');
 await test('item notifications update card match and retraction without refetching metadata',async()=>{
   const original=api.getReferenceList,localCheck=api.retractionChecker.checkLocal;let fetches=0;
   const title='Native notification reference '+stamp,doi='10.1234/notifier-'+stamp;
@@ -81,9 +81,9 @@ await test('title-only local matching preserves punctuation in native searches',
   const found=await views.utils.searchLibraryItem(ref,parent.libraryID);check(found?.id===local.id,'Punctuation-normalized search missed native title');return {matched:true};
 });
 await test('native Semantic Scholar key preference is masked and persists',async()=>{
-  const previous=Zotero.Prefs.get('refnexus.semanticScholarKey'),pref=Zotero.Utilities.Internal.openPreferences('refnexus-preferences');
-  try{for(let i=0;i<120&&!pref.document.getElementById('refnexus-semanticscholar-key');i++)await delay(50);
-    const input=pref.document.getElementById('refnexus-semanticscholar-key');check(input?.type==='password','Key field missing/unmasked');input.value='isolated-test-key';input.dispatchEvent(new pref.Event('change',{bubbles:true}));await delay(100);check(Zotero.Prefs.get('refnexus.semanticScholarKey')==='isolated-test-key','Preference failed');return {masked:true,persisted:true};
-  }finally{Zotero.Prefs.set('refnexus.semanticScholarKey',previous||'');pref.close();}
+  const previous=Zotero.Prefs.get('refflow.semanticScholarKey'),pref=Zotero.Utilities.Internal.openPreferences('refflow-preferences');
+  try{for(let i=0;i<120&&!pref.document.getElementById('refflow-semanticscholar-key');i++)await delay(50);
+    const input=pref.document.getElementById('refflow-semanticscholar-key');check(input?.type==='password','Key field missing/unmasked');input.value='isolated-test-key';input.dispatchEvent(new pref.Event('change',{bubbles:true}));await delay(100);check(Zotero.Prefs.get('refflow.semanticScholarKey')==='isolated-test-key','Preference failed');return {masked:true,persisted:true};
+  }finally{Zotero.Prefs.set('refflow.semanticScholarKey',previous||'');pref.close();}
 });
 report.finished=new Date().toISOString();report.passed=report.tests.filter(test=>test.ok).length;report.failed=report.tests.filter(test=>!test.ok).length;report.errors=Zotero.getErrors(true);await save();

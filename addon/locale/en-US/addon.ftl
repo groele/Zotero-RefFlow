@@ -1,4 +1,4 @@
-prefs-label = RefNexus
+prefs-label = RefFlow
 pane-title =
     .label = { $count ->
         [0] References
@@ -19,7 +19,7 @@ relatedbox-fetch-label = Get references
 relatedbox-source-label = Reference source
 relatedbox-select-item = Select a reference item first
 relatedbox-fetch-error = Fetch failed. Please try again.
-tabpanel-reader-tab-label = RefNexus Citations
+tabpanel-reader-tab-label = RefFlow Citations
 relatedbox-number-label = references:
 relatedbox-refresh-label = Refresh
 relatedbox-search-placeholder = Search References

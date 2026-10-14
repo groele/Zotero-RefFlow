@@ -16,6 +16,7 @@ import replaceInFile from "replace-in-file";
 const { replaceInFileSync } = replaceInFile;
 import { fileURLToPath } from "url";
 import {validateReleaseConfig,prepareRelease} from './release-artifacts.mjs';
+import {gecko153CompatibilityPlugin} from './gecko153-build.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const details = JSON.parse(readFileSync(path.join(__dirname, "../package.json"), "utf-8"));
 
@@ -142,6 +143,7 @@ function replaceString() {
       `${buildDir}/addon/prefs.js`,
       `${buildDir}/addon/manifest.json`,
       `${buildDir}/addon/bootstrap.js`,
+      `${buildDir}/addon/chrome/content/scripts/preferences.js`,
       `${buildDir}/addon/chrome.manifest`,
       `${buildDir}/addon/**/*.manifest`,
     ],
@@ -222,11 +224,11 @@ async function esbuild() {
       __env__: `"${env.NODE_ENV}"`,
     },
     bundle: true,
-    plugins: [{
+    plugins: [gecko153CompatibilityPlugin(), {
       name: "toolkit-unused-wait-namespace",
       setup(bundler) {
         // Toolkit 6.0.0 emits an unannotated namespace registration. It keeps
-        // an unused private Reader helper alive even though RefNexus only
+        // an unused private Reader helper alive even though RefFlow only
         // imports the generic wait helper through ProgressWindow. Declaring
         // that namespace registration pure allows normal tree shaking; an
         // actual import of waitForReader would still retain it and fail audit.
@@ -290,7 +292,7 @@ async function main() {
   );
 
   console.log("[Build] Addon pack OK");
-  if(!isPreRelease)prepareRelease(details,buildDir,env.NODE_ENV==='production' && env.REFNEXUS_NO_PROMOTE!=='1');
+  if(!isPreRelease)prepareRelease(details,buildDir,env.NODE_ENV==='production' && env.REFNEXUS_NO_PROMOTE!=='1' && env.REFFLOW_NO_PROMOTE!=='1');
   console.log(
     `[Build] Finished in ${(new Date().getTime() - t.getTime()) / 1000} s.`,
   );
