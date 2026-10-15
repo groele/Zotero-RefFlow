@@ -7,6 +7,8 @@ export interface ReferenceResult {
   partial?: boolean;
   attempts?: string[];
   status?: "success" | "empty" | "partial" | "unavailable";
+  retained?:boolean;
+  latestAttempt?:{source:string;count:number;partial:boolean;expected?:number};
 }
 export interface ReferenceProvider { name: string; run: () => Promise<ReferenceResult | undefined>; }
 

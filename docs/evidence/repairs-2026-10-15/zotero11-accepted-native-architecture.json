@@ -1,0 +1,83 @@
+{
+  "version": "11.0-dev.5+dac1ad489",
+  "at": "2026-10-15T14:39:35.576Z",
+  "tempDir": "<isolated-profile>\\tmp\\Zotero",
+  "scope": "native lifecycle, DOM, SQLite; controlled provider responses",
+  "tests": [
+    {
+      "name": "production cold startup",
+      "ok": true,
+      "detail": {
+        "alive": true
+      }
+    },
+    {
+      "name": "page extraction cannot read or overwrite the Auto full-document cache",
+      "ok": true,
+      "detail": {
+        "calls": 2,
+        "fullCachePreserved": true
+      }
+    },
+    {
+      "name": "graph import relates every origin atomically and rollback restores all links",
+      "ok": true,
+      "detail": {
+        "origins": 2,
+        "created": 1,
+        "rollback": true
+      }
+    },
+    {
+      "name": "native graph HTTP polling renders the official public test graph fixture",
+      "ok": true,
+      "detail": {
+        "nodes": 41,
+        "polls": 2,
+        "nativeEmbeddedViewer": true,
+        "provider": "controlled responses from official TEST_TOKEN fixture; live fetch recorded separately"
+      }
+    },
+    {
+      "name": "closing a secondary window cancels its pane jobs",
+      "ok": true,
+      "detail": {
+        "cancelled": true,
+        "styleCount": 1
+      }
+    },
+    {
+      "name": "disable disposes the old cache and rejects late writes",
+      "ok": true,
+      "detail": {
+        "lateWritesRejected": true,
+        "reEnabled": true
+      }
+    }
+  ],
+  "startupErrors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"Actor 'PageData' destroyed before query 'loadURI' was resolved\"]",
+    "[JavaScript Error: \"can't access property \"getActor\", this.browsingContext.currentWindowGlobal is null\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 0}]",
+    "[JavaScript Error: \"Actor 'PageData' destroyed before query 'loadURI' was resolved\"]",
+    "[JavaScript Error: \"Error indexing <isolated-profile>\\data\\storage\\DNXR6AEX\\snapshot.html\"]",
+    "[JavaScript Error: \"can't access property \"getActor\", this.browsingContext.currentWindowGlobal is null\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 0}]",
+    "[JavaScript Error: \"Error: Page never loaded in hidden browser\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 184}]",
+    "[JavaScript Error: \"Error: Page never loaded in hidden browser\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 184}]"
+  ],
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"Actor 'PageData' destroyed before query 'loadURI' was resolved\"]",
+    "[JavaScript Error: \"can't access property \"getActor\", this.browsingContext.currentWindowGlobal is null\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 0}]",
+    "[JavaScript Error: \"Actor 'PageData' destroyed before query 'loadURI' was resolved\"]",
+    "[JavaScript Error: \"Error indexing <isolated-profile>\\data\\storage\\DNXR6AEX\\snapshot.html\"]",
+    "[JavaScript Error: \"can't access property \"getActor\", this.browsingContext.currentWindowGlobal is null\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 0}]",
+    "[JavaScript Error: \"Error: Page never loaded in hidden browser\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 184}]",
+    "[JavaScript Error: \"Error: Page never loaded in hidden browser\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 184}]",
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"uncaught exception: undefined\"]"
+  ],
+  "finished": "2026-10-15T14:39:39.308Z",
+  "passed": 6,
+  "failed": 0
+}

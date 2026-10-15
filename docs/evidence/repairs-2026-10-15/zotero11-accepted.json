@@ -1,0 +1,152 @@
+{
+  "version": "11.0-dev.5+dac1ad489",
+  "platformMajorVersion": 153,
+  "at": "2026-10-15T14:38:44.781Z",
+  "tests": [
+    {
+      "name": "RefFlow identity, update authority, compatibility and legacy preference migration",
+      "ok": true,
+      "detail": {
+        "id": "refflow@groele.github.io",
+        "name": "Zotero RefFlow",
+        "compatibility": {
+          "id": "refflow@groele.github.io",
+          "update_url": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json",
+          "strict_min_version": "10.0.6",
+          "strict_max_version": "11.*"
+        },
+        "migration": true
+      }
+    },
+    {
+      "name": "cold startup loads the candidate XPI in the actual host",
+      "ok": true,
+      "detail": {
+        "version": "10.1.0",
+        "platform": 153,
+        "env": "production"
+      }
+    },
+    {
+      "name": "source, sort, OA and literature menus retain true and false checked states",
+      "ok": true,
+      "detail": {
+        "checkboxes": 8,
+        "checked": 2,
+        "radioOptions": 3,
+        "radioSelected": 1
+      }
+    },
+    {
+      "name": "preference fragment external events, checkbox saving, pane switching and reopening",
+      "ok": true,
+      "detail": {
+        "externalEvents": true,
+        "savedCheckedAndUnchecked": true,
+        "switched": true,
+        "reopened": true
+      }
+    },
+    {
+      "name": "real menu command copies text that can be pasted into a native text field",
+      "ok": true,
+      "detail": {
+        "realClipboard": true,
+        "nativePaste": true,
+        "unicodeText": true,
+        "format": "text/plain"
+      }
+    },
+    {
+      "name": "native-regression",
+      "ok": true,
+      "detail": {
+        "passed": 10,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-stress",
+      "ok": true,
+      "detail": {
+        "passed": 22,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-publishers",
+      "ok": true,
+      "detail": {
+        "passed": 28,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-numbering",
+      "ok": true,
+      "detail": {
+        "passed": 6,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-usability",
+      "ok": true,
+      "detail": {
+        "passed": 12,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-structure",
+      "ok": true,
+      "detail": {
+        "passed": 8,
+        "failed": 0
+      }
+    },
+    {
+      "name": "native-architecture",
+      "ok": true,
+      "detail": {
+        "passed": 6,
+        "failed": 0
+      }
+    },
+    {
+      "name": "two disable and re-enable cycles release resources and register each pane once",
+      "ok": true,
+      "detail": {
+        "cycles": 2
+      }
+    },
+    {
+      "name": "runtime log has no plugin script, Fluent parse or manifest version errors",
+      "ok": true,
+      "detail": {
+        "pluginErrors": 0,
+        "otherHostMessages": 14
+      }
+    }
+  ],
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"Actor 'PageData' destroyed before query 'loadURI' was resolved\"]",
+    "[JavaScript Error: \"can't access property \"getActor\", this.browsingContext.currentWindowGlobal is null\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 0}]",
+    "[JavaScript Error: \"Actor 'PageData' destroyed before query 'loadURI' was resolved\"]",
+    "[JavaScript Error: \"Error indexing <isolated-profile>\\data\\storage\\DNXR6AEX\\snapshot.html\"]",
+    "[JavaScript Error: \"can't access property \"getActor\", this.browsingContext.currentWindowGlobal is null\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 0}]",
+    "[JavaScript Error: \"Error: Page never loaded in hidden browser\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 184}]",
+    "[JavaScript Error: \"Error: Page never loaded in hidden browser\" {file: \"chrome://zotero/content/HiddenBrowser.mjs\" line: 184}]",
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"uncaught exception: undefined\"]"
+  ],
+  "finished": "2026-10-15T14:39:40.710Z",
+  "passed": 14,
+  "failed": 0,
+  "scenariosPassed": 99
+}

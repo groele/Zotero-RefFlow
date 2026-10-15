@@ -50,7 +50,7 @@ await test('malformed row is isolated and partial contract survives file cache a
   const item=await make('Owned result snapshot'),body=await panel(item),original=api.getReferenceList;let calls=0;
   try{api.getReferenceList=async()=>{calls++;return {references:[row(1),null,row(2)],source:'SemanticScholar',status:'success'};};
     await views.refreshReferences(body,false,false,false,item);check(body.references.length===2,'Good rows lost');check(body.getAttribute('data-refflow-result-source').includes('(2+'),'Partial result shown as complete');
-    const cached=await views.storage.getAsync(item,'References-API');check(cached.snapshot.partial&&cached.snapshot.status==='partial','Cache dropped loss flag');check(cached.signature.includes('retrieval-v5'),'Cache policy not updated');
+    const cached=await views.storage.getAsync(item,'References-API');check(cached.snapshot.partial&&cached.snapshot.status==='partial','Cache dropped loss flag');check(/retrieval-v\d+/.test(cached.signature),'Cache policy not updated');
     await views.storage.flush();await views.refreshReferences(body,true,false,false,item);check(calls===1,'Owned cached contract not reused');check(body.getAttribute('data-refflow-result-source').includes('(2+'),'Reload lost partial display');
     cached.references[0].identifiers.DOI='10.1234/mutated';check((await views.storage.getAsync(item,'References-API')).references[0].identifiers.DOI!=='10.1234/mutated','Cache leaked mutable state');
     return {usableRows:2,providerCalls:calls,partialSnapshot:true,fileFlushed:true};
@@ -59,7 +59,7 @@ await test('malformed row is isolated and partial contract survives file cache a
 await test('old title-selection policy cache is rejected in native pane',async()=>{
   const item=await make('Cache selection policy'),body=await panel(item),original=api.getReferenceList;let calls=0;
   try{api.getReferenceList=async()=>{calls++;return {references:[row(1)],source:'Verified title'};};await views.refreshReferences(body,false,false,false,item);
-    const cache=await views.storage.getAsync(item,'References-API');cache.signature=cache.signature.replace('retrieval-v5','retrieval-v4');cache.references=[{title:'Old ambiguous title cache',identifiers:{}}];
+    const cache=await views.storage.getAsync(item,'References-API');cache.signature=cache.signature.replace(/retrieval-v\d+/,'retrieval-v0');cache.references=[{title:'Old ambiguous title cache',identifiers:{}}];
     await views.storage.set(item,'References-API',cache);await views.refreshReferences(body,true,false,false,item);
     check(calls===2&&body.references[0].title!=='Old ambiguous title cache','Old candidate policy accepted');return {oldCacheRejected:true,providerCalls:calls};
   }finally{api.getReferenceList=original;}

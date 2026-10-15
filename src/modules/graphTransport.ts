@@ -1,4 +1,5 @@
 import Requests from "./requests";
+import {validateGraph} from './graphModel';
 
 /** Poll the official API using Zotero HTTP, with one cancellable total budget. */
 export async function pollGraph(id: string, token: string, onProgress: (response: any) => void,
@@ -28,6 +29,7 @@ export async function pollGraph(id: string, token: string, onProgress: (response
       onProgress(response);
       if (["FRESH_GRAPH", "OLD_GRAPH"].includes(response.status)) {
         if (!response.graph_json?.nodes) throw new Error("Graph service returned invalid graph data");
+        response.graph_json=validateGraph(response.graph_json);
         return response;
       }
       if (!["QUEUED", "IN_PROGRESS", "OVERLOADED"].includes(response.status)) return response;

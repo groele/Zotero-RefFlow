@@ -102,3 +102,10 @@ cards-kept-results = 保留上次结果
 cards-refresh-empty-kept = 未获取新列表，保留上次结果
 cards-resolving-doi = 正在识别文献 DOI…
 cards-context-changed = 文献或文档已改变，请刷新
+
+cards-list-name = 参考文献列表
+cards-rollback-retained = 已保留 { $count } 个被复用或修改的导入条目。
+
+cards-latest-attempt = 本次获取
+
+graph-origins-changed = 起始文献已改变，请重新构建关系图。

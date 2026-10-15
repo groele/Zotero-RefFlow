@@ -1,0 +1,186 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-15T14:40:25.295Z",
+  "scope": "native XHR, atomic cache files, SQLite search; remote responses controlled",
+  "tests": [
+    {
+      "name": "provider deadline includes DOI lookup and physically cancels real native XHR",
+      "ok": true,
+      "detail": {
+        "elapsed": 168,
+        "cancelled": 1,
+        "cache": {
+          "entries": 0,
+          "bytes": 0,
+          "maxBytes": 8388608
+        }
+      },
+      "ms": 168
+    },
+    {
+      "name": "later page budget expiry preserves partial metadata",
+      "ok": true,
+      "detail": {
+        "pages": 2,
+        "count": 1,
+        "truncated": true
+      },
+      "ms": 132
+    },
+    {
+      "name": "one provider deadline leaves another shared XHR subscriber healthy",
+      "ok": true,
+      "detail": {
+        "network": 1,
+        "cancelled": 0,
+        "deduplicated": 2
+      },
+      "ms": 129
+    },
+    {
+      "name": "hydration validates identities and creates only four concurrent producers",
+      "ok": true,
+      "detail": {
+        "calls": 10,
+        "peak": 4,
+        "count": 1000
+      },
+      "ms": 92
+    },
+    {
+      "name": "native cache obeys UTF8 byte limit, owns data and reloads atomic disk state",
+      "ok": true,
+      "detail": {
+        "bytes": 477,
+        "usage": {
+          "items": 4,
+          "bytes": 478,
+          "maxBytes": 500
+        },
+        "metrics": {
+          "evictions": 7,
+          "skipped": 1,
+          "writes": 1,
+          "writeFailures": 0
+        },
+        "reloaded": true
+      },
+      "ms": 14
+    },
+    {
+      "name": "atomic write failure can retry the newest state",
+      "ok": true,
+      "detail": {
+        "retried": true,
+        "metrics": {
+          "evictions": 0,
+          "skipped": 0,
+          "writes": 1,
+          "writeFailures": 1
+        }
+      },
+      "ms": 8
+    },
+    {
+      "name": "authentication POST stays fresh and out of the cache",
+      "ok": true,
+      "detail": {
+        "fresh": true,
+        "cache": {
+          "entries": 0,
+          "bytes": 0,
+          "maxBytes": 8388608
+        }
+      },
+      "ms": 1
+    },
+    {
+      "name": "two thousand exact DOI enrichments preserve order with indexed matching",
+      "ok": true,
+      "detail": {
+        "count": 2000,
+        "ms": 107,
+        "orderPreserved": true
+      },
+      "ms": 108
+    },
+    {
+      "name": "Zotero 10 resultLevel search excludes child matches and finds the regular item",
+      "ok": true,
+      "detail": {
+        "matched": true,
+        "resultLevel": true
+      },
+      "ms": 105
+    },
+    {
+      "name": "whole-pane deadline releases busy state, preserves cards and blocks late results",
+      "ok": true,
+      "detail": {
+        "released": true,
+        "kept": true,
+        "lateCommitRejected": true
+      },
+      "ms": 497
+    },
+    {
+      "name": "native import rejects conflicting translator identity and stores normalized DOI",
+      "ok": true,
+      "detail": {
+        "identityPreserved": true,
+        "normalized": true,
+        "regularItem": true,
+        "rollback": true
+      },
+      "ms": 1071
+    },
+    {
+      "name": "metadata edits during retrieval reject the old result and release busy state",
+      "ok": true,
+      "detail": {
+        "lateResultRejected": true,
+        "busyReleased": true
+      },
+      "ms": 477
+    },
+    {
+      "name": "same-parent PDF requests remain distinct and only the newest document commits",
+      "ok": true,
+      "detail": {
+        "calls": 2,
+        "newestDocument": true,
+        "lateCommitRejected": true,
+        "readerSelection": "controlled public itemID overrides; native attachment files"
+      },
+      "ms": 1460
+    },
+    {
+      "name": "CNKI title identity and DOM parsing work without a DOCTYPE and do not invent counts",
+      "ok": true,
+      "detail": {
+        "mismatchRejected": true,
+        "noDoctype": true,
+        "unknownCountPreserved": true,
+        "provider": "controlled CNKI detail HTML; no account/live-service claim"
+      },
+      "ms": 3
+    },
+    {
+      "name": "legacy PDF algorithm cache is invalidated before native extraction",
+      "ok": true,
+      "detail": {
+        "oldCacheRejected": true,
+        "nativeReferences": 4
+      },
+      "ms": 1543
+    }
+  ],
+  "finished": "2026-10-15T14:40:31.177Z",
+  "passed": 15,
+  "failed": 0,
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"The connection was refused when attempting to contact wss://stream.zotero.org/.\" {file: \"chrome://zotero/content/xpcom/streamer.js\" line: 240}]",
+    "[JavaScript Error: \"WebSocket connection closed: 1006 \"]"
+  ]
+}

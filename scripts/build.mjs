@@ -271,6 +271,9 @@ async function main() {
   }
 
   await esbuild();
+  await build({entryPoints:['src/graph/index.ts'],bundle:true,target:'firefox140',outfile:path.join(buildDir,'addon/chrome/content/dist/assets/index.js')});
+  copyFileSync('src/graph/index.html',path.join(buildDir,'addon/chrome/content/dist/index.html'));
+  copyFileSync('src/graph/index.css',path.join(buildDir,'addon/chrome/content/dist/assets/index.css'));
 
   console.log("[Build] Run esbuild OK");
 

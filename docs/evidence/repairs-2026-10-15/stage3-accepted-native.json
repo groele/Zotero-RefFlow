@@ -1,0 +1,96 @@
+{
+  "version": "10.0.6",
+  "scope": "native DOM, SVG, SQLite and controlled transport; no live provider claims",
+  "tests": [
+    {
+      "name": "2000-reference list mounts at most 60 cards and Ctrl+A/C copies the entire list",
+      "ok": true,
+      "detail": {
+        "references": 2000,
+        "mounted": 60,
+        "copied": 2000
+      },
+      "ms": 28
+    },
+    {
+      "name": "filtering reaches an unmounted row and restores full results with Escape",
+      "ok": true,
+      "detail": {
+        "offscreenMatch": 1999,
+        "restored": true
+      },
+      "ms": 236
+    },
+    {
+      "name": "native scrolling remounts a bounded later window",
+      "ok": true,
+      "detail": {
+        "mounted": 60,
+        "firstNumber": 993,
+        "scrollTop": 144000
+      },
+      "ms": 137
+    },
+    {
+      "name": "arrow navigation crosses a virtual window boundary",
+      "ok": true,
+      "detail": {
+        "from": 1052,
+        "to": 1053
+      },
+      "ms": 128
+    },
+    {
+      "name": "new graph starts empty and exposes a versioned renderer without sample papers",
+      "ok": true,
+      "detail": {
+        "version": 1,
+        "nodes": 0
+      },
+      "ms": 68
+    },
+    {
+      "name": "SVG renderer validates and displays graph data with accessible node actions",
+      "ok": true,
+      "detail": {
+        "nodes": 2,
+        "edges": 1,
+        "keyboard": true,
+        "invalidRejected": true
+      },
+      "ms": 7
+    },
+    {
+      "name": "cancelling a waiting translator prevents any late item creation",
+      "ok": true,
+      "detail": {
+        "cancelled": true,
+        "created": 0
+      },
+      "ms": 315
+    },
+    {
+      "name": "native clients share provider admission and release all slots",
+      "ok": true,
+      "detail": {
+        "clients": 2,
+        "maximum": 2,
+        "usage": {
+          "scopes": 0,
+          "active": 0,
+          "queued": 0
+        }
+      },
+      "ms": 104
+    }
+  ],
+  "graphScreenshot": "<implementation-checkout>\\docs\\evidence\\repairs-2026-10-15\\stage3-accepted-native.png",
+  "finished": "2026-10-15T14:38:17.778Z",
+  "passed": 8,
+  "failed": 0,
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"The connection was refused when attempting to contact wss://stream.zotero.org/.\" {file: \"chrome://zotero/content/xpcom/streamer.js\" line: 240}]",
+    "[JavaScript Error: \"WebSocket connection closed: 1006 \"]"
+  ]
+}

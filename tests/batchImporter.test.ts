@@ -16,7 +16,7 @@ test("manifest note escapes imported titles and authors",()=>{
   assert.ok(html.includes('&lt;script&gt;') && html.includes('A &amp; B'));
 });
 
-test("legacy rollback checks exact ownership and keeps the parent, other libraries, and prefix matches",async()=>{
+test("legacy rollback retains creations without a user-edit baseline and keeps unrelated markers",async()=>{
   const z:any=Zotero,originalItems=z.Items,originalLibraries=z.Libraries;
   const id='ref_batch_20260929_120000';let trashed:number[]=[];
   const item=(itemID:number,libraryID:number,extra:string)=>({id:itemID,libraryID,deleted:false,isRegularItem:()=>true,getField:()=>extra});
@@ -25,7 +25,7 @@ test("legacy rollback checks exact ownership and keeps the parent, other librari
   let extra=`ref_batch_parent: ${id}\nkeep this user text`;
   const parent:any={id:999,libraryID:1,getField:()=>extra,setField:(_:string,value:string)=>extra=value,saveTx:async()=>{}};
   try {
-    assert.equal(await BatchImporter.rollbackBatch(parent,id),1);assert.deepEqual(trashed,[101]);assert.equal(extra,'keep this user text');
+    assert.equal(await BatchImporter.rollbackBatch(parent,id),0);assert.deepEqual(trashed,[]);assert.deepEqual(BatchImporter.lastRollback.retainedIDs,[101]);assert.equal(extra,'keep this user text');
     trashed=[];assert.equal(await BatchImporter.rollbackBatch(parent,id),0);assert.deepEqual(trashed,[]);
   }finally{z.Items=originalItems;z.Libraries=originalLibraries;}
 });

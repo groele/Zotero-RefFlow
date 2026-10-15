@@ -5,11 +5,14 @@
 
 import { version, homepage } from "../../package.json";
 import {encodeData,utf8Bytes} from "./jsonData";
+import {SharedRequestScheduler} from './requestScheduler';
 
 export interface RequestOptions { timeoutMs?: number; budgetMs?: number; retryDelayMs?: number; cacheTTL?: number; maxConcurrent?: number; maxQueued?: number; cacheMaxBytes?:number; cacheEntryMaxBytes?:number; }
 interface Flight {promise:Promise<any>;controller:AbortController;consumers:number;settled:boolean;}
 
 export default class Requests {
+  private static scheduler=new SharedRequestScheduler();
+  public static get sharedUsage(){return this.scheduler.usage;}
   private cache: Map<string, any> = new Map();
   private cacheTimes = new Map<string, number>();
   private cacheSizes=new Map<string,number>();
@@ -272,10 +275,10 @@ export default class Requests {
     const mergedHeaders = Object.assign({}, this.defaultHeaders, headers);
     if(this.disposed||this.coolingDown(this.throttleKey(url,mergedHeaders),url))return undefined;
     const generation=this.cacheGeneration;
-    return this.shared(`${generation}:${cacheKey}`,signal,transportSignal=>this.limited(deadline=>this.executeWithRetry("GET", url, {
+    return this.shared(`${generation}:${cacheKey}`,signal,transportSignal=>this.limited(deadline=>Requests.scheduler.run(this.throttleKey(url,mergedHeaders),()=>this.executeWithRetry("GET", url, {
       responseType,
       headers: mergedHeaders
-    },2,deadline,transportSignal),transportSignal).then(result => {
+    },2,deadline,transportSignal),deadline,transportSignal,this.options.maxConcurrent),transportSignal).then(result => {
       if (result !== undefined && generation===this.cacheGeneration && !transportSignal.aborted) this.setCache(cacheKey, result);
       return result;
     }));
@@ -297,11 +300,11 @@ export default class Requests {
     }
     if(this.disposed||this.coolingDown(this.throttleKey(url,mergedHeaders),url))return undefined;
     const generation=this.cacheGeneration;
-    return this.shared(`${generation}:${cacheable?"cache":"fresh"}:${cacheKey}`,signal,transportSignal=>this.limited(deadline=>this.executeWithRetry("POST", url, {
+    return this.shared(`${generation}:${cacheable?"cache":"fresh"}:${cacheKey}`,signal,transportSignal=>this.limited(deadline=>Requests.scheduler.run(this.throttleKey(url,mergedHeaders),()=>this.executeWithRetry("POST", url, {
       responseType,
       headers: mergedHeaders,
       body: typeof body === "string" ? body : JSON.stringify(body)
-    },0,deadline,transportSignal),transportSignal).then(result => {
+    },0,deadline,transportSignal),deadline,transportSignal,this.options.maxConcurrent),transportSignal).then(result => {
       if (cacheable && result !== undefined && generation===this.cacheGeneration && !transportSignal.aborted) this.setCache(cacheKey, result);
       return result;
     }));

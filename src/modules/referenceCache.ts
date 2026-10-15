@@ -1,4 +1,4 @@
-const SCHEMA = 3;
+const SCHEMA = 4;
 import { referenceData, tryReferenceData } from "./referenceData";
 import { normalizeReferenceResult, ReferenceResult } from "./referenceRetrieval";
 
@@ -31,6 +31,10 @@ export function readCachedReferenceResult(value: any, signature: string, now = D
 }
 
 export function preferCachedReferences(result: ReferenceResult, previous: ReferenceResult | undefined, offlineLabel: string): ReferenceResult {
-  if (result.references.length || !previous?.references.length) return result;
-  return { ...previous, source: `${previous.source} · ${offlineLabel}`, attempts: result.attempts };
+  if(!previous?.references.length)return result;
+  const next=normalizeReferenceResult(result),old=normalizeReferenceResult(previous);
+  const downgrade=next.partial&&(!old.partial||next.references.length<old.references.length);
+  if(next.references.length&&!downgrade)return result;
+  return {...old,source:next.references.length?old.source:`${old.source} · ${offlineLabel}`,retained:true,
+    latestAttempt:{source:next.source,count:next.references.length,partial:Boolean(next.partial),expected:next.expected},attempts:result.attempts};
 }

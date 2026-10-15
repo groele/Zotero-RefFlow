@@ -6,9 +6,9 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-![Version](https://img.shields.io/badge/version-10.0.0-blue) ![Zotero](https://img.shields.io/badge/Zotero-10.0.6%E2%80%9311.*-green) ![License](https://img.shields.io/badge/license-AGPL-3.0-or-later-lightgrey)
+![Version](https://img.shields.io/badge/version-10.1.0-blue) ![Zotero](https://img.shields.io/badge/Zotero-10.0.6%E2%80%9311.*-green) ![License](https://img.shields.io/badge/license-AGPL-3.0-or-later-lightgrey)
 
-[下载插件](https://github.com/groele/Zotero-RefFlow/releases/tag/V10) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues) · [版本发布](https://github.com/groele/Zotero-RefFlow/releases)
+[下载插件](https://github.com/groele/Zotero-RefFlow/releases/tag/refflow-v10.1.0) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues) · [版本发布](https://github.com/groele/Zotero-RefFlow/releases)
 
 **Zotero Flow Series**
 
@@ -44,7 +44,7 @@ Zotero RefFlow 是 Zotero Flow Series 中独立维护的插件，获取参考文
 
 ## 安装指南
 
-1. [下载当前版本 XPI](https://github.com/groele/Zotero-RefFlow/releases/tag/V10)（`zotero-refflow.xpi`）。
+1. [下载当前版本 XPI](https://github.com/groele/Zotero-RefFlow/releases/tag/refflow-v10.1.0)（`zotero-refflow.xpi`）。
 2. 打开 Zotero 的 **工具 → 插件**（不同版本的菜单名称可能不同）。
 3. 选择 **从文件安装插件**，选中 XPI，按提示重启。
 
@@ -58,6 +58,10 @@ Zotero RefFlow 是 Zotero Flow Series 中独立维护的插件，获取参考文
 
 ## 配置与注意事项
 
+**2026-10-15 / 10.1.0 修复：** 修复 V10 审查中的十个可复现问题，增加可重建关系图、参考文献窗口化列表和共享请求调度。详见[修复与验收报告](docs/REPAIRS-2026-10-15.md)。撤回旧导入时，缺少用户修改基线的条目会保留，避免在归属不确定时删除数据。
+
+Auto 负责自动选择获取来源；“自动刷新”是另一项设置，默认关闭。
+
 在线获取依赖第三方服务及其速率限制。没有文本层的扫描 PDF 可能需要 OCR。可在 Zotero 设置中配置可选的 OpenAlex API 凭据。
 
 ## 开发与测试
@@ -69,7 +73,7 @@ npm ci
 npm run tsc
 npm test
 npm run build-prod
-``
+```
 
 上述命令为项目提供的开发与测试入口，不表示所有系统环境或集成测试均已通过。
 

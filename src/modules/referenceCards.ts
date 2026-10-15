@@ -26,8 +26,13 @@ export default class ReferenceCards {
   private providerRetractions=new WeakMap<ItemBaseInfo,ItemBaseInfo["retraction"]>();
   private menus=new Set<Element>();
   private cleanup:Array<()=>void>=[];
+  private listCurrent?:()=>boolean;
+  private windowStart=0;
+  private virtual=false;
+  private readonly rowHeight=144;
+  private searchIndex=new WeakMap<ItemBaseInfo,string>();
 
-  constructor(private views:Views,private body:HTMLElement,private grid:HTMLElement,private search:HTMLInputElement) {
+  constructor(private views:Views,private body:HTMLElement,private grid:HTMLElement,private search:HTMLInputElement,listLabel='Reference list') {
     const onInput=()=>{globalThis.clearTimeout(this.searchTimer);this.searchTimer=globalThis.setTimeout(()=>this.filter(),80);};
     const onKeyDown=(event:KeyboardEvent)=>{if(event.key==="Escape"){event.preventDefault();globalThis.clearTimeout(this.searchTimer);search.value="";this.filter();}};
     const onContextMenu=(event:MouseEvent)=>{event.preventDefault();this.menu(event);};
@@ -35,6 +40,14 @@ export default class ReferenceCards {
     search.addEventListener("keydown",onKeyDown);
     grid.setAttribute("role","listbox");grid.setAttribute("aria-multiselectable","true");
     grid.addEventListener("contextmenu",onContextMenu);
+    grid.setAttribute('aria-label',listLabel);
+    const onScroll=()=>{
+      if(!this.virtual||!this.listCurrent?.())return;
+      const start=Math.max(0,Math.floor(grid.scrollTop/this.rowHeight)-8);
+      if(Math.abs(start-this.windowStart)<8)return;
+      this.windowStart=start;void this.render(this.refs,this.listCurrent);
+    };
+    grid.addEventListener('scroll',onScroll,{passive:true});this.cleanup.push(()=>grid.removeEventListener('scroll',onScroll));
     this.cleanup.push(()=>search.removeEventListener("input",onInput),()=>search.removeEventListener("keydown",onKeyDown),()=>grid.removeEventListener("contextmenu",onContextMenu));
   }
   dispose(){if(this.disposed)return;this.disposed=true;this.cleanup.forEach(cleanupSync);this.cleanup=[];for(const menu of this.menus)cleanupSync(()=>menu.remove());this.menus.clear();globalThis.clearTimeout(this.searchTimer);this.clear();}
@@ -79,16 +92,22 @@ export default class ReferenceCards {
   private parent():Zotero.Item{return Zotero.Items.get(Number(this.body.getAttribute("data-refflow-item-id"))) as Zotero.Item;}
   private label():HTMLElement{return this.body.querySelector("#reference-num")!;}
   private visible(){return this.rows.filter(row=>!row.hidden);}
-  private subset():ItemBaseInfo[]{return this.selected.size?[...this.selected]:this.visible().map(row=>(row as any).reference);}
+  private matches(ref:ItemBaseInfo):boolean {
+    let hay=this.searchIndex.get(ref);if(hay===undefined){hay=[ref.text,ref.title,...(ref.authors||[]),ref.year,ref.publicationVenue,ref.identifiers?.DOI].join(' ').toLocaleLowerCase();this.searchIndex.set(ref,hay);}
+    return this.search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean).every(token=>hay!.includes(token));
+  }
+  private filtered(){return this.refs.filter(ref=>this.matches(ref));}
+  private subset():ItemBaseInfo[]{return this.selected.size?[...this.selected]:this.filtered();}
   private updateSelection(){for(const row of this.rows){const selected=this.selected.has((row as any).reference);row.classList.toggle("selected",selected);row.setAttribute("aria-selected",String(selected));}}
   private select(index:number,event:MouseEvent|KeyboardEvent){
     const ref=this.refs[index];
-    if(event.shiftKey){if(!event.ctrlKey&&!event.metaKey)this.selected.clear();for(let i=Math.min(index,this.anchor);i<=Math.max(index,this.anchor);i++)if(!this.rows[i]?.hidden)this.selected.add(this.refs[i]);}
+    if(event.shiftKey){if(!event.ctrlKey&&!event.metaKey)this.selected.clear();for(let i=Math.min(index,this.anchor);i<=Math.max(index,this.anchor);i++)if(this.matches(this.refs[i]))this.selected.add(this.refs[i]);}
     else if(event.ctrlKey||event.metaKey){if(this.selected.has(ref))this.selected.delete(ref);else this.selected.add(ref);this.anchor=index;}
     else{this.selected.clear();this.selected.add(ref);this.anchor=index;}
     this.updateSelection();
   }
   private filter(){
+    if(this.virtual){this.windowStart=0;this.grid.scrollTop=0;for(const ref of this.selected)if(!this.matches(ref))this.selected.delete(ref);if(this.listCurrent)void this.render(this.refs,this.listCurrent);return;}
     const tokens=this.search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     for(const row of this.rows){const ref=(row as any).reference as ItemBaseInfo;const hay=[ref.text,ref.title,...(ref.authors||[]),ref.year,ref.publicationVenue,ref.identifiers?.DOI].join(" ").toLocaleLowerCase();row.hidden=!tokens.every(token=>hay.includes(token));if(row.hidden)this.selected.delete(ref);}
     this.updateSelection();this.label().textContent=`${this.visible().length} / ${this.rows.length} · ${this.body.getAttribute("data-refflow-result-source")||""}`;
@@ -103,11 +122,20 @@ export default class ReferenceCards {
     const focusKey=focused&&this.grid.contains(focused)?referenceIdentity(focused.reference):undefined;
     const focusAction=active?.classList.contains('reference-action');
     const anchorKey=this.refs[this.anchor]?referenceIdentity(this.refs[this.anchor]):undefined;
+    const scrollTop=this.grid.scrollTop;
+    this.virtual=refs.length>200;
+    const indices=refs.map((ref,index)=>index).filter(index=>!this.virtual||this.matches(refs[index]));
+    const start=this.virtual?Math.min(this.windowStart,Math.max(0,indices.length-1)):0;
+    const displayIndices=this.virtual?indices.slice(start,start+60):indices;
     this.clear();this.search.value=query;this.refs=refs;
+    this.listCurrent=current;this.windowStart=start;
     const externalCurrent=current,generation=this.generation;
     current=()=>externalCurrent()&&this.generation===generation&&!this.disposed;
     this.matchCurrent=current;
     const fragment=this.body.ownerDocument.createDocumentFragment();
+    this.grid.style.maxHeight=this.virtual?'65vh':'';
+    const spacer=(height:number)=>{const node=this.body.ownerDocument.createElement('div');node.style.height=`${height}px`;node.style.flexShrink='0';node.setAttribute('aria-hidden','true');return node;};
+    if(this.virtual)fragment.append(spacer(start*this.rowHeight));
     const parent=this.parent();
     const original:ItemBaseInfo[]=(this.body as any).references||refs;
     const positions=new Map(original.map((ref,index)=>[ref,index+1]));
@@ -119,9 +147,10 @@ export default class ReferenceCards {
       }this.drainMatches();
     },{rootMargin:"80px"});
 
-    for(let index=0;index<refs.length;index++) {
+    for(const index of displayIndices) {
       const ref=refs[index],doc=this.body.ownerDocument;
       const row=doc.createElement("div");row.className="reference-item";row.tabIndex=0;row.setAttribute("role","option");row.setAttribute("aria-selected","false");(row as any).reference=ref;
+      if(this.virtual){row.style.height=`${this.rowHeight}px`;row.style.flexShrink='0';row.style.boxSizing='border-box';row.style.overflow='hidden';}
       row.setAttribute("aria-posinset",String(index+1));row.setAttribute("aria-setsize",String(refs.length));
       const marker=doc.createElement("div");marker.className="reference-marker";
       const number=doc.createElement("span");number.className="reference-number";number.textContent=`${numbers[index]}.`;number.title=`${getString("cards-number-label")} ${numbers[index]}`;
@@ -131,6 +160,7 @@ export default class ReferenceCards {
       const content=doc.createElement("div");content.className="reference-description";
       const text=doc.createElement("span");text.className="reference-text";text.textContent=ref.text||ref.title||"";text.title=text.textContent||"";
       const title=doc.createElement("strong");title.className="reference-title";title.textContent=ref.title||ref.text||"";title.title=title.textContent||"";
+      if(this.virtual){title.style.display='-webkit-box';title.style.setProperty('-webkit-box-orient','vertical');title.style.setProperty('-webkit-line-clamp','2');title.style.overflow='hidden';}
       const about=doc.createElement("span");about.className="reference-about";about.textContent=[(ref.authors||[]).slice(0,3).join(" / "),ref.year,ref.publicationVenue,(ref as any).citationCount!==undefined?`${getString("cards-cited")} ${(ref as any).citationCount}`:""].filter(Boolean).join(" · ");
       if(ref.retraction?.isRetracted){const warning=doc.createElement("span");warning.className="reference-retracted";warning.textContent=getString("relatedbox-retracted-badge");warning.title=ref.retraction.reason||"";content.append(warning);}
       content.append(text,title,about);
@@ -147,7 +177,7 @@ export default class ReferenceCards {
       action.setAttribute("aria-label",action.title);
       row.style.opacity=ref._item?"1":String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`)||"1");
       title.addEventListener("mouseenter",()=>{if(!Zotero.Prefs.get(`${config.addonRef}.isShowTip`))return;globalThis.clearTimeout(this.hoverTimer);this.hoverTimer=globalThis.setTimeout(()=>{if(!current()||!row.isConnected)return;this.tip=this.views.showTipUI(title.getBoundingClientRect() as any,{...ref,primaryVenue:ref.publicationVenue,identifiers:ref.identifiers||{}} as any,"left",ref.identifiers?.DOI,true,this.body.ownerDocument.defaultView!);},Math.max(100,Math.min(2000,Number(Zotero.Prefs.get(`${config.addonRef}.showTipAfterMillisecond`))||233)));});
-      title.addEventListener("mouseleave",()=>{globalThis.clearTimeout(this.hoverTimer);if(this.tip){globalThis.clearTimeout(this.tip.tipTimer);this.tip.tipTimer=globalThis.setTimeout(()=>this.tip?.clear(),500);}});
+      title.addEventListener("mouseleave",()=>{globalThis.clearTimeout(this.hoverTimer);if(this.tip){globalThis.clearTimeout(this.tip.tipTimer);this.tip.tipTimer=globalThis.setTimeout(()=>this.tip?.clear(),this.tip.removeTipAfterMillisecond);}});
       marker.append(number,dot);row.append(marker,content,action);
       row.addEventListener("click",event=>this.select(index,event));
       row.addEventListener("dblclick",()=>this.open(ref));
@@ -155,22 +185,29 @@ export default class ReferenceCards {
       row.addEventListener("keydown",event=>{
         // A focused action button must retain native Enter/Space activation.
         if(event.target!==row)return;
-        if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="a"){event.preventDefault();for(const node of this.visible())this.selected.add((node as any).reference);this.updateSelection();}
+        if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="a"){event.preventDefault();for(const item of this.filtered())this.selected.add(item);this.updateSelection();}
         else if(event.key==="Enter"){event.preventDefault();this.open(ref);}
         else if(event.key==="Escape"){event.preventDefault();this.selected.clear();this.updateSelection();}
         else if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="c"){event.preventDefault();this.views.utils.copyText(this.subset().map(ref=>ref.text||ref.title).join("\n"),false);}
-        else if(["ArrowUp","ArrowDown"].includes(event.key)){event.preventDefault();const visible=this.visible();const next=visible[Math.max(0,Math.min(visible.length-1,visible.indexOf(row)+(event.key==="ArrowDown"?1:-1)))];if(next){next.focus();this.select(this.rows.indexOf(next),event);}}
+        else if(["ArrowUp","ArrowDown"].includes(event.key)){
+          event.preventDefault();const visible=this.virtual?this.filtered():this.visible().map(node=>(node as any).reference);
+          const refNext=visible[Math.max(0,Math.min(visible.length-1,visible.indexOf(ref)+(event.key==='ArrowDown'?1:-1)))];
+          const focus=()=>{const next=this.rows.find(node=>(node as any).reference===refNext);if(next){next.focus();this.select(this.refs.indexOf(refNext),event);}};
+          if(this.virtual&&!this.rows.some(node=>(node as any).reference===refNext)&&this.listCurrent){this.windowStart=Math.max(0,visible.indexOf(refNext)-8);this.grid.scrollTop=this.windowStart*this.rowHeight;void this.render(this.refs,this.listCurrent).then(focus);}else focus();
+        }
       });
       this.rows.push(row);fragment.append(row);
-      if(index%40===39){await Zotero.Promise.delay(0);if(!current()||this.disposed)return;}
+      if(!this.virtual&&index%40===39){await Zotero.Promise.delay(0);if(!current()||this.disposed)return;}
     }
     if(current()&&!this.disposed){
-      this.grid.append(fragment);
+      if(this.virtual)fragment.append(spacer(Math.max(0,indices.length-start-displayIndices.length)*this.rowHeight));
+      this.grid.append(fragment);if(this.virtual)this.grid.scrollTop=scrollTop;
       this.empty=this.body.ownerDocument.createElement("p");this.empty.className="refflow-empty-result";this.empty.setAttribute("role","status");this.empty.textContent=getString("cards-no-search-results");this.empty.hidden=true;this.grid.after(this.empty);
       for(const ref of refs)if(selected.has(referenceIdentity(ref)))this.selected.add(ref);
       this.anchor=Math.max(0,refs.findIndex(ref=>referenceIdentity(ref)===anchorKey));
       this.updateSelection();
-      if(query)this.filter();
+      if(query&&!this.virtual)this.filter();
+      if(this.virtual){this.label().textContent=`${indices.length} / ${this.refs.length} · ${this.body.getAttribute('data-refflow-result-source')||''}`;this.empty.hidden=indices.length>0||!this.refs.length;}
       const now=this.grid.ownerDocument.activeElement;
       if(focusKey&&(!now||now===this.grid.ownerDocument.body||now===this.grid.ownerDocument.documentElement)){
         const row=this.rows.find(row=>!row.hidden&&referenceIdentity((row as any).reference)===focusKey);
@@ -185,7 +222,7 @@ export default class ReferenceCards {
       this.drainMatches();
     }
   }
-  updateStatus(){if(this.search.value.trim())this.filter();}
+  updateStatus(){if(this.search.value.trim()&&!this.virtual)this.filter();}
   private open(ref:ItemBaseInfo){if(ref._item)this.views.utils.selectItemInLibrary(ref._item, this.body.ownerDocument.defaultView!);else{const url=ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:undefined);if(url&&/^https?:\/\//i.test(url))Zotero.launchURL(url);}}
   menu(event?:MouseEvent){
     if(this.disposed)return;

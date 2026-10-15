@@ -1,0 +1,124 @@
+{
+  "version": "11.0-dev.5+dac1ad489",
+  "scope": "real isolated SQLite; no external provider requests",
+  "tests": [
+    {
+      "name": "local search rejects conflicting metadata and distinguishes cached evidence",
+      "ok": true,
+      "detail": {
+        "conflictRejected": true,
+        "validMatched": true
+      }
+    },
+    {
+      "name": "same-title distinct author/year rows create two items",
+      "ok": true,
+      "detail": {
+        "created": 2
+      }
+    },
+    {
+      "name": "cross-parent later reuse survives rollback of creator batch",
+      "ok": true,
+      "detail": {
+        "retained": true
+      }
+    },
+    {
+      "name": "same-parent repeated import leases relations until the final rollback",
+      "ok": true,
+      "detail": {
+        "bothOrdersSafe": true
+      }
+    },
+    {
+      "name": "reverse rollback order removes only later claims then safely trashes original creation",
+      "ok": true,
+      "detail": {
+        "safe": true
+      }
+    },
+    {
+      "name": "user-edited imported metadata survives rollback",
+      "ok": true,
+      "detail": {
+        "retained": true
+      }
+    },
+    {
+      "name": "untouched exclusive creation remains rollbackable and repeated rollback is harmless",
+      "ok": true,
+      "detail": {
+        "trashed": 1,
+        "idempotent": true
+      }
+    },
+    {
+      "name": "shared collection membership transfers to the last active batch",
+      "ok": true,
+      "detail": {
+        "transferred": true
+      }
+    },
+    {
+      "name": "user-added collection protects an imported creation",
+      "ok": true,
+      "detail": {
+        "retained": true
+      }
+    },
+    {
+      "name": "user-added child notes protect an imported creation",
+      "ok": true,
+      "detail": {
+        "retained": true
+      }
+    },
+    {
+      "name": "legacy markers without edit baselines retain imported creations",
+      "ok": true,
+      "detail": {
+        "retained": true
+      }
+    },
+    {
+      "name": "a corrupt active journal prevents destructive reconciliation",
+      "ok": true,
+      "detail": {
+        "rejected": true,
+        "unchanged": true
+      }
+    },
+    {
+      "name": "an edited batch manifest note survives rollback",
+      "ok": true,
+      "detail": {
+        "noteRetained": true
+      }
+    },
+    {
+      "name": "user annotations on a batch-downloaded PDF protect its parent and attachment",
+      "ok": true,
+      "detail": {
+        "parentRetained": true,
+        "pdfRetained": true,
+        "annotationRetained": true
+      }
+    },
+    {
+      "name": "editing batch-downloaded PDF metadata without annotations protects its parent",
+      "ok": true,
+      "detail": {
+        "parentRetained": true,
+        "pdfRetained": true,
+        "annotations": 0
+      }
+    }
+  ],
+  "finished": "2026-10-15T14:37:18.412Z",
+  "passed": 15,
+  "failed": 0,
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]"
+  ]
+}

@@ -6,9 +6,9 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-![Version](https://img.shields.io/badge/version-10.0.0-blue) ![Zotero](https://img.shields.io/badge/Zotero-10.0.6%E2%80%9311.*-green) ![License](https://img.shields.io/badge/license-AGPL-3.0-or-later-lightgrey)
+![Version](https://img.shields.io/badge/version-10.1.0-blue) ![Zotero](https://img.shields.io/badge/Zotero-10.0.6%E2%80%9311.*-green) ![License](https://img.shields.io/badge/license-AGPL-3.0-or-later-lightgrey)
 
-[Download](https://github.com/groele/Zotero-RefFlow/releases/tag/V10) · [Report an Issue](https://github.com/groele/Zotero-RefFlow/issues) · [Releases](https://github.com/groele/Zotero-RefFlow/releases)
+[Download](https://github.com/groele/Zotero-RefFlow/releases/tag/refflow-v10.1.0) · [Report an Issue](https://github.com/groele/Zotero-RefFlow/issues) · [Releases](https://github.com/groele/Zotero-RefFlow/releases)
 
 **Zotero Flow Series**
 
@@ -44,7 +44,7 @@ The declared compatibility range is not a guarantee that every Zotero version ha
 
 ## Installation
 
-1. [Download the XPI](https://github.com/groele/Zotero-RefFlow/releases/tag/V10) for the current release (`zotero-refflow.xpi`).
+1. [Download the XPI](https://github.com/groele/Zotero-RefFlow/releases/tag/refflow-v10.1.0) for the current release (`zotero-refflow.xpi`).
 2. Open Zotero → **Tools → Plugins** (or the add-on manager in your version).
 3. Choose **Install Add-on From File**, select the XPI, and restart Zotero if requested.
 
@@ -58,6 +58,10 @@ Update feed: [update.json](https://github.com/groele/Zotero-RefFlow/blob/main/up
 
 ## Configuration & Notes
 
+**10.1.0 repairs, 2026-10-15:** fixes the ten reproducible V10 audit defects and adds a source-built graph renderer, bounded reference-card rendering and shared request admission. See the [repair and validation report](docs/REPAIRS-2026-10-15.md). Legacy imported items without an edit baseline are retained during rollback rather than deleted on uncertain ownership.
+
+Auto selects retrieval sources; automatic refresh is a separate setting and is off by default.
+
 Online retrieval depends on external services and their rate limits. Scanned PDFs without a text layer may require OCR. Optional OpenAlex API credentials can be configured in Zotero settings.
 
 ## Development & Testing
@@ -69,7 +73,7 @@ npm ci
 npm run tsc
 npm test
 npm run build-prod
-``
+```
 
 These commands describe available project tasks, not a claim that every environment or integration test passes.
 

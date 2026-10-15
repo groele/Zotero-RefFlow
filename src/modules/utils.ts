@@ -2,6 +2,7 @@ import API from "./api"
 import PDF from "./pdf";
 import GBT7714Parser from "./parsers/gbt7714";
 import CitationVerifier from "./verifier";
+import {workIdentity,selectLibraryMatch} from './workIdentity';
 
 class Utils {
   API: API;
@@ -9,12 +10,15 @@ class Utils {
   private itemCache: Map<string, Zotero.Item | null> = new Map();
   private readonly MAX_ITEM_CACHE: number = 800;
   private itemCacheGeneration = 0;
+  private libraryGenerations=new Map<number,number>();
   private itemFlights = new Map<string, Promise<Zotero.Item | undefined>>();
 
-  public clearLibraryItemCache(): void {
-    this.itemCache.clear();
-    this.itemCacheGeneration++;
-    this.itemFlights.clear();
+  public clearLibraryItemCache(libraryIDs?:Set<number>): void {
+    if(libraryIDs){
+      for(const id of libraryIDs)this.libraryGenerations.set(id,(this.libraryGenerations.get(id)||0)+1);
+      for(const key of this.itemCache.keys())if(libraryIDs.has(Number(key.split(':')[0])))this.itemCache.delete(key);
+      for(const key of this.itemFlights.keys())if(libraryIDs.has(Number(key.split(':')[0])))this.itemFlights.delete(key);
+    }else{this.itemCache.clear();this.itemCacheGeneration++;this.libraryGenerations.clear();this.itemFlights.clear();}
   }
   public regex = {
     DOI: /10\.\d{4,9}\/[-._;()/:A-Za-z0-9><]+[^\.\]]/,
@@ -213,6 +217,7 @@ class Utils {
           year: gbt.year,
           type: gbt.type as any,
           publicationVenue: gbt.source,
+          volume:gbt.volume,issue:gbt.issue,pages:gbt.pages,
           text: text
         };
       }
@@ -315,39 +320,7 @@ class Utils {
     let items = (await (Zotero as any).Items.getAsync(ids)).filter((i: any) => {
       return Boolean(i && !i.deleted && (i.isRegularItem ? i.isRegularItem() : !i.isAttachment?.() && !i.isNote?.()));
     });
-    if (items.length) {
-      // 1. 优先根据精准规范化 DOI 匹配
-      if (info.identifiers?.DOI) {
-        const cleanDOI = CitationVerifier.normalizeDOI(info.identifiers.DOI);
-        const exact = items.find((it: any) => {
-          try {
-            const itDOI = CitationVerifier.normalizeDOI(it.getField("DOI") as string);
-            return itDOI && itDOI === cleanDOI;
-          } catch {
-            return false;
-          }
-        });
-        if (exact) return exact;
-      }
-      // 2. 存在标题时，对候选结果进行相似度打分重排，杜绝粗糙选取首项
-      const searchTitle = info.title || info.text || "";
-      if (searchTitle) {
-        let bestItem = items[0];
-        let bestSim = 0;
-        for (const it of items) {
-          try {
-            const itTitle = (it.getField("title") as string) || "";
-            const sim = CitationVerifier.tokenJaccard(searchTitle, itTitle);
-            if (sim > bestSim) {
-              bestSim = sim;
-              bestItem = it;
-            }
-          } catch {}
-        }
-        return bestItem;
-      }
-      return items[0];
-    }
+    return selectLibraryMatch(info,items);
   }
 
   /**
@@ -360,7 +333,7 @@ class Utils {
     await Zotero.Promise.delay(0);
     libraryID=libraryID || this.resolveLibraryID();
     if(!libraryID)return undefined;
-    const key = `${libraryID}:${info.identifiers?.DOI || ""}:${info.identifiers?.arXiv || ""}:${info.title || info.text || ""}:library-item`;
+    const key = `${libraryID}:${workIdentity(info)}:library-item`;
     if (this.itemCache.has(key)) {
       const cached = this.itemCache.get(key);
       this.itemCache.delete(key);this.itemCache.set(key,cached || null);
@@ -373,7 +346,7 @@ class Utils {
 
     // Share metadata-independent lookup work; an item notification invalidates
     // its generation so a pre-change miss cannot repopulate the cache.
-    const generation = this.itemCacheGeneration;
+    const generation = `${this.itemCacheGeneration}:${this.libraryGenerations.get(libraryID)||0}`;
     let flight = this.itemFlights.get(key);
     if (!flight) {
       flight = this.searchItem(info, libraryID);
@@ -382,7 +355,7 @@ class Utils {
     let item: Zotero.Item | undefined;
     try { item = await flight; }
     finally { if (this.itemFlights.get(key) === flight) this.itemFlights.delete(key); }
-    if (generation !== this.itemCacheGeneration) return undefined;
+    if (generation !== `${this.itemCacheGeneration}:${this.libraryGenerations.get(libraryID)||0}`) return undefined;
 
     // 2. 如果找到了匹配条目，进行标题验证，防止张冠李戴
     if (item) {

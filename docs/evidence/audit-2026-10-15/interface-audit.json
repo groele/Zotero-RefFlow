@@ -1,0 +1,1071 @@
+{
+  "at": "2026-10-15T13:41:26.502Z",
+  "scope": [
+    "src",
+    "addon",
+    "build/addon"
+  ],
+  "files": 47,
+  "retired": [],
+  "calls": [
+    {
+      "file": "src/hooks.ts",
+      "line": 23,
+      "expression": "Zotero.ItemPaneManager.registerSection"
+    },
+    {
+      "file": "src/hooks.ts",
+      "line": 50,
+      "expression": "Zotero.getMainWindows().map"
+    },
+    {
+      "file": "src/hooks.ts",
+      "line": 50,
+      "expression": "Zotero.getMainWindows"
+    },
+    {
+      "file": "src/hooks.ts",
+      "line": 66,
+      "expression": "Zotero.logError"
+    },
+    {
+      "file": "src/hooks.ts",
+      "line": 85,
+      "expression": "Zotero.Promise.delay"
+    },
+    {
+      "file": "src/hooks.ts",
+      "line": 129,
+      "expression": "Zotero.ItemPaneManager.unregisterSection"
+    },
+    {
+      "file": "src/index.ts",
+      "line": 6,
+      "expression": "Zotero.getMainWindow"
+    },
+    {
+      "file": "src/index.ts",
+      "line": 7,
+      "expression": "Zotero.getMainWindow"
+    },
+    {
+      "file": "src/index.ts",
+      "line": 8,
+      "expression": "Zotero.getActiveZoteroPane"
+    },
+    {
+      "file": "src/index.ts",
+      "line": 9,
+      "expression": "Zotero.getMainWindow"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 591,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 592,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 593,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 599,
+      "expression": "Zotero.Prefs.set"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 121,
+      "expression": "Zotero.Collections.getAsync"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 183,
+      "expression": "Zotero.Attachments.importFromURL"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 220,
+      "expression": "Zotero.Items.getAsync"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 227,
+      "expression": "Zotero.Items.getAsync"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 228,
+      "expression": "Zotero.Items.getAsync"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 235,
+      "expression": "Zotero.Items.getAsync"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 238,
+      "expression": "Zotero.Items.trash"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 241,
+      "expression": "Zotero.Collections.getAsync"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 253,
+      "expression": "Zotero.Items.trashTx"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 39,
+      "expression": "Zotero.Promise.delay"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 143,
+      "expression": "Zotero.locale.startsWith"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 154,
+      "expression": "Zotero.Prefs.set"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 159,
+      "expression": "Zotero.Prefs.set"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 179,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 413,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 795,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 798,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 819,
+      "expression": "Zotero.Promise.delay"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 865,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 894,
+      "expression": "Zotero.Collections.getByLibrary"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 896,
+      "expression": "Zotero.Utilities.Internal.createMenuForTarget"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 977,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 1020,
+      "expression": "Zotero.Prefs.set"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 1056,
+      "expression": "Zotero.Promise.delay"
+    },
+    {
+      "file": "src/modules/GraphData.ts",
+      "line": 55,
+      "expression": "Zotero.Prefs.set"
+    },
+    {
+      "file": "src/modules/GraphData.ts",
+      "line": 63,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/localStorage.ts",
+      "line": 55,
+      "expression": "Zotero.File.getContentsAsync"
+    },
+    {
+      "file": "src/modules/localStorage.ts",
+      "line": 87,
+      "expression": "Zotero.File.putContentsAsync"
+    },
+    {
+      "file": "src/modules/openalex.ts",
+      "line": 27,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/pdf.ts",
+      "line": 42,
+      "expression": "Zotero.Promise.delay"
+    },
+    {
+      "file": "src/modules/pdf.ts",
+      "line": 80,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/pdf.ts",
+      "line": 109,
+      "expression": "Zotero.Promise.delay"
+    },
+    {
+      "file": "src/modules/publisherReferences.ts",
+      "line": 126,
+      "expression": "Zotero.Promise.delay"
+    },
+    {
+      "file": "src/modules/publisherReferences.ts",
+      "line": 133,
+      "expression": "Zotero.Promise.delay"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 60,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 79,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 148,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 149,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 149,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 165,
+      "expression": "Zotero.Promise.delay"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 189,
+      "expression": "Zotero.launchURL"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 202,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 207,
+      "expression": "Zotero.Prefs.set"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 207,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 208,
+      "expression": "Zotero.Prefs.set"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 208,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 208,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/requests.ts",
+      "line": 202,
+      "expression": "Zotero.HTTP.request"
+    },
+    {
+      "file": "src/modules/semanticScholar.ts",
+      "line": 11,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 23,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 27,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 164,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 266,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 323,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 369,
+      "expression": "Zotero.launchURL"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 372,
+      "expression": "Zotero.ProgressWindowSet.closeAll"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 384,
+      "expression": "Zotero.ProgressWindowSet.closeAll"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 394,
+      "expression": "Zotero.ProgressWindowSet.closeAll"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 486,
+      "expression": "Zotero.Prefs.set"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 498,
+      "expression": "Zotero.ProgressWindowSet.closeAll"
+    },
+    {
+      "file": "src/modules/tip.ts",
+      "line": 507,
+      "expression": "Zotero.ProgressWindowSet.closeAll"
+    },
+    {
+      "file": "src/modules/utils.ts",
+      "line": 268,
+      "expression": "Zotero.Items.getByLibraryAndKey"
+    },
+    {
+      "file": "src/modules/utils.ts",
+      "line": 360,
+      "expression": "Zotero.Promise.delay"
+    },
+    {
+      "file": "src/modules/utils.ts",
+      "line": 430,
+      "expression": "Zotero.ItemTypes.getName"
+    },
+    {
+      "file": "src/modules/utils.ts",
+      "line": 481,
+      "expression": "Zotero.Reader.getByTabID"
+    },
+    {
+      "file": "src/modules/utils.ts",
+      "line": 512,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 121,
+      "expression": "Zotero.Notifier.registerObserver"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 165,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 168,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 191,
+      "expression": "Zotero.Prefs.set"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 193,
+      "expression": "Zotero.Prefs.set"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 202,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 245,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 246,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 246,
+      "expression": "Zotero.ItemTypes.getName"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 292,
+      "expression": "Zotero.Prefs.set"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 292,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 312,
+      "expression": "Zotero.Notifier.unregisterObserver"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 313,
+      "expression": "Zotero.ItemPaneManager.unregisterSection"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 315,
+      "expression": "Zotero.getMainWindows"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 328,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 333,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 338,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 347,
+      "expression": "Zotero.File.pathToFile(path).exists"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 347,
+      "expression": "Zotero.File.pathToFile"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 357,
+      "expression": "Zotero.File.pathToFile"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 373,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 382,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 437,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 439,
+      "expression": "Zotero.File.pathToFile"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 440,
+      "expression": "Zotero.File.getContentsAsync"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 466,
+      "expression": "Zotero.Items.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 469,
+      "expression": "Zotero.File.pathToFile"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 562,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 611,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 654,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 726,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 734,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 759,
+      "expression": "Zotero.Prefs.get"
+    },
+    {
+      "file": "src/utils/lifecycle.ts",
+      "line": 13,
+      "expression": "Zotero.logError"
+    }
+  ],
+  "urlPatterns": [
+    {
+      "file": "src/modules/api.ts",
+      "line": 56,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 94,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 169,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 269,
+      "url": "https://api.crossref.org/works/"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 318,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 353,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 444,
+      "url": "https://export.arxiv.org/api/query?id_list="
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 448,
+      "url": "http://www.w3.org/2005/Atom"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 450,
+      "url": "http://www.w3.org/2005/Atom"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 453,
+      "url": "http://www.w3.org/2005/Atom"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 453,
+      "url": "http://www.w3.org/2005/Atom"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 454,
+      "url": "http://www.w3.org/2005/Atom"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 466,
+      "url": "https://api.crossref.org/works?query.bibliographic="
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 517,
+      "url": "https://kns.cnki.net/kns8/Brief/GetGridTableHtml"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 527,
+      "url": "https://kns.cnki.net/kcms/detail/detail.aspx?FileName="
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 596,
+      "url": "https://apix.cnki.net/databusapi/api/v1.0/credential/namepasswithcleartext/personalaccount"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 603,
+      "url": "https://x.cnki.net/readApi/api/v1/paperInfo?fileName="
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 604,
+      "url": "https://x.cnki.net/readApi/api/v1/paperRefreNotes?appId=CRSP_BASIC_PSMC&dbcode=CJFD&tablename=CJFDTOTAL&filename="
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 637,
+      "url": "https://kns.cnki.net/kcms/detail/detail.aspx?FileName="
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 664,
+      "url": "https://kns.cnki.net/kcms/detail/detail.aspx?FileName="
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 891,
+      "url": "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+    },
+    {
+      "file": "src/modules/graphTransport.ts",
+      "line": 24,
+      "url": "https://rest.prod.connectedpapers.com/papers-api/graph/1/"
+    },
+    {
+      "file": "src/modules/openalex.ts",
+      "line": 34,
+      "url": "https://openalex.org/"
+    },
+    {
+      "file": "src/modules/openalex.ts",
+      "line": 43,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/openalex.ts",
+      "line": 54,
+      "url": "https://api.openalex.org/works/doi:"
+    },
+    {
+      "file": "src/modules/openalex.ts",
+      "line": 88,
+      "url": "https://api.openalex.org/works?filter="
+    },
+    {
+      "file": "src/modules/openalex.ts",
+      "line": 134,
+      "url": "https://api.openalex.org/works?filter="
+    },
+    {
+      "file": "src/modules/openalex.ts",
+      "line": 178,
+      "url": "https://api.openalex.org/works?search="
+    },
+    {
+      "file": "src/modules/publisherReferences.ts",
+      "line": 60,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/publisherReferences.ts",
+      "line": 82,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/publisherReferences.ts",
+      "line": 129,
+      "url": "https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/?ids="
+    },
+    {
+      "file": "src/modules/publisherReferences.ts",
+      "line": 135,
+      "url": "https://pmc.ncbi.nlm.nih.gov/api/oai/v1/mh/?verb=GetRecord&identifier=oai:pubmedcentral.nih.gov:"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 189,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 199,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/requests.ts",
+      "line": 324,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/requests.ts",
+      "line": 335,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/retraction.ts",
+      "line": 30,
+      "url": "https://api.crossref.org/works/"
+    },
+    {
+      "file": "src/modules/semanticScholar.ts",
+      "line": 20,
+      "url": "https://api.semanticscholar.org/graph/v1/paper/DOI:"
+    },
+    {
+      "file": "src/modules/semanticScholar.ts",
+      "line": 30,
+      "url": "https://api.semanticscholar.org/graph/v1/paper/search?query="
+    },
+    {
+      "file": "src/modules/semanticScholar.ts",
+      "line": 43,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/semanticScholar.ts",
+      "line": 54,
+      "url": "https://api.semanticscholar.org/graph/v1/paper/DOI:"
+    },
+    {
+      "file": "src/modules/utils.ts",
+      "line": 192,
+      "url": "https://doi.org/"
+    },
+    {
+      "file": "src/modules/utils.ts",
+      "line": 195,
+      "url": "https://arxiv.org/abs/"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 752,
+      "url": "https://doi.org/"
+    }
+  ],
+  "internalMembers": [
+    {
+      "file": "src/modules/api.ts",
+      "line": 213,
+      "member": "_"
+    },
+    {
+      "file": "src/modules/api.ts",
+      "line": 213,
+      "member": "_"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 25,
+      "member": "_utils"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 165,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/batchImporter.ts",
+      "line": 199,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 588,
+      "member": "_ref"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 631,
+      "member": "_ref"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 651,
+      "member": "_ref"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 654,
+      "member": "_ref"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 671,
+      "member": "_itemID"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 746,
+      "member": "_itemID"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 852,
+      "member": "_itemID"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 861,
+      "member": "_itemID"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 862,
+      "member": "_itemID"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 959,
+      "member": "_itemID"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 1042,
+      "member": "_itemID"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 1063,
+      "member": "_paper_to_color"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 1063,
+      "member": "_paper_to_color"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 1066,
+      "member": "_paper_to_color"
+    },
+    {
+      "file": "src/modules/connectedpapers.ts",
+      "line": 1067,
+      "member": "_itemID"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 53,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 72,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 72,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 130,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 130,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 137,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 137,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 144,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 148,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 189,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/referenceCards.ts",
+      "line": 189,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/utils.ts",
+      "line": 368,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/utils.ts",
+      "line": 405,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 43,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 127,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 150,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 157,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 158,
+      "member": "_setL10nArgs"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 237,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 238,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 239,
+      "member": "_setL10nArgs"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 256,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 267,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 268,
+      "member": "_setL10nArgs"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 303,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 489,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 647,
+      "member": "_setL10nArgs"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 649,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 660,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 661,
+      "member": "_cards"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 676,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 815,
+      "member": "_item"
+    },
+    {
+      "file": "src/modules/views.ts",
+      "line": 817,
+      "member": "_item"
+    }
+  ]
+}

@@ -1,0 +1,131 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-15T14:38:15.723Z",
+  "scope": "Isolated native SQLite, SDT, pane and cache. External providers controlled; no live provider requests.",
+  "tests": [
+    {
+      "name": "Auto persists PDF references despite both save preferences being false",
+      "ok": true,
+      "detail": {
+        "bugReproduced": false,
+        "extracted": 4,
+        "source": "PDF"
+      }
+    },
+    {
+      "name": "Auto bypasses the CNKI capability that the API route reaches",
+      "ok": true,
+      "detail": {
+        "bugReproduced": false,
+        "autoCount": 1,
+        "autoCNKICalls": 1,
+        "apiCount": 1,
+        "apiCNKICalls": 2
+      }
+    },
+    {
+      "name": "Local title matching accepts conflicting author and year",
+      "ok": true,
+      "detail": {
+        "bugReproduced": false,
+        "requestedAuthor": "Jones",
+        "requestedYear": "2024",
+        "actualAuthor": "Smith",
+        "actualYear": "1995",
+        "linked": false
+      }
+    },
+    {
+      "name": "Batch title-only identity collapses different author/year references",
+      "ok": true,
+      "detail": {
+        "bugReproduced": false,
+        "imported": 2,
+        "reused": 0,
+        "linkedIDs": [
+          6,
+          7
+        ]
+      }
+    },
+    {
+      "name": "Rollback trashes an item reused by a later batch on another parent",
+      "ok": true,
+      "detail": {
+        "bugReproduced": false,
+        "laterBatchReused": 1,
+        "laterParentRelatedBefore": true,
+        "itemDeletedAfterOlderRollback": false,
+        "laterParentStillRelated": true
+      }
+    },
+    {
+      "name": "Manual PDF route bypasses unified numbering gap completeness",
+      "ok": true,
+      "detail": {
+        "bugReproduced": false,
+        "numbers": [
+          1,
+          3
+        ],
+        "cachedPartial": true,
+        "source": "PDF (2+ · 部分列表)"
+      }
+    },
+    {
+      "name": "Crossref early filtering hides malformed-row losses without expected count",
+      "ok": true,
+      "detail": {
+        "bugReproduced": false,
+        "inputRows": 2,
+        "outputRows": 1,
+        "partial": true
+      }
+    },
+    {
+      "name": "Refresh replaces a complete cached list with a shorter partial result",
+      "ok": true,
+      "detail": {
+        "bugReproduced": false,
+        "before": 5,
+        "after": 5,
+        "cachedAfter": 5,
+        "cachedPartial": false
+      }
+    },
+    {
+      "name": "Rapid source refresh preserves the newer pane result",
+      "ok": true,
+      "detail": {
+        "invariantPassed": true,
+        "finalTitle": "Newer result"
+      }
+    },
+    {
+      "name": "Parsed GB/T volume issue and pages are lost before native import",
+      "ok": true,
+      "detail": {
+        "bugReproduced": false,
+        "expected": {
+          "volume": "73",
+          "issue": "4",
+          "pages": "12-18"
+        },
+        "parsedTitle": "二维材料中的谷极化研究1792075095723",
+        "saved": {
+          "volume": "73",
+          "issue": "4",
+          "pages": "12-18"
+        }
+      }
+    }
+  ],
+  "finished": "2026-10-15T14:38:20.059Z",
+  "passed": 10,
+  "failed": 0,
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"The connection was refused when attempting to contact wss://stream.zotero.org/.\" {file: \"chrome://zotero/content/xpcom/streamer.js\" line: 240}]",
+    "[JavaScript Error: \"WebSocket connection closed: 1006 \"]"
+  ]
+}

@@ -1,0 +1,110 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-15T13:43:09.899Z",
+  "scope": "native DOM/SQLite/XHR; reference provider responses are controlled fixtures",
+  "tests": [
+    {
+      "name": "refresh keeps existing cards usable until a replacement is ready",
+      "ok": true,
+      "ms": 17,
+      "detail": {
+        "retainedCards": 14
+      }
+    },
+    {
+      "name": "failed refresh retains the previous list and reports recovery",
+      "ok": true,
+      "ms": 2,
+      "detail": {
+        "retained": true,
+        "label": "获取失败，请重试 · 保留上次结果"
+      }
+    },
+    {
+      "name": "cancel preserves the previous list and rejects a late replacement",
+      "ok": true,
+      "ms": 12,
+      "detail": {
+        "retained": true
+      }
+    },
+    {
+      "name": "successful refresh preserves filtered count, selection and focused reference",
+      "ok": true,
+      "ms": 227,
+      "detail": {
+        "selection": true,
+        "focus": true,
+        "filteredCount": true
+      }
+    },
+    {
+      "name": "sort is local and retains selection and source numbering",
+      "ok": true,
+      "ms": 18,
+      "detail": {
+        "providerRequests": 0
+      }
+    },
+    {
+      "name": "lazy library matching remains valid after the fetch task completes",
+      "ok": true,
+      "ms": 65,
+      "detail": {
+        "taskFinished": true,
+        "localMatch": true,
+        "controlledIntersectionScheduling": true
+      }
+    },
+    {
+      "name": "different literature types do not retain another type list",
+      "ok": true,
+      "ms": 2,
+      "detail": {
+        "isolated": true
+      }
+    },
+    {
+      "name": "two native consumers share XHR while cancelling only one remains isolated",
+      "ok": true,
+      "ms": 131,
+      "detail": {
+        "httpRequests": 1,
+        "cancelledConsumers": 1
+      }
+    },
+    {
+      "name": "last-consumer cancellation physically aborts native XHR and leaves no cache",
+      "ok": true,
+      "ms": 70,
+      "detail": {
+        "settledMs": 30
+      }
+    },
+    {
+      "name": "cancelled queued native XHR frees capacity before the active request completes",
+      "ok": true,
+      "ms": 136,
+      "detail": {
+        "httpRequests": 1
+      }
+    },
+    {
+      "name": "optional enrichment timeout cancels its native child subscription",
+      "ok": true,
+      "ms": 85,
+      "detail": {
+        "deadlineMs": 40
+      }
+    },
+    {
+      "name": "installed updater targets the user repository",
+      "ok": false,
+      "error": "Error: Wrong release package",
+      "stack": "check@jar:file:///<isolated-zotero-profile>/profile/extensions/refflow-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:6:76\nanonymous/<@jar:file:///<isolated-zotero-profile>/profile/extensions/refflow-native-test@example.org.xpi!/bootstrap.js line 13 > AsyncFunction:60:174\n"
+    }
+  ],
+  "finished": "2026-10-15T13:43:11.005Z",
+  "passed": 11,
+  "failed": 1
+}

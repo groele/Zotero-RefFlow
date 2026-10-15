@@ -1,0 +1,111 @@
+{
+  "version": "10.1.0",
+  "tag": "refflow-v10.1.0",
+  "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f",
+  "packageBytes": 121056,
+  "unit": {
+    "passed": 255,
+    "failed": 0
+  },
+  "typecheck": "passed",
+  "productionBuild": "passed",
+  "sourcePayloads": "28/28 match after CRLF normalization",
+  "isolatedInstalledPackageHashes": "10 isolated installed copies match the exact promoted XPI",
+  "native": {
+    "stage1-accepted-native.json": {
+      "host": "10.0.6",
+      "passed": 15,
+      "failed": 0,
+      "scenariosPassed": 15,
+      "finished": "2026-10-15T14:36:49.284Z",
+      "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f"
+    },
+    "stage2-accepted-native.json": {
+      "host": "10.0.6",
+      "passed": 10,
+      "failed": 0,
+      "scenariosPassed": 10,
+      "finished": "2026-10-15T14:38:20.059Z",
+      "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f"
+    },
+    "stage3-accepted-native.json": {
+      "host": "10.0.6",
+      "passed": 8,
+      "failed": 0,
+      "scenariosPassed": 8,
+      "finished": "2026-10-15T14:38:17.778Z",
+      "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f"
+    },
+    "full-final-native.json": {
+      "host": "10.0.6",
+      "passed": 16,
+      "failed": 0,
+      "scenariosPassed": 109,
+      "finished": "2026-10-15T14:37:49.311Z",
+      "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f"
+    },
+    "zotero11-stage1-accepted-native.json": {
+      "host": "11.0-dev.5+dac1ad489",
+      "passed": 15,
+      "failed": 0,
+      "scenariosPassed": 15,
+      "finished": "2026-10-15T14:37:18.412Z",
+      "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f"
+    },
+    "zotero11-accepted.json": {
+      "host": "11.0-dev.5+dac1ad489",
+      "passed": 14,
+      "failed": 0,
+      "scenariosPassed": 99,
+      "finished": "2026-10-15T14:39:40.710Z",
+      "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f"
+    },
+    "zotero11-accepted-restart.json": {
+      "host": "11.0-dev.5+dac1ad489",
+      "passed": 2,
+      "failed": 0,
+      "scenariosPassed": 2,
+      "finished": "2026-10-15T14:40:55.784Z",
+      "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f"
+    },
+    "dataflow-native.json": {
+      "host": "10.0.6",
+      "passed": 13,
+      "failed": 0,
+      "scenariosPassed": 13,
+      "finished": "2026-10-15T14:40:31.854Z",
+      "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f"
+    },
+    "pipeline-final-native.json": {
+      "host": "10.0.6",
+      "passed": 15,
+      "failed": 0,
+      "scenariosPassed": 15,
+      "finished": "2026-10-15T14:40:31.177Z",
+      "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f"
+    },
+    "architecture-native.json": {
+      "host": "10.0.6",
+      "passed": 6,
+      "failed": 0,
+      "scenariosPassed": 6,
+      "finished": "2026-10-15T14:40:33.552Z",
+      "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f"
+    },
+    "structure-accepted-native.json": {
+      "host": "10.0.6",
+      "passed": 8,
+      "failed": 0,
+      "scenariosPassed": 8,
+      "finished": "2026-10-15T14:40:31.138Z",
+      "candidateSha256": "c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f"
+    }
+  },
+  "limits": [
+    "Provider responses controlled; no live-service coverage claim.",
+    "Zotero 11 is a development host, not future stable acceptance.",
+    "Already-started native attachment downloads finish registration before cancellation completes.",
+    "Unlocated startup exception also occurs with a no-op RefFlow bootstrap; retained in logs.",
+    "No global grand total: comprehensive and specialist reports overlap."
+  ]
+}

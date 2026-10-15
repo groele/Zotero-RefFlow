@@ -1,0 +1,123 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-15T13:44:59.526Z",
+  "scope": "Isolated native SQLite, SDT, pane and cache. External providers controlled; no live provider requests.",
+  "probes": [
+    {
+      "name": "Auto persists PDF references despite both save preferences being false",
+      "completed": true,
+      "bugReproduced": true,
+      "extracted": 4,
+      "inMemory": 4,
+      "onDisk": 4,
+      "source": "PDF"
+    },
+    {
+      "name": "Auto bypasses the CNKI capability that the API route reaches",
+      "completed": true,
+      "bugReproduced": true,
+      "autoCount": 0,
+      "autoCNKICalls": 0,
+      "apiCount": 1,
+      "apiCNKICalls": 1
+    },
+    {
+      "name": "Local title matching accepts conflicting author and year",
+      "completed": true,
+      "bugReproduced": true,
+      "requestedAuthor": "Jones",
+      "requestedYear": "2024",
+      "actualAuthor": "Smith",
+      "actualYear": "1995",
+      "linked": true
+    },
+    {
+      "name": "Batch title-only identity collapses different author/year references",
+      "completed": true,
+      "bugReproduced": true,
+      "imported": 1,
+      "reused": 1,
+      "linkedIDs": [
+        6,
+        6
+      ]
+    },
+    {
+      "name": "Rollback trashes an item reused by a later batch on another parent",
+      "completed": true,
+      "bugReproduced": true,
+      "laterBatchReused": 1,
+      "laterParentRelatedBefore": true,
+      "itemDeletedAfterOlderRollback": true,
+      "laterParentStillRelated": true
+    },
+    {
+      "name": "Manual PDF route bypasses unified numbering gap completeness",
+      "completed": true,
+      "bugReproduced": true,
+      "numbers": [
+        1,
+        3
+      ],
+      "cachedPartial": false,
+      "source": "PDF"
+    },
+    {
+      "name": "Crossref early filtering hides malformed-row losses without expected count",
+      "completed": true,
+      "bugReproduced": true,
+      "inputRows": 2,
+      "outputRows": 1,
+      "partial": false
+    },
+    {
+      "name": "Refresh replaces a complete cached list with a shorter partial result",
+      "completed": true,
+      "bugReproduced": true,
+      "before": 5,
+      "after": 1,
+      "cachedAfter": 1,
+      "cachedPartial": true
+    },
+    {
+      "name": "Rapid source refresh preserves the newer pane result",
+      "completed": true,
+      "invariantPassed": true,
+      "finalTitle": "Newer result"
+    },
+    {
+      "name": "Parsed GB/T volume issue and pages are lost before native import",
+      "completed": true,
+      "bugReproduced": true,
+      "expected": {
+        "volume": "73",
+        "issue": "4",
+        "pages": "12-18"
+      },
+      "parsedTitle": "二维材料中的谷极化研究1792071899526",
+      "saved": {
+        "volume": "",
+        "issue": "",
+        "pages": ""
+      }
+    },
+    {
+      "name": "Graph cold view displays embedded sample papers before any graph request",
+      "completed": true,
+      "bugReproduced": true,
+      "nodes": 41,
+      "edges": 809,
+      "firstTitle": "Remote sensing of atmospheric fine particulate matter (PM2.5) mass concentration near the ground from satellite observation",
+      "hasUserOrigins": false
+    }
+  ],
+  "finished": "2026-10-15T13:45:03.046Z",
+  "passed": 11,
+  "failed": 0,
+  "bugsReproduced": 10,
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"The connection was refused when attempting to contact wss://stream.zotero.org/.\" {file: \"chrome://zotero/content/xpcom/streamer.js\" line: 240}]",
+    "[JavaScript Error: \"WebSocket connection closed: 1006 \"]"
+  ]
+}

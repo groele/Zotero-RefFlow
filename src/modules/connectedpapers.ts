@@ -4,8 +4,9 @@ import { config } from "../../package.json";
 import Views from "./views";
 import TipUI from "./tip";
 import buildGraphData from "./GraphData";
-import { hsl } from "d3";
+import {graphColor} from "./graphModel";
 import { cleanupSync } from "../utils/lifecycle";
+import {getString} from '../utils/locale';
 
 export default class ConnectedPapers {
   private doc: Document;
@@ -22,6 +23,8 @@ export default class ConnectedPapers {
   private cleanup: Array<()=>void> = [];
   private disposed = false;
   private graphController?: AbortController;
+  private graphSelectedID="";
+  private graphEventCleanup?:()=>void;
   private selectListener=()=>{this.updateAddOrRemove();this.syncRelatedPane(this.graphVisible);};
   constructor(views: Views, win: Window = window) {
     this.win=win;this.doc=win.document;
@@ -46,6 +49,7 @@ export default class ConnectedPapers {
     if (this.disposed) return;
     this.disposed = true;
     cleanupSync(() => this.graphController?.abort());
+    cleanupSync(() => this.graphEventCleanup?.());
     cleanupSync(() => this.requests.dispose());
     cleanupSync(() => this.win.ZoteroPane?.itemsView?.onSelect?.removeListener(this.selectListener));
     this.cleanup.forEach(cleanupSync);this.cleanup=[];
@@ -300,7 +304,9 @@ export default class ConnectedPapers {
                       relatedContainer.querySelector("#origin-items-container .origin-items")!,
                       info,
                     )
+                    if(this.disposed||!relatedContainer.isConnected||this.itemIDs.includes(item.id))return;
                     this.itemIDs.push(item.id)
+                    this.invalidateGraph();
                     this.updateAddOrRemove()
                     popupWin.changeLine({ text: itemTitle, type: "success" })
                       .startCloseTimer(1000)
@@ -347,6 +353,7 @@ export default class ConnectedPapers {
                     if (!items || items.length === 0 || !items[0]) return;
                     const itemID = items[0].id;
                     this.itemIDs = this.itemIDs.filter(i => i != itemID)
+                    this.invalidateGraph();
                     relatedContainer.querySelectorAll(".normal-items .item")?.forEach(e => e.remove())
                     relatedContainer.querySelectorAll("#origin-items-container .origin-items .item")
                       .forEach(e => {
@@ -416,14 +423,14 @@ export default class ConnectedPapers {
                 relatedContainer.querySelectorAll(".normal-items .item, .prior-items .item, .deriv-items .item").forEach(e => e.remove());
                 ztoolkit.log("graphdata", graphdata)
                 // @ts-ignore
-                const app = this.frame.contentWindow.app
+                const app = this.frame.contentWindow.RefFlowGraph
                 // app.graphdata = graphdata
                 // items
                 Object.values(graphdata.nodes).sort((a: any, b: any) => b.year - a.year).forEach((paper: any) => {
                   this.addItem(
                     relatedContainer.querySelector(".normal-items") as HTMLDivElement,
                     this.paper2Info(paper),
-                    app.paper_to_color(paper),
+                    graphColor(paper),
                   )
                 })
                 // prior
@@ -431,7 +438,7 @@ export default class ConnectedPapers {
                   const itemNode = this.addItem(
                     relatedContainer.querySelector(".prior-items") as HTMLDivElement,
                     this.paper2Info(paper),
-                    app.paper_to_color(paper)
+                    graphColor(paper)
                   )
                   itemNode.setAttribute("local", paper.local_citations.join("+"))
                 })
@@ -440,7 +447,7 @@ export default class ConnectedPapers {
                   const itemNode = this.addItem(
                     relatedContainer.querySelector(".deriv-items") as HTMLDivElement,
                     this.paper2Info(paper),
-                    app.paper_to_color(paper)
+                    graphColor(paper)
                   )
                   itemNode.setAttribute("local", paper.local_references.join("+"))
                 })
@@ -569,6 +576,10 @@ export default class ConnectedPapers {
       ]
     }, box) as HTMLDivElement
     this.relatedContainer = relatedContainer
+    for(const node of Array.from(relatedContainer.querySelectorAll('#add-origin,#remove-origin,#build-graph,#prior-works,#deriv-works')) as HTMLElement[]){
+      node.setAttribute('role','button');node.tabIndex=0;
+      node.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();node.click();}});
+    }
 
   }
 
@@ -607,10 +618,8 @@ export default class ConnectedPapers {
         }
       }
       // @ts-ignore
-      this.frame.contentWindow.GLOBAL_SELECTED_PAPER.value = {
-        paper_id: arg.paperID,
-        src: src
-      };
+      this.graphSelectedID=arg.paperID;
+      this.frame.contentWindow?.RefFlowGraph?.setState({selected:arg.paperID});
       // 选择普通item，设置prior/deriv works背景色
       [
         ...this.relatedContainer?.querySelectorAll(".prior-items .item") as any, 
@@ -639,16 +648,13 @@ export default class ConnectedPapers {
 
     } else if (arg.state == "hover") {
       // @ts-ignore
-      this.frame.contentWindow.GLOBAL_HOVER_PAPER.value = {
-        paper_id: arg.paperID,
-        src: "Nodes"
-      }
+      this.frame.contentWindow?.RefFlowGraph?.setState({hover:arg.paperID});
       Array.prototype.forEach.call(
         this.relatedContainer?.querySelectorAll(".item"),
         (itemNode) => {
           // 跳过选择
           // @ts-ignore
-          if (this.frame.contentWindow.GLOBAL_SELECTED_PAPER.value?.paper_id == itemNode._ref.identifiers.paperID) {
+          if (this.graphSelectedID == itemNode._ref.identifiers.paperID) {
             return
           }
           if (itemNode._ref.identifiers.paperID == arg.paperID) {
@@ -986,7 +992,7 @@ export default class ConnectedPapers {
     frame.style.width = "100%"
     frame.style.height = graphContainer.style.height;
     frame.style.overflow = "hidden"
-    frame.style.backgroundColor = "#ffffff"
+    frame.style.backgroundColor = "transparent"
     graphContainer.append(frame)
     mainNode.append(graphContainer)
     const resizer = ztoolkit.UI.createElement(this.doc, "div", {
@@ -1053,52 +1059,27 @@ export default class ConnectedPapers {
     const graphData = await this.buildGraphData(items, controller.signal) as Graph
     if(!graphData?.nodes || !current()) return;
     const readyDeadline=Date.now()+10000;
-    while(!(this.frame.contentWindow as any)?.app && Date.now()<readyDeadline && current())await Zotero.Promise.delay(100);
-    if (!current()) return;
-    ztoolkit.log(graphData)
-    const app = (this.frame.contentWindow! as any).app as any
-    if(!app)throw new Error("Graph view did not finish loading");
-    app.graphdata = graphData;
-    app.$route.params.origin_id = graphData.start_id || (graphData as any).start_ids?.join("+");
-    app._paper_to_color = app._paper_to_color || app.paper_to_color
-    const zoteroHsl = hsl("#c22727");
-    app.paper_to_color = (paper: any) => {
-      let res_color = app._paper_to_color(paper)
-      if (this.zoteroColor && paper._itemID) {
-        let res_hsl = hsl(res_color);
-        res_hsl.h = zoteroHsl.h;
-        res_hsl.s = (res_hsl.s + 2 * zoteroHsl.s) / 3;
-        return res_hsl + "";
-      }
-      return res_color
-    }
-    app.refresh_graph()
-    // scrollToSelected
-    let scrollToNode = (className: "selected" | "hover") => {
-      const parent = this.doc.querySelector(".normal-items") as HTMLDivElement;
-      if (!parent) return;
-      const target = parent.querySelector(`.${className}`) as HTMLDivElement;
-      const firstChild = parent.firstChild as HTMLDivElement;
-      if (target && firstChild) {
-        parent.scrollTo(0, target.offsetTop - firstChild.offsetTop);
-      }
+    while(!(this.frame.contentWindow as any)?.RefFlowGraph && Date.now()<readyDeadline && current())await Zotero.Promise.delay(100);
+    if(!current())return;
+    const frameWindow=this.frame.contentWindow as any,bridge=frameWindow?.RefFlowGraph;
+    if(bridge?.version!==1)throw new Error('Graph view did not load the supported rendering interface');
+    bridge.setGraph(graphData,{origins:this.itemIDs.map(String),retrievedAt:new Date().toISOString()});
+    this.graphEventCleanup?.();
+    const onGraphEvent=(event:any)=>{
+      const detail=event.detail;if(!current()||detail?.version!==1||!['select','hover'].includes(detail.type))return;
+      if(detail.paperId&&!Object.values(graphData.nodes).some((paper:any)=>paper.paperId===detail.paperId))return;
+      this.setNodeState({state:detail.type==='select'?'selected':'hover',paperID:detail.paperId});
+      const target=this.relatedContainer?.querySelector(`.normal-items .${detail.type==='select'?'selected':'hover'}`) as HTMLElement;
+      target?.scrollIntoView({block:'nearest'});
     };
-    // 下面绑定是覆盖
-    app.graphdata.sim_node_circles
-      // 从图谱节点反向定位到列表
-      .on("click", (event: any, it: any) => {
-        const paperID = it.paperId
-        this.setNodeState({ state: "selected", paperID })
-        scrollToNode("selected")
-      })
-      .on("mouseover", (event: any, it: any) => {
-        const paperID = it.paperId
-        this.setNodeState({ state: "hover", paperID })
-        scrollToNode("hover")
-      })
-      .on("mouseout", (event: any, it: any) => {
-        this.setNodeState({ state: "hover", paperID: "" })
-      })
-    return graphData
+    frameWindow.addEventListener('refflow-graph-event',onGraphEvent);
+    this.graphEventCleanup=()=>frameWindow.removeEventListener('refflow-graph-event',onGraphEvent);
+    return graphData;
+  }
+
+  private invalidateGraph(){
+    this.graphController?.abort();this.graphEventCleanup?.();this.graphEventCleanup=undefined;this.graphSelectedID='';
+    (this.frame?.contentWindow as any)?.RefFlowGraph?.clear(getString('graph-origins-changed'));
+    this.relatedContainer?.querySelectorAll('.normal-items .item,.prior-items .item,.deriv-items .item').forEach(node=>node.remove());
   }
 }

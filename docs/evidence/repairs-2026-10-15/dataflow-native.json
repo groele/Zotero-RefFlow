@@ -1,0 +1,171 @@
+{
+  "version": "10.0.6",
+  "at": "2026-10-15T14:40:26.064Z",
+  "tempDir": "<isolated-profile>\\tmp\\Zotero",
+  "scope": "native SDT, DOM, SQLite, request cancellation; external provider responses controlled",
+  "tests": [
+    {
+      "name": "SDT extracts single without opening Reader",
+      "ok": true,
+      "ms": 1624,
+      "detail": {
+        "count": 4,
+        "opens": 0,
+        "diagnostics": {
+          "pagesRead": 1,
+          "totalPages": 1,
+          "headingFound": true,
+          "scanLimited": false,
+          "elapsedMs": 810
+        }
+      }
+    },
+    {
+      "name": "SDT extracts columns without opening Reader",
+      "ok": true,
+      "ms": 261,
+      "detail": {
+        "count": 6,
+        "opens": 0,
+        "diagnostics": {
+          "pagesRead": 1,
+          "totalPages": 1,
+          "headingFound": true,
+          "scanLimited": false,
+          "elapsedMs": 119
+        }
+      }
+    },
+    {
+      "name": "SDT extracts author-year without opening Reader",
+      "ok": true,
+      "ms": 251,
+      "detail": {
+        "count": 3,
+        "opens": 0,
+        "diagnostics": {
+          "pagesRead": 1,
+          "totalPages": 1,
+          "headingFound": true,
+          "scanLimited": false,
+          "elapsedMs": 77
+        }
+      }
+    },
+    {
+      "name": "SDT extracts numbered-prose without opening Reader",
+      "ok": true,
+      "ms": 273,
+      "detail": {
+        "count": 0,
+        "opens": 0,
+        "diagnostics": {
+          "pagesRead": 1,
+          "totalPages": 1,
+          "headingFound": false,
+          "scanLimited": false,
+          "elapsedMs": 93
+        }
+      }
+    },
+    {
+      "name": "SDT extracts large without opening Reader",
+      "ok": true,
+      "ms": 1251,
+      "detail": {
+        "count": 12,
+        "opens": 0,
+        "diagnostics": {
+          "pagesRead": 1,
+          "totalPages": 120,
+          "headingFound": true,
+          "scanLimited": false,
+          "elapsedMs": 1057
+        }
+      }
+    },
+    {
+      "name": "item notifications update card match and retraction without refetching metadata",
+      "ok": true,
+      "ms": 1023,
+      "detail": {
+        "fetches": 1,
+        "addModifyDelete": true,
+        "retraction": true
+      }
+    },
+    {
+      "name": "missing primary indexes still reach official Semantic Scholar references",
+      "ok": true,
+      "ms": 4,
+      "detail": {
+        "source": "SemanticScholar",
+        "count": 1,
+        "official": true
+      }
+    },
+    {
+      "name": "provider retraction evidence survives a clean local recheck",
+      "ok": true,
+      "ms": 170,
+      "detail": {
+        "evidencePreserved": true
+      }
+    },
+    {
+      "name": "official DOI, title, pagination and citation direction survive native transport",
+      "ok": true,
+      "ms": 7,
+      "detail": {
+        "pages": 2,
+        "references": 2,
+        "citations": 1,
+        "partial": true
+      }
+    },
+    {
+      "name": "Semantic Scholar cancellation aborts native transport and skips subsequent pages",
+      "ok": true,
+      "ms": 2,
+      "detail": {
+        "name": "AbortError",
+        "calls": 1,
+        "cancelled": 1
+      }
+    },
+    {
+      "name": "unavailable providers show a failure rather than successful empty retrieval",
+      "ok": true,
+      "ms": 10,
+      "detail": {
+        "retained": true,
+        "label": "1 条参考文献： [Controlled · 网络不可用，显示缓存 · 保留上次结果 · 本次获取 0+]"
+      }
+    },
+    {
+      "name": "title-only local matching preserves punctuation in native searches",
+      "ok": true,
+      "ms": 59,
+      "detail": {
+        "matched": true
+      }
+    },
+    {
+      "name": "native Semantic Scholar key preference is masked and persists",
+      "ok": true,
+      "ms": 325,
+      "detail": {
+        "masked": true,
+        "persisted": true
+      }
+    }
+  ],
+  "finished": "2026-10-15T14:40:31.854Z",
+  "passed": 13,
+  "failed": 0,
+  "errors": [
+    "[JavaScript Error: \"uncaught exception: undefined\"]",
+    "[JavaScript Error: \"The connection was refused when attempting to contact wss://stream.zotero.org/.\" {file: \"chrome://zotero/content/xpcom/streamer.js\" line: 240}]",
+    "[JavaScript Error: \"WebSocket connection closed: 1006 \"]"
+  ]
+}

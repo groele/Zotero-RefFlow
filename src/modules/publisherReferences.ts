@@ -47,8 +47,9 @@ export function parsePublisherHTML(document:Document,url:string,expectedDOI:stri
   const profile=publisherForURL(url);
   if(!profile || !matchingArticle(document,expectedDOI,title))return [];
   const nodes=elements(document,profile.selectors);
+  const selected=new Set(nodes);
   const seen=new Set<string>();
-  return nodes.filter(node=>!nodes.some(other=>other!==node&&other.contains(node))).slice(0,MAX_REFERENCES).flatMap((node,index)=>{
+  return nodes.filter(node=>{for(let parent=node.parentElement;parent;parent=parent.parentElement)if(selected.has(parent))return false;return true;}).slice(0,MAX_REFERENCES).flatMap((node,index)=>{
     const copy=node.cloneNode(true) as Element;
     copy.querySelectorAll('script, style, button, .c-article-references__links, .reference-links, .ref-links, .ref-actions').forEach(element=>element.remove());
     const text=clean(copy).replace(/^\s*(?:\[\d+\]|\d+[.)]?)\s*/,"");

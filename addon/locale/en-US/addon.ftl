@@ -102,3 +102,10 @@ cards-kept-results = Previous results retained
 cards-refresh-empty-kept = No new list available; previous results retained
 cards-resolving-doi = Resolving the paper DOI…
 cards-context-changed = The item or document changed. Refresh to retrieve its references.
+
+cards-list-name = Reference list
+cards-rollback-retained = Kept { $count } imported items because they were reused or modified.
+
+cards-latest-attempt = Latest attempt
+
+graph-origins-changed = Origins changed. Build the graph to load current results.

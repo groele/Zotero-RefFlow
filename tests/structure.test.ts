@@ -6,7 +6,7 @@ import OpenAlex from "../src/modules/openalex";
 import SemanticScholar from "../src/modules/semanticScholar";
 import {selectUniqueTitle} from "../src/modules/titleResolution";
 import {normalizeReferenceResult,retrieveReferenceList,referenceGaps} from "../src/modules/referenceRetrieval";
-import {cacheReferenceResult,readCachedReferenceResult,readCachedReferences,preferCachedReferences} from "../src/modules/referenceCache";
+import {cacheReferences,cacheReferenceResult,readCachedReferenceResult,readCachedReferences,preferCachedReferences} from "../src/modules/referenceCache";
 
 const title="Quantum optical response in layered semiconductors";
 const ref=(number?:number):ItemBaseInfo=>({title,authors:["Alice Smith"],identifiers:{DOI:"10.1234/fixture"},number});
@@ -53,7 +53,7 @@ test("cache roundtrip retains completeness and applies short TTL even to status-
 });
 test("corrupt cache reads are misses rather than uncaught serialization exceptions",()=>{
   const cyclic:any={title};cyclic.self=cyclic;
-  assert.equal(readCachedReferences({schema:3,signature:"sig",savedAt:1000,references:[cyclic]},"sig",1000,1100),undefined);
+  assert.equal(readCachedReferences({...cacheReferences([ref()],"sig",1000),references:[cyclic]},"sig",1000,1100),undefined);
 });
 test("offline cache selection preserves source evidence without contaminating persisted presentation",()=>{
   const previous=readCachedReferenceResult(cacheReferenceResult({references:[ref()],source:"PDF",partial:true},"sig",1000),"sig",1100)!;

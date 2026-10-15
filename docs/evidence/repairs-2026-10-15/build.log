@@ -1,0 +1,34 @@
+
+> zotero-refflow@10.1.0 build
+> npm run tsc && npm run build-prod
+
+
+> zotero-refflow@10.1.0 tsc
+> tsc --noEmit
+
+
+> zotero-refflow@10.1.0 build-prod
+> cross-env NODE_ENV=production node scripts/build.mjs
+
+[Build] BUILD_DIR=build, VERSION=10.1.0, BUILD_TIME=2026-10-15 22:37:34, ENV=production
+[Build] Run esbuild OK
+[Build] Run replace in  [
+  'build/addon/chrome/content/preferences.xhtml : 44 / 44',
+  'build/addon/manifest.json : 7 / 7',
+  'build/addon/prefs.js : 26 / 26',
+  'build/addon/bootstrap.js : 5 / 5',
+  'build/addon/chrome/content/scripts/preferences.js : 2 / 2',
+  'build/addon/chrome.manifest : 4 / 4',
+  'build/update.json : 3 / 3'
+] [
+  'build/addon/locale/en-US/addon.ftl : OK',
+  'build/addon/locale/en-US/preferences.ftl : OK',
+  'build/addon/locale/it-IT/addon.ftl : OK',
+  'build/addon/locale/it-IT/preferences.ftl : OK',
+  'build/addon/locale/zh-CN/addon.ftl : OK',
+  'build/addon/locale/zh-CN/preferences.ftl : OK'
+] [ 'build/addon/chrome/content/preferences.xhtml : OK' ]
+[Build] Replace OK
+[Build] Addon prepare OK
+[Build] Addon pack OK
+[Build] Finished in 0.183 s.

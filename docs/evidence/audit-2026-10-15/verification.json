@@ -1,0 +1,130 @@
+{
+  "archivePayloadDifferences": [],
+  "rootPackageSHA256": "5ab078db36712efa4d7c48ba858478e3484976511c86ab2e3fa4e1be834d5dfd",
+  "rootUpdateSHA256": "6390cc51a61e8147069946334e7a01a9638809bb288a7110f67c055fb93f6b1d",
+  "evaluationPackageSHA256": "7841eb53994bdf44144e099a74e2d92fb5c6b9b5556d32ab1cc5d8b9d6877975",
+  "nativeRegression": {
+    "native-dataflow": {
+      "passed": 13,
+      "failed": 0,
+      "finished": "2026-10-15T13:42:17.962Z",
+      "failures": []
+    },
+    "native-structure": {
+      "passed": 8,
+      "failed": 0,
+      "finished": "2026-10-15T13:42:41.853Z",
+      "failures": []
+    },
+    "native-architecture": {
+      "passed": 6,
+      "failed": 0,
+      "finished": "2026-10-15T13:43:15.709Z",
+      "failures": []
+    },
+    "native-major": {
+      "passed": 11,
+      "failed": 1,
+      "finished": "2026-10-15T13:43:11.005Z",
+      "failures": [
+        "installed updater targets the user repository"
+      ]
+    },
+    "native-pipeline": {
+      "passed": 15,
+      "failed": 0,
+      "finished": "2026-10-15T13:43:42.362Z",
+      "failures": []
+    }
+  },
+  "passed": 53,
+  "failed": 1,
+  "at": "2026-10-15T13:45:03.046Z",
+  "unitTests": {
+    "passed": 244,
+    "failed": 0
+  },
+  "typecheck": "passed",
+  "evaluationBuild": "passed, REFFLOW_NO_PROMOTE=1",
+  "diagnosticProbes": {
+    "completed": 11,
+    "bugsReproduced": 10,
+    "staleResponseInvariantPassed": true
+  },
+  "npmAudit": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0,
+    "total": 0
+  },
+  "sourceSHA256": {
+    "src/addon.ts": "7b91df67f59184698be8b395dacaad8287aaed797ea989ccdf99e2211312bb89",
+    "src/hooks.ts": "75d15b2b5bd62256ff633162b83e973572f40f34fe02aa56a9dc1262c3612ed7",
+    "src/index.ts": "45d4b1a06d174c1ad2dd0d475d75b4a0f6dc872fbaa598f338f9dad61a73a04c",
+    "src/modules/api.ts": "c485996a0d8c657c7fa6776bd04e5f87b6abb94301d7033dae998f798779275d",
+    "src/modules/batchImporter.ts": "6ff953c82b0c641554b3babdcd43b0cc31c3a0b7e3ddce60cdf165fb8a74731b",
+    "src/modules/connectedpapers.ts": "dab0b1d8d037dad9700b0c4c4212ff4dfc30cc33ad9effd592176f2aa9082495",
+    "src/modules/GraphData.ts": "152dde754e2d35fd8cc10a209869e8d085cf3240ddcbcc9d0fe695595ebe6a8b",
+    "src/modules/graphTransport.ts": "bb262c165172185aa4a7cce2ba485d242dbf39310d5757c49f01ceffcabbff5c",
+    "src/modules/jsonData.ts": "c59a6e0a1a4e9a60b130a4a43bd520e7e3c6d7374cf715b5c98aaa570f3252a2",
+    "src/modules/localStorage.ts": "f3b1ab04c5c129c9eb5bd38461b35a057501b0e66c88bdd7a4bf9e5aeb34c890",
+    "src/modules/openalex.ts": "e759fa0f8bc8fd8200a173b4336a98e0f9196ad951b0b959ed681bbf085285a6",
+    "src/modules/operationBudget.ts": "41f07aeda16d01393ff08711fd1e604db0ac7fde91ab2b9ccb1d0f507f13cebc",
+    "src/modules/parsers/gbt7714.ts": "9f951503353d6507ebd5d345079c6a4190942529ba118aaa1b163089d3229021",
+    "src/modules/pdf.ts": "7e3d58319cbfc9e06025b9fb5a04672b16718c55801287f5b466a67a4ffe45c0",
+    "src/modules/pdfLayout.ts": "3c75010f20db8317de83068e66abc490c0e596b57d463ccccbf0b6753fed2336",
+    "src/modules/prefs.ts": "ff111dc86408ded2d5f6475daf23fb5f3e9825583d83c6ff0e4e240eaca67ab6",
+    "src/modules/publisherReferences.ts": "b8231b1217f746c5a68787e537c701a96e657b8d06850685f12e879b69eeb5c1",
+    "src/modules/referenceCache.ts": "ed5d55ee4a749003976b790fb0ce39b2432782ba2844109f8cbb9db91866d2a4",
+    "src/modules/referenceCards.ts": "08e796b9dad549394d81e198cff1359fe85c1fdc51a9d6230022f3ddee7f85f9",
+    "src/modules/referenceData.ts": "f222455c02632693117202e0b789f57d874d5f45db40870e1b3748b570e48159",
+    "src/modules/referenceExtractor.ts": "52057bf18add7da2555bd59435f557455e20d5b2a7aac6eb029835ee1c91aeed",
+    "src/modules/referenceIdentity.ts": "af7b8b5956d4a9817bd111972a1eacfb47a8a92137c3b1516a44245a80321454",
+    "src/modules/referenceRetrieval.ts": "b5cb1312e70f80c74c6449191dbadfb97e7c16855fc7efba5d027627e8f433d8",
+    "src/modules/referenceTasks.ts": "93d8d8f25f7366e34a96513c01df5a6116504036fb023bb688f611416430dcfb",
+    "src/modules/requests.ts": "f6d20e8af477960f61f7bc1004f2632789c7f99786909375d9552e954a03475f",
+    "src/modules/retraction.ts": "94d6cf182c5d17965429be0397660a7975f559cb51d8c6b174a612c6ab6cc9f8",
+    "src/modules/semanticScholar.ts": "a33bf1126dcf815cfcb13e7266e238cdaebfe953d76d37b31a1428b128ef6bc5",
+    "src/modules/sidebarLayout.ts": "400312cc594e5bae34487345b586c6430c0f8f56642b2e00e61b41d225871515",
+    "src/modules/structuredPDF.ts": "6c6df7e216982b28857258d1f015d7250dc0ab5ea3433023c3c32b2bfaa2f3d3",
+    "src/modules/tip.ts": "fcac18328f831776573c88b3fb8be3cf975eee236b6b964f829f76e6704eba47",
+    "src/modules/titleResolution.ts": "d8f7888349aed9181fec537f43232d59444ed4fff5b18d1249d4f6946fa8f76b",
+    "src/modules/utils.ts": "dc176514060f853bcdbc8c74a188c13137c27a4b66dd8daff5fb2be70c2bf4a9",
+    "src/modules/verifier.ts": "fa3947e174267683c7f58ae899cd2f1e29ceba1442f7f8b8d9cc3cf5c4f19acc",
+    "src/modules/views.ts": "3cc5c729a027a231821eee78bbb625c62df890e41107ebcbf2c182cd98cbcda8",
+    "src/utils/identityMigration.ts": "1091e78147804b230a1c44dd86883a26dddbbb5ddf8e766e5be11b92859e66bf",
+    "src/utils/lifecycle.ts": "6dc48daf30df7554995b700957fe46be055cf770d5b1f9c853569e0531859204",
+    "src/utils/locale.ts": "a9243f07a25f730b58860b74722f2c50f6cf7880fa810ac25e9fec4e406b59c5",
+    "src/utils/ztoolkit.ts": "454806030d4b2bfe74eb1edc1233a49d397203b88a9fc515342578b77e4a0204",
+    "addon/bootstrap.js": "30cc8424b93ce1ca2b85182db45e8c59dd1f201dd31ce0e831716b5029f4c461",
+    "addon/chrome/content/dist/assets/index.css": "c65f25ad5c372a126d6fa113426fce5bdc5976f99dc6a7af8fc4f9a190dc7088",
+    "addon/chrome/content/dist/assets/index.js": "1d1f275bdb8307256b0a8f8e9e1c0d7122ff4525f0c12e656295fc4638580c10",
+    "addon/chrome/content/dist/index.html": "e46898fdbcf9e1192255cfdf570724e522953ae3f9b36fefa298ab578d035c39",
+    "addon/chrome/content/dist/vite.svg": "4a748afd443918bb16591c834c401dae33e87861ab5dbad0811c3a3b4a9214fb",
+    "addon/chrome/content/icons/connectedpapers.png": "256e6db9cbf4ae24fdf0bc2d790adb94a8500d9d02f14eea860f305738640fee",
+    "addon/chrome/content/icons/favicon.png": "58a776b00af68afc5519b2faac0a338ab6ceeecd07bcfde9f57d82755b720908",
+    "addon/chrome/content/icons/favicon@0.5x.png": "58a776b00af68afc5519b2faac0a338ab6ceeecd07bcfde9f57d82755b720908",
+    "addon/chrome/content/icons/horizontally.png": "cbe1a0f89068e6d3b666b33c592dce748ca2600aca9932f23a3938d85340eac5",
+    "addon/chrome/content/icons/more.svg": "59297504d20ccf60b50c5ae3eb39b8e9ab6673cbd86c115559d75acda4bb6d25",
+    "addon/chrome/content/icons/reference-sidenav.svg": "78629cc1d5ed36721d638a8d0a0196d7425b7b793736b1c293e9bc27fa650c6d",
+    "addon/chrome/content/icons/reference.svg": "9e970185ae0cc3f07c2e3cce809c34f4271f255e61e844f8ae289bc95da0aa27",
+    "addon/chrome/content/icons/refresh.svg": "44cc3147d1b19138c53a145d170e8f63b5fbc25f53fc62eb728bb83c04e0fd4e",
+    "addon/chrome/content/icons/split.png": "97d8c76dcf59c349760314fb35b4e3a65e24246c83f48dd48527765df41b9899",
+    "addon/chrome/content/icons/type.svg": "2de76954dd6133fae43c8f5a82619e1eb3b8b27b6ef71c416e7b1bfef978b86c",
+    "addon/chrome/content/icons/vertically.png": "aa20a16a021d23a29990860d590e22428784775d485f1b49d1baa5c07085f5ff",
+    "addon/chrome/content/preferences.xhtml": "5d29b79d3746141145ddb6eec6195639bbac9c954dc18583c18ac9c906050686",
+    "addon/chrome/content/scripts/preferences.js": "c3cd3e50656c89ace029a703b6edb9822c810a60e2b1922ed6b162f69a6f010f",
+    "addon/chrome.manifest": "772288dbf47706a0d9497bdb4a9ffb4a4a02b4ab093f89bbd27f4a01fe56b843",
+    "addon/locale/en-US/addon.ftl": "b41c1327edae8eafa2920f90e1021a1305c1dc3f9dd1d4bb14f7f700811fcdc9",
+    "addon/locale/en-US/preferences.ftl": "f45632d8d28806e531a2b272796797f7db2952088f6c3d20c5f90dc6672e596f",
+    "addon/locale/it-IT/addon.ftl": "f81b9be87edb50cd483b225ffcdd8f693d10ce01a632081c1ce1d32db782a947",
+    "addon/locale/it-IT/preferences.ftl": "72f961981edb609befb8ec05eeabac1e20e6fa966fafc8b9243e8333ab7d7720",
+    "addon/locale/zh-CN/addon.ftl": "8d044c0d6cecfe0614ec2a4b877d2e07c3f6261d2bd0b4fcce782d5477616924",
+    "addon/locale/zh-CN/preferences.ftl": "0bb602b51f888e3013c441ba32e801f156daacaef2b63179850c2952f2d752b2",
+    "addon/manifest.json": "4ccdcf8622d321be100c93281533dff4446ae0ae76271f576d250a4fb0138c72",
+    "addon/prefs.js": "36f4566223a25090d362070857bf5896fd7f5f7ef7efdf1071eb7b3affcfa1b2"
+  },
+  "probeScriptSHA256": "a2258d8c1465237cbabffa061f2926cf6a8c29db28c584d6c02957b899620018"
+}

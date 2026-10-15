@@ -8,6 +8,7 @@ import PublisherReferences from "./publisherReferences";
 import type {ReferenceResult} from "./referenceRetrieval";
 import SemanticScholarProvider from "./semanticScholar";
 import {selectUniqueTitle} from "./titleResolution";
+import {tryReferenceData} from './referenceData';
 
 class API {
   private async optional<T>(work:(signal:AbortSignal)=>Promise<T>,timeoutMs:number,fallback:T,signal?:AbortSignal):Promise<T> {
@@ -42,7 +43,9 @@ class API {
           "posted-content": "preprint",
           "book-chapter": "bookSection"
         }
-        let references: ItemBaseInfo[] = (Array.isArray(item.reference)?item.reference:[]).filter((reference:any)=>reference&&typeof reference==="object").map((item: any) => {
+        let references: ItemBaseInfo[] = (Array.isArray(item.reference)?item.reference:[]).flatMap((item: any,index:number) => {
+          if(!item||typeof item!=='object'||Array.isArray(item))return [];
+          try {
           let identifiers
           let url: string | undefined
           let text: string
@@ -68,9 +71,11 @@ class API {
             text: text,
             type: types[item.type] || textInfo?.type || "journalArticle",
             publicationVenue: item["journal-title"] || textInfo?.publicationVenue,
+            volume:item.volume,issue:item.issue,pages:item['first-page'],number:index+1,
             url: textInfo?.url || url
           };
-          return info;
+          const row=tryReferenceData(info);return row?[row]:[];
+          }catch{return [];}
         });
 
         const refCount = item["is-referenced-by-count"];
@@ -416,7 +421,8 @@ class API {
     const confirmedEmpty=Number(crossrefData?.["reference-count"])===0 && crossrefData?.["reference-count"]!==undefined
       || Array.isArray(openalexWork?.work?.referenced_works)&&openalexWork.work.referenced_works.length===0
       || semanticAvailable&&!semanticPartial;
-    finalInfo.referencePartial=semanticPartial || references.length<Number(expectedCount) || (!references.length&&!confirmedEmpty);
+    const crossrefLoss=references[0]?.sources?.[0]==='Crossref'&&Array.isArray(crossrefData?.reference)&&this.Info.crossref(crossrefData).references.length<crossrefData.reference.length;
+    finalInfo.referencePartial=Boolean(crossrefLoss)||semanticPartial || references.length<Number(expectedCount) || (!references.length&&!confirmedEmpty);
     finalInfo.DOI = cleanDOI;
     return finalInfo;
   }

@@ -1,0 +1,30 @@
+{
+  "version": "11.0-dev.5+dac1ad489",
+  "platformMajorVersion": 153,
+  "at": "2026-10-15T14:40:55.472Z",
+  "tests": [
+    {
+      "name": "persistently installed XPI loads after an actual process restart",
+      "ok": true,
+      "detail": {
+        "addonVersion": "10.1.0",
+        "platform": 153,
+        "active": true
+      }
+    },
+    {
+      "name": "preferences initialize again after restart and dispose on close",
+      "ok": true,
+      "detail": {
+        "initialized": true
+      }
+    }
+  ],
+  "errors": [
+    "1792075222095\taddons.xpi\tWARN\tForce scan SCOPE_APPLICATION (app-builtin-addons location missing from XPIStates)",
+    "[JavaScript Error: \"uncaught exception: undefined\"]"
+  ],
+  "finished": "2026-10-15T14:40:55.784Z",
+  "passed": 2,
+  "failed": 0
+}

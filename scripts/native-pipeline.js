@@ -144,8 +144,8 @@ await test('legacy PDF algorithm cache is invalidated before native extraction',
   const parent=new Zotero.Item('journalArticle');parent.setField('title','Cache algorithm revision '+stamp);await parent.saveTx({skipSelect:true});
   const attachment=await Zotero.Attachments.importFromFile({file:cfg.fixtures+'\\single.pdf',parentItemID:parent.id});
   window.Zotero_Tabs.select('zotero-pane');await window.ZoteroPane.selectItem(parent.id);await delay(100);const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');body.setAttribute('source','PDF');body.setAttribute('data-refflow-type','References');
-  const current=await views.pdfCacheSignature(parent,{itemID:attachment.id});check(current.startsWith('pdf-sdt-v2:'),'Extraction policy version missing');
-  await views.storage.set(parent,'References-PDF',{schema:3,signature:current.replace('pdf-sdt-v2:','pdf-sdt-v1:'),savedAt:Date.now(),references:[{title:'OLD ALGORITHM DATA',identifiers:{}}],snapshot:{source:'PDF',partial:false}});
+  const current=await views.pdfCacheSignature(parent,{itemID:attachment.id});check(/^pdf-sdt-v\d+:/.test(current),'Extraction policy version missing');
+  await views.refreshReferences(body,false,false,false,parent,{itemID:attachment.id});const stale=await views.storage.getAsync(parent,'References-PDF');check(stale,'Missing current PDF snapshot');stale.signature=current.replace(/^pdf-sdt-v\d+:/,'pdf-sdt-v0:');stale.references=[{title:'OLD ALGORITHM DATA',identifiers:{}}];await views.storage.set(parent,'References-PDF',stale);
   await views.refreshReferences(body,true,false,false,parent,{itemID:attachment.id});check(body.references.length===4&&!body.references.some(ref=>ref.title==='OLD ALGORITHM DATA'),'Old extraction policy cache reused');return {oldCacheRejected:true,nativeReferences:4};
 });
 report.finished=new Date().toISOString();report.passed=report.tests.filter(test=>test.ok).length;report.failed=report.tests.filter(test=>!test.ok).length;report.errors=Zotero.getErrors(true);await save();

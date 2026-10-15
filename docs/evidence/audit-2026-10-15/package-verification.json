@@ -1,0 +1,14 @@
+{
+  "version": "10.0.0",
+  "addonID": "refflow@groele.github.io",
+  "filesVerified": 28,
+  "bytes": 233265,
+  "sha256": "7841eb53994bdf44144e099a74e2d92fb5c6b9b5556d32ab1cc5d8b9d6877975",
+  "compatibility": {
+    "id": "refflow@groele.github.io",
+    "update_url": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json",
+    "strict_min_version": "10.0.6",
+    "strict_max_version": "11.*"
+  },
+  "evaluationOnly": true
+}

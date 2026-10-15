@@ -18,10 +18,12 @@ export function textItemsToLines(items: any[], page: number, pageWidth = 612, pa
   let split: number | undefined;
   if (rightStarts.length >= 2 && leftStarts.length >= 2) split = Math.min(...rightStarts.map(entry => entry.x)) - 4;
   if (split === undefined) {
+    const rowBuckets=new Map<number,Entry[]>();for(const entry of entries){const key=Math.round(entry.y/4),rows=rowBuckets.get(key)||[];rows.push(entry);rowBuckets.set(key,rows);}
     const candidates = entries.filter(entry => entry.x >= pageWidth * 0.45 && entry.x <= pageWidth * 0.8);
     const starts = new Map<number,number>();
     for (const entry of candidates) {
-      const left = entries.some(other => Math.abs(other.y-entry.y) < 2 && other.x < pageWidth * 0.4 && other.x+other.width < entry.x-20);
+      const bucket=Math.round(entry.y/4);
+      const left = [bucket-1,bucket,bucket+1].some(key=>(rowBuckets.get(key)||[]).some(other => Math.abs(other.y-entry.y) < 2 && other.x < pageWidth * 0.4 && other.x+other.width < entry.x-20));
       if (left) { const x=Math.round(entry.x/5)*5; starts.set(x,(starts.get(x)||0)+1); }
     }
     const repeated=[...starts].sort((a,b)=>b[1]-a[1])[0];

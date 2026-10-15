@@ -100,7 +100,7 @@ await test('one thousand native rows yield to the UI event loop',async()=>{
   const original=views.utils.API.getDOIInfoByCrossref;
   views.utils.API.getDOIInfoByCrossref=async()=>({references:Array.from({length:1000},(_,i)=>({title:`Stress unique reference ${i}`,text:`Stress unique reference ${i} Journal 2024.`,identifiers:{}}))});
   let ticks=0;const interval=window.setInterval(()=>ticks++,10);
-  try{const body=await select(parent);body.setAttribute('source','API');const start=Date.now();await views.refreshReferences(body,false,false,false,parent);check(body.querySelectorAll('.reference-text').length===1000,'Large render lost rows');check(ticks>0,'Event loop starved');return {rows:1000,ms:Date.now()-start,eventLoopTicks:ticks};}
+  try{const body=await select(parent);body.setAttribute('source','API');const start=Date.now();await views.refreshReferences(body,false,false,false,parent);check(body.references.length===1000&&body.querySelectorAll('.reference-text').length<=60,'Virtual render lost data or mounted excessive rows');await delay(15);check(ticks>0,'Event loop starved');return {rows:1000,mounted:body.querySelectorAll('.reference-text').length,ms:Date.now()-start,eventLoopTicks:ticks};}
   finally{window.clearInterval(interval);views.utils.API.getDOIInfoByCrossref=original;}
 });
 

@@ -38,3 +38,10 @@ cards-kept-results = Risultati precedenti conservati
 cards-refresh-empty-kept = Nessun nuovo elenco; risultati precedenti conservati
 cards-resolving-doi = Ricerca del DOI…
 cards-context-changed = The item or document changed. Refresh to retrieve its references.
+
+cards-list-name = Elenco riferimenti
+cards-rollback-retained = Conservati { $count } elementi riutilizzati o modificati.
+
+cards-latest-attempt = Ultimo tentativo
+
+graph-origins-changed = Origini modificate. Ricostruisci il grafico.

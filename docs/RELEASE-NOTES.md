@@ -1,5 +1,23 @@
 # Zotero RefFlow
 
+## 10.1.0 - 2026-10-15
+
+- Fix title-only library/batch identity collisions; corroborate author/year and reject ambiguous candidates.
+- Protect later batch reuse and user changes during rollback, including shared relations/collections, edited notes and PDF annotations. Legacy journals without edit baselines retain uncertain objects.
+- Unify CNKI Auto routing, completeness, cache quality/persistence settings and GB/T volume/issue/pages mapping; invalidate old retrieval/PDF cache policies.
+- Replace the embedded sample graph and private Vue bridge with a source-built, validated SVG renderer and a versioned interface. Add empty states, keyboard operations and dark mode.
+- Bound long reference lists to 60 mounted cards while retaining full-list search/selection/copy; share provider admission, scope library invalidation and support import cancellation with incremental attachment journals.
+- Preserve Semantic Scholar as a first-class provider, existing plugin identity and update authority. See [repair evidence and limits](REPAIRS-2026-10-15.md); original [V10 audit](FULL-LOGIC-AUDIT-2026-10-15.md) remains available as historical evidence.
+
+## Historical V10 audit checkpoint - 2026-10-15
+
+- Before the 10.1.0 repairs, the audit used version **10.0.0** and left the V10 XPI and update manifest unchanged.
+- Added a [step-by-step implementation audit](FULL-LOGIC-AUDIT-2026-10-15.md), isolated native reproduction script, and sanitized evidence. The findings describe known defects; they are not fixes.
+- Confirmed problems include cross-batch rollback removing reused items, title-only identity collisions, an unlabelled initial sample graph, incomplete-result handling, persistence-setting inconsistencies, a missing CNKI Auto route and lost GB/T volume/issue/pages.
+- Verification: 244/244 unit tests, TypeScript, evaluation build and 28-file package checks passed. Native regressions: 53/54; the failed check hardcodes the former 11.0.2 version. Eleven diagnostic probes completed, reproducing ten defects and confirming stale-response isolation.
+- Native audit host: Windows / Zotero 10.0.6 with isolated libraries and controlled external-provider responses. Zotero 11 was not revalidated. An unlocated startup exception remains under investigation.
+- Public evidence omits local account and checkout paths. Existing V10 package SHA-256: `5ab078db36712efa4d7c48ba858478e3484976511c86ab2e3fa4e1be834d5dfd`.
+
 ## V10 / 10.0.0 - 2026-10-14
 
 - 当前 RefFlow 11.0.3 本地候选版按维护者要求重新编号为 10.0.0；使用独立 GitHub 标签 V10。
