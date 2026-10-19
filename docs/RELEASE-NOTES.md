@@ -1,5 +1,11 @@
 # Zotero RefFlow
 
+## V12 / 12.0.0 - 2026-10-19
+
+- Upgrade major version to V12 / 12.0.0.
+- Update plugin branding with a newly designed modern icon set in multiple standard resolutions (96px, 48px, 32px, 64px, 128px) with pre-multiplied alpha transparency.
+- Full verification of reference retrieval, citation graphs, and rollback protections across Zotero 10 and 11 compatibility range.
+
 ## 10.1.0 - 2026-10-15
 
 - Fix title-only library/batch identity collisions; corroborate author/year and reject ambiguous candidates.
