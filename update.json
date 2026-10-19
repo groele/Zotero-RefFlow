@@ -11,8 +11,8 @@
               "strict_max_version": "11.*"
             }
           },
-          "update_hash": "sha256:122e8134b5eda846d1cd031508eb94bf851c0b30c3b154058387daee3026eb09",
-          "update_info_url": "https://github.com/groele/Zotero-RefFlow/releases/tag/V12"
+          "update_hash": "sha256:b64829998fa4b4ba659870d21fb6d20647dbdc63bdfc2285441bbbf290db7e41",
+          "update_info_url": "https://github.com/groele/Zotero-RefFlow/releases/tag/v12.0.0"
         }
       ]
     }

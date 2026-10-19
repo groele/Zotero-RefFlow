@@ -7,7 +7,7 @@
     "addonID": "refflow@groele.github.io",
     "addonRef": "refflow",
     "addonInstance": "ZoteroRefFlow",
-    "releaseTag": "V12",
+    "releaseTag": "v12.0.0",
     "downloadURL": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/zotero-refflow.xpi",
     "updateURL": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json",
     "issuesURL": "https://github.com/groele/Zotero-RefFlow/issues",

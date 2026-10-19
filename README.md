@@ -8,7 +8,7 @@
 
 ![Version](https://img.shields.io/badge/version-12.0.0-blue) ![Zotero](https://img.shields.io/badge/Zotero-10.0.6%E2%80%9311.*-green) ![License](https://img.shields.io/badge/license-AGPL-3.0-or-later-lightgrey)
 
-[Download](https://github.com/groele/Zotero-RefFlow/releases/tag/V12) · [Report an Issue](https://github.com/groele/Zotero-RefFlow/issues) · [Releases](https://github.com/groele/Zotero-RefFlow/releases)
+[Download](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.0.0) · [Report an Issue](https://github.com/groele/Zotero-RefFlow/issues) · [Releases](https://github.com/groele/Zotero-RefFlow/releases)
 
 **Zotero Flow Series**
 
@@ -44,7 +44,7 @@ The declared compatibility range is not a guarantee that every Zotero version ha
 
 ## Installation
 
-1. [Download the XPI](https://github.com/groele/Zotero-RefFlow/releases/tag/V12) for the current release (`zotero-refflow.xpi`).
+1. [Download the XPI](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.0.0) for the current release (`zotero-refflow.xpi`).
 2. Open Zotero → **Tools → Plugins** (or the add-on manager in your version).
 3. Choose **Install Add-on From File**, select the XPI, and restart Zotero if requested.
 

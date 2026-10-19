@@ -9,7 +9,7 @@ export function validateReleaseConfig(details) {
   if(details.config.updateURL!==base+'update.json'||details.config.downloadURL!==base+'zotero-refflow.xpi')throw new Error('Update/download URL must point to groele/Zotero-RefFlow');
   if(details.homepage!=='https://github.com/groele/Zotero-RefFlow'||details.repository.url!=='git+https://github.com/groele/Zotero-RefFlow.git')throw new Error('Derivative repository metadata mismatch');
   if(!/^\d+\.\d+\.\d+(?:-[\w.-]+)?$/.test(details.version))throw new Error('Invalid release version');
-  if(details.config.releaseTag!==`refflow-v${details.version}` && !(details.version.endsWith('.0.0') && details.config.releaseTag===`V${details.version.split('.')[0]}`))throw new Error('Release tag and version disagree');
+  if(details.config.releaseTag!==`v${details.version}` && details.config.releaseTag!==`refflow-v${details.version}` && !(details.version.endsWith('.0.0') && details.config.releaseTag===`V${details.version.split('.')[0]}`))throw new Error('Release tag and version disagree');
 }
 
 export function createReleaseArtifacts(details,xpi,template,manifest) {
