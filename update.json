@@ -11,7 +11,7 @@
               "strict_max_version": "11.*"
             }
           },
-          "update_hash": "sha256:c38d1e227c82c9d1c40a1b373d3c5e3b1ac88dc756461452b01a2a6b6e20377f",
+          "update_hash": "sha256:0a95f395f93409cb71a7de296f95410756192cfd4d706cdcb84e932f2271643d",
           "update_info_url": "https://github.com/groele/Zotero-RefFlow/releases/tag/refflow-v10.1.0"
         }
       ]
