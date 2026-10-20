@@ -9,6 +9,7 @@ export async function registerPrefs() {
     label: config.addonName || "RefFlow",
     image: `chrome://${config.addonRef}/content/icons/favicon.png`,
     scripts: [rootURI + "chrome/content/scripts/preferences.js"],
+    stylesheets: [rootURI + "chrome/content/assets/preferences.css"],
     defaultXUL: true,
   };
   await (Zotero as any).PreferencePanes.register(prefOptions);

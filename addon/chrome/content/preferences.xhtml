@@ -1,12 +1,11 @@
 <linkset>
   <html:link rel="localization" href="__addonRef__-preferences.ftl" />
-  <html:link rel="stylesheet" href="chrome://__addonRef__/content/assets/preferences.css" />
 </linkset>
 <vbox id="zotero-prefpane-__addonRef__" class="refflow-preferences">
   <html:header class="refflow-pref-header">
     <html:div class="refflow-pref-brand">
       <html:h1>__addonName__</html:h1>
-      <html:p>__buildVersion__</html:p>
+      <html:p class="refflow-pref-version">v__buildVersion__</html:p>
     </html:div>
   </html:header>
   <html:details class="refflow-setting-group" aria-labelledby="refflow-online-title" open="open">
@@ -28,31 +27,17 @@
     <html:div class="refflow-setting-subgroup">
     <checkbox native="true" id="__addonRef__-auto-refresh" data-l10n-id="autoRefresh"
       preference="extensions.zotero.__addonRef__.autoRefresh" />
-    <html:div style="
-        display: flex;
-        margin-top: .5em;
-        flex-direction: row;
-        align-items: left;
-        width: 80%;
-      ">
-      <html:input style="
-          width: 100%;
-          margin: auto .5em;
-        " type="text" id="__addonRef__-not-auto-refresh-item-types"
+    <html:div class="refflow-setting-input-row refflow-setting-input-row-wide">
+      <html:input type="text" id="__addonRef__-not-auto-refresh-item-types"
         preference="extensions.zotero.__addonRef__.notAutoRefreshItemTypes">
       </html:input>
     </html:div>
     </html:div>
     <html:div class="refflow-setting-subgroup">
     <html:h3 data-l10n-id="caption-source"></html:h3>
-    <html:div style="
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      margin-left: .7em;
-    ">
-      <html:span style="margin: 4px 0;" data-l10n-id="prioritySource-start"></html:span>
-      <menulist native="true" style="height: 1.5em; margin: auto .5em;" id="__addonRef__-priority-source"
+    <html:div class="refflow-setting-input-row">
+      <html:span data-l10n-id="prioritySource-start"></html:span>
+      <menulist native="true" id="__addonRef__-priority-source"
         preference="extensions.zotero.__addonRef__.prioritySource">
         <menupopup>
           <menuitem value="Auto" data-l10n-id="source-auto"></menuitem>
@@ -61,49 +46,46 @@
           <menuitem value="API" label="API"></menuitem>
         </menupopup>
       </menulist>
-      <html:span style="margin: 4px 0;" data-l10n-id="prioritySource-end"></html:span>
+      <html:span data-l10n-id="prioritySource-end"></html:span>
     </html:div>
     </html:div>
     <html:div class="refflow-setting-subgroup">
     <html:h3 data-l10n-id="caption-tip"></html:h3>
-    <hbox style="margin: 4px 0;margin-left: .7em;">
-      <html:span style="margin: auto 0; margin-right: .5em;" data-l10n-id="tipBackgroundColor"></html:span>
-      <html:input style="width: 6em; margin: auto 0; height: 1em;" type="text" id="__addonRef__-tip-background-color"
+    <hbox class="refflow-setting-input-row refflow-color-row">
+      <html:span data-l10n-id="tipBackgroundColor"></html:span>
+      <html:input type="text" id="__addonRef__-tip-background-color"
         preference="extensions.zotero.__addonRef__.tipBackgroundColor">
       </html:input>
-      <html:span style="margin: auto 0; margin-left: 1em; margin-right: .5em;" data-l10n-id="tipTitleColor"></html:span>
-      <html:input style="width: 6em; margin: auto 0; height: 1em;" type="text" id="__addonRef__-tip-title-color"
+      <html:span data-l10n-id="tipTitleColor"></html:span>
+      <html:input type="text" id="__addonRef__-tip-title-color"
         preference="extensions.zotero.__addonRef__.tipTitleColor">
       </html:input>
     </hbox>
-    <html:div style="
-      display: flex;
-      flex-direction: row;
-    ">
+    <html:div class="refflow-setting-input-row refflow-tip-delay-row">
       <checkbox native="true" id="__addonRef__-is-show-tip" data-l10n-id="isShowTip-start"
-        preference="extensions.zotero.__addonRef__.isShowTip" style="margin-right: .5em;"/>
-      <html:input style="width: 4em; margin: auto 0; height: 1em;" type="text"
+        preference="extensions.zotero.__addonRef__.isShowTip"/>
+      <html:input type="text"
         id="__addonRef__-show-tip-after-millisecond"
         preference="extensions.zotero.__addonRef__.showTipAfterMillisecond">
       </html:input>
-      <html:span style="margin: auto 0; margin-left: .5em;" data-l10n-id="isShowTip-end"></html:span>
+      <html:span data-l10n-id="isShowTip-end"></html:span>
     </html:div>
     <checkbox native="true" id="__addonRef__-ctrl-click-translate" data-l10n-id="ctrlClickTranslate"
       preference="extensions.zotero.__addonRef__.ctrlClickTranslate" />
-    <hbox style="margin: 4px 0;margin-left: .7em;">
-      <html:span style="margin: auto 0; margin-right: .5em;" data-l10n-id="shadeMillisecond-start"></html:span>
-      <html:input style="width: 4em; margin: auto 0; height: 1em;" type="text" id="__addonRef__-shade-millisecond"
+    <hbox class="refflow-setting-input-row refflow-setting-input-row-compact">
+      <html:span data-l10n-id="shadeMillisecond-start"></html:span>
+      <html:input type="text" id="__addonRef__-shade-millisecond"
         preference="extensions.zotero.__addonRef__.shadeMillisecond">
       </html:input>
-      <html:span style="margin: auto 0; margin-left: .5em;" data-l10n-id="shadeMillisecond-end"></html:span>
+      <html:span data-l10n-id="shadeMillisecond-end"></html:span>
     </hbox>
-    <hbox style="margin: 4px 0;margin-left: .7em;">
-      <html:span style="margin: auto 0;margin-right: .5em;" data-l10n-id="removeTipAfterMillisecond-start"></html:span>
-      <html:input style="width: 4em; margin: auto 0; height: 1em;" type="text"
+    <hbox class="refflow-setting-input-row refflow-setting-input-row-compact">
+      <html:span data-l10n-id="removeTipAfterMillisecond-start"></html:span>
+      <html:input type="text"
         id="__addonRef__-remove-tip-after-millisecond"
         preference="extensions.zotero.__addonRef__.removeTipAfterMillisecond">
       </html:input>
-      <html:span style="margin: auto 0; margin-left: .5em;" data-l10n-id="removeTipAfterMillisecond-end">
+      <html:span data-l10n-id="removeTipAfterMillisecond-end">
       </html:span>
     </hbox>
     </html:div>
@@ -116,24 +98,24 @@
     </html:div>
     <html:div class="refflow-setting-subgroup">
     <html:h3 data-l10n-id="caption-match"></html:h3>
-    <hbox style="margin-left: .7em;display: flex;align-items: center;">
-      <html:span style="margin: auto 0; margin-right: .5em;" data-l10n-id="notInLibarayOpacity-start"></html:span>
-      <html:input style="width: 4em; margin: auto 0; height: 1em;" type="range" min="0" max="1" step="0.01" id="__addonRef__-not-in-library-opacity"
+    <hbox class="refflow-setting-input-row refflow-range-row">
+      <html:span data-l10n-id="notInLibarayOpacity-start"></html:span>
+      <html:input type="range" min="0" max="1" step="0.01" id="__addonRef__-not-in-library-opacity"
         preference="extensions.zotero.__addonRef__.notInLibarayOpacity">
       </html:input>
-      <html:span style="margin: auto 0; margin-left: .5em;" data-l10n-id="notInLibarayOpacity-end"></html:span>
+      <html:span data-l10n-id="notInLibarayOpacity-end"></html:span>
     </hbox>
     </html:div>
     </html:div>
   </html:details>
   <html:details class="refflow-setting-group" aria-labelledby="refflow-about-title">
-    <html:summary><html:span id="refflow-about-title">__addonName__ · __buildVersion__</html:span></html:summary>
+    <html:summary><html:span id="refflow-about-title">关于 RefFlow</html:span></html:summary>
     <html:div class="refflow-setting-group-body">
     <html:div class="refflow-setting-subgroup" id="__addonRef__-about">
     <html:p data-l10n-id="about-maintainer"></html:p>
     <html:p data-l10n-id="about-origin"></html:p>
     <html:p data-l10n-id="about-updates"></html:p>
-    <html:div style="display:flex;flex-wrap:wrap;gap:12px;">
+    <html:div class="refflow-about-links">
       <html:a id="__addonRef__-project-link" href="__homepage__" data-l10n-id="about-project"></html:a>
       <html:a id="__addonRef__-issues-link" href="__issuesURL__" data-l10n-id="about-issues"></html:a>
       <html:a href="__upstreamURL__" data-l10n-id="about-upstream"></html:a>
@@ -142,11 +124,11 @@
     </html:div>
     </html:div>
   </html:details>
-  <html:footer class="refflow-pref-footer" aria-label="Release information">
-    <html:div><html:span class="refflow-footer-label">版本</html:span><html:span>v12.3.0</html:span></html:div>
+  <html:footer class="refflow-pref-footer" aria-label="版本信息">
+    <html:div class="refflow-footer-title">版本信息</html:div>
     <html:div><html:span class="refflow-footer-label">版本说明</html:span><html:span>设置面板风格统一；一级分组可折叠；版本信息独立列示</html:span></html:div>
-    <html:div><html:span class="refflow-footer-label">构建日期</html:span><html:span>2026-10-20</html:span></html:div>
-    <html:div><html:span class="refflow-footer-label">安装包</html:span><html:a href="https://github.com/groele/Zotero-RefFlow/releases/download/v12.3.0/zotero-refflow.xpi">下载 Zotero RefFlow v12.3.0 (.xpi)</html:a></html:div>
-    <html:div><html:span class="refflow-footer-label">GitHub 仓库</html:span><html:a href="https://github.com/groele/Zotero-RefFlow">groele/Zotero-RefFlow</html:a></html:div>
+    <html:div><html:span class="refflow-footer-label">构建日期</html:span><html:span>2026-10-21</html:span></html:div>
+    <html:div><html:span class="refflow-footer-label">安装包</html:span><html:a href="https://github.com/groele/Zotero-RefFlow/releases/download/v12.3.3/zotero-refflow.xpi">下载 Zotero RefFlow v12.3.3 (.xpi)</html:a></html:div>
+    <html:div><html:span class="refflow-footer-label">项目仓库</html:span><html:a href="https://github.com/groele/Zotero-RefFlow">groele/Zotero-RefFlow</html:a></html:div>
   </html:footer>
 </vbox>

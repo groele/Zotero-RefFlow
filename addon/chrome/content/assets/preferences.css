@@ -1,39 +1,82 @@
-/* Native preferences use a compact, collapsible MetaFlow-style hierarchy. */
 #zotero-prefpane-refflow {
+  --flow-pref-text: light-dark(#20242b, #f1f3f5);
+  --flow-pref-muted: light-dark(#505862, #c4c9d1);
+  --flow-pref-accent: light-dark(#245ac7, #9bbcff);
+  --flow-pref-border: light-dark(#c9cdd3, #646a73);
+  --flow-pref-divider: light-dark(#e2e5e9, #565c65);
+  --flow-pref-surface: light-dark(#ffffff, #35383d);
+  --flow-pref-hover: light-dark(#f3f6fc, #414751);
   box-sizing: border-box;
   display: block;
   width: 100%;
   max-width: 780px;
   min-width: 0;
-  padding: 10px 16px 28px 10px;
-  color: var(--fill-primary, -moz-dialogtext);
-  font: 13px/1.55 system-ui, "Segoe UI", sans-serif;
+  margin-inline: auto;
+  padding: 10px 14px 28px;
+  color: var(--flow-pref-text);
+  font-family: system-ui, "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 #zotero-prefpane-refflow *,
 #zotero-prefpane-refflow *::before,
-#zotero-prefpane-refflow *::after { box-sizing: border-box; }
+#zotero-prefpane-refflow *::after {
+  box-sizing: border-box;
+}
 
 #zotero-prefpane-refflow h1,
 #zotero-prefpane-refflow h2,
-#zotero-prefpane-refflow p { margin-block: 0; }
-
-.refflow-pref-header {
-  margin-bottom: 14px;
-  padding: 2px 2px 12px;
-  border-bottom: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+#zotero-prefpane-refflow h3,
+#zotero-prefpane-refflow p {
+  margin-block: 0;
 }
 
-.refflow-pref-brand h1 { font-size: 18px; font-weight: 650; letter-spacing: -0.02em; }
-.refflow-pref-brand p { margin-top: 3px; color: var(--fill-secondary, GrayText); font-size: 12px; }
+.refflow-pref-header {
+  margin-bottom: 12px;
+  padding: 0 0 10px;
+  border-bottom: 1px solid var(--flow-pref-divider);
+}
+
+.refflow-pref-brand h1 {
+  display: block;
+  width: auto;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.refflow-pref-brand {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.refflow-pref-version {
+  margin: 0 !important;
+  padding: 1px 6px;
+  border: 1px solid var(--flow-pref-border);
+  border-radius: 4px;
+  color: var(--flow-pref-muted);
+  background: var(--flow-pref-surface);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+}
 
 .refflow-setting-group {
+  display: block;
   min-width: 0;
-  margin-block: 0 10px;
-  overflow: clip;
-  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, currentColor 2%, transparent);
+  margin: 0 0 10px;
+  border: 1px solid var(--flow-pref-border);
+  border-radius: 9px;
+  background: var(--flow-pref-surface);
+}
+
+.refflow-setting-group:last-of-type {
+  margin-bottom: 0;
 }
 
 .refflow-setting-group > summary {
@@ -41,74 +84,76 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 42px;
-  padding: 9px 13px;
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
+  padding: 11px 13px;
   cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
   list-style: none;
-  user-select: none;
 }
 
-.refflow-setting-group > summary::-webkit-details-marker { display: none; }
+.refflow-setting-group > summary::-webkit-details-marker {
+  display: none;
+}
+
 .refflow-setting-group > summary::after {
-  width: 7px;
-  height: 7px;
-  margin-left: auto;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  content: "";
-  opacity: .65;
-  transform: rotate(45deg) translateY(-2px);
+  flex: 0 0 auto;
+  content: "›";
+  color: var(--flow-pref-muted);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+  transform: rotate(0);
   transition: transform 120ms ease;
 }
+
 .refflow-setting-group[open] > summary::after {
-  transform: rotate(225deg) translate(-2px, -1px);
+  transform: rotate(90deg);
 }
+
+.refflow-setting-group > summary:hover {
+  background: var(--flow-pref-hover);
+}
+
 .refflow-setting-group > summary:focus-visible {
-  outline: 2px solid Highlight;
-  outline-offset: -3px;
+  outline: 2px solid var(--flow-pref-accent);
+  outline-offset: -2px;
+  border-radius: 8px;
 }
+
 .refflow-setting-group[open] > summary {
-  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
-}
-
-.refflow-pref-footer {
-  display: grid;
-  gap: 4px;
-  margin-top: 12px;
-  padding: 10px 2px 0;
-  border-top: 1px solid color-mix(in srgb, currentColor 16%, transparent);
-  color: var(--fill-secondary, GrayText);
-  font-size: 12px;
-}
-
-.refflow-pref-footer > div {
-  display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  gap: 8px;
-}
-
-.refflow-footer-label { font-weight: 600; }
-.refflow-pref-footer a {
-  color: LinkText;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 2px;
+  border-bottom: 1px solid var(--flow-pref-divider);
 }
 
 .refflow-setting-group-body {
   min-width: 0;
   margin: 0 !important;
-  padding: 12px 13px 14px;
-  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  padding: 4px 13px 10px;
+}
+
+.refflow-setting-group-body > label {
+  display: block;
+  min-width: 0;
+  margin: 8px 0 3px;
+  color: var(--flow-pref-text);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.refflow-setting-group-body > p,
+.refflow-setting-subgroup > p {
+  margin-block: 4px 8px;
+  color: var(--flow-pref-muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .refflow-setting-subgroup {
   min-width: 0;
-  margin: 0 0 14px;
-  padding: 0 0 14px;
-  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  margin: 0 0 12px;
+  padding: 3px 0 12px;
+  border-bottom: 1px solid var(--flow-pref-divider);
 }
 
 .refflow-setting-subgroup:last-child {
@@ -118,14 +163,20 @@
 }
 
 .refflow-setting-subgroup > h3 {
-  margin: 0 0 8px;
-  font-size: 12px;
+  margin: 0 0 6px;
+  color: var(--flow-pref-text);
+  font-size: 14px;
   font-weight: 600;
+  line-height: 1.6;
 }
 
 #zotero-prefpane-refflow label,
 #zotero-prefpane-refflow description,
-#zotero-prefpane-refflow span { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+#zotero-prefpane-refflow span {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
 
 #zotero-prefpane-refflow input:not([type="checkbox"]):not([type="range"]),
 #zotero-prefpane-refflow select,
@@ -133,32 +184,189 @@
   box-sizing: border-box;
   min-width: 0;
   max-width: 100%;
-  min-height: 30px;
+  min-height: 32px;
   padding: 5px 8px;
-  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
-  border-radius: 5px;
-  color: inherit;
+  border: 1px solid var(--flow-pref-border);
+  border-radius: 4px;
+  color: var(--flow-pref-text);
   background: Field;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.4;
 }
 
-#zotero-prefpane-refflow input[type="password"],
-#zotero-prefpane-refflow #refflow-not-auto-refresh-item-types { width: 100% !important; }
+#zotero-prefpane-refflow input[type="password"] {
+  display: block;
+  width: 100%;
+}
+
+#zotero-prefpane-refflow input[type="checkbox"],
+#zotero-prefpane-refflow input[type="radio"] {
+  appearance: auto;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 0;
+  accent-color: var(--flow-pref-accent);
+}
+
+#zotero-prefpane-refflow checkbox {
+  max-width: 100%;
+  min-height: 0;
+  color: var(--flow-pref-text);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: normal;
+}
+
+#zotero-prefpane-refflow input[type="range"] {
+  flex: 1 1 8em;
+  min-width: 6em;
+  max-width: 20em;
+  accent-color: var(--flow-pref-accent);
+}
+
 #zotero-prefpane-refflow input:focus-visible,
 #zotero-prefpane-refflow select:focus-visible,
 #zotero-prefpane-refflow menulist:focus-visible,
-#zotero-prefpane-refflow a:focus-visible { outline: 2px solid Highlight; outline-offset: 2px; }
-#zotero-prefpane-refflow hbox { align-items: center; flex-wrap: wrap; gap: 6px 10px; min-width: 0; }
-#zotero-prefpane-refflow hbox > input[type="text"] { flex: 1 1 6em; }
-#zotero-prefpane-refflow input[type="range"] { flex: 1 1 8em; min-width: 6em; max-width: 20em; }
-#zotero-prefpane-refflow checkbox { max-width: 100%; white-space: normal; }
-#zotero-prefpane-refflow a { display: inline-block; margin-block: 3px 8px; overflow-wrap: anywhere; }
+#zotero-prefpane-refflow a:focus-visible {
+  outline: 2px solid var(--flow-pref-accent);
+  outline-offset: 2px;
+}
+
+#zotero-prefpane-refflow hbox,
+#zotero-prefpane-refflow .refflow-setting-input-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  min-width: 0;
+  margin-block: 6px;
+}
+
+#zotero-prefpane-refflow .refflow-setting-input-row > span {
+  color: var(--flow-pref-text);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+#zotero-prefpane-refflow .refflow-setting-input-row > input[type="text"] {
+  flex: 0 1 8em;
+  width: 8em;
+}
+
+#zotero-prefpane-refflow .refflow-setting-input-row-wide > input[type="text"] {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+#zotero-prefpane-refflow .refflow-setting-input-row > menulist {
+  flex: 0 1 12em;
+  width: 12em;
+}
+
+#zotero-prefpane-refflow .refflow-color-row > span {
+  flex: 0 1 auto;
+}
+
+#zotero-prefpane-refflow .refflow-color-row > input[type="text"] {
+  flex: 0 1 8em;
+  width: 8em;
+}
+
+#zotero-prefpane-refflow .refflow-tip-delay-row > checkbox {
+  flex: 1 1 14em;
+}
+
+#zotero-prefpane-refflow .refflow-tip-delay-row > input[type="text"] {
+  flex: 0 1 7em;
+  width: 7em;
+}
+
+#zotero-prefpane-refflow .refflow-range-row > span:first-child {
+  flex: 0 1 10em;
+}
+
+#zotero-prefpane-refflow .refflow-range-row > input[type="range"] {
+  flex: 1 1 8em;
+}
+
+#zotero-prefpane-refflow .refflow-about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+#zotero-prefpane-refflow a {
+  display: inline-block;
+  margin-block: 3px 6px;
+  color: var(--flow-pref-accent);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  text-underline-offset: 2px;
+}
+
+.refflow-pref-footer {
+  display: grid;
+  gap: 3px;
+  margin-top: 14px;
+  padding: 10px 13px;
+  border: 1px solid var(--flow-pref-border);
+  border-radius: 9px;
+  color: var(--flow-pref-text);
+  background: var(--flow-pref-surface);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.refflow-footer-title {
+  margin-bottom: 2px;
+  color: var(--flow-pref-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.refflow-pref-footer > div:not(.refflow-footer-title) {
+  display: grid;
+  grid-template-columns: minmax(6em, 8em) minmax(0, 1fr);
+  gap: 8px;
+  min-width: 0;
+  padding: 3px 0;
+  color: var(--flow-pref-muted);
+  overflow-wrap: anywhere;
+}
+
+.refflow-footer-label {
+  color: var(--flow-pref-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.refflow-pref-footer a {
+  margin: 0;
+  text-decoration: none;
+}
+
+.refflow-pref-footer a:hover {
+  text-decoration: underline;
+}
 
 @media (max-width: 520px) {
-  #zotero-prefpane-refflow { padding-inline: 6px; }
-  .refflow-setting-group-body { padding-inline: 10px; }
-  .refflow-pref-footer > div { grid-template-columns: 76px minmax(0, 1fr); }
+  #zotero-prefpane-refflow {
+    padding-inline: 8px;
+  }
+
+  .refflow-setting-group-body {
+    padding-inline: 10px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .refflow-setting-group { transition: none; }
+  .refflow-setting-group > summary::after {
+    transition: none;
+  }
 }
