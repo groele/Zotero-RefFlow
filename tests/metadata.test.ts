@@ -40,3 +40,14 @@ test("native settings expose maintainer, source attribution and feedback links i
     assert.match(locale,/about-origin = .*Zotero Reference \/ Ethereal Reference/);
   }
 });
+
+test("native settings expose OpenAlex and Semantic Scholar API key application links",()=>{
+  const prefs=read("addon/chrome/content/preferences.xhtml");
+  assert.ok(prefs.includes('data-l10n-id="openAlexKey-get"'));
+  assert.ok(prefs.includes('data-l10n-id="semanticScholarKey-get"'));
+  assert.ok(prefs.includes('https://www.semanticscholar.org/product/api#api-key-form'));
+  for(const lang of ["zh-CN","en-US","it-IT"]){
+    const locale=read(`addon/locale/${lang}/preferences.ftl`);
+    assert.match(locale,/semanticScholarKey-get = .+/);
+  }
+});

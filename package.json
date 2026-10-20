@@ -1,13 +1,13 @@
 {
   "name": "zotero-refflow",
-  "version": "12.0.0",
+  "version": "12.0.1",
   "description": "Zotero 10 and 11 reference retrieval and citation graphs, derived from Zotero Reference / Ethereal Reference by Polygon / MuiseDestiny.",
   "config": {
     "addonName": "Zotero RefFlow",
     "addonID": "refflow@groele.github.io",
     "addonRef": "refflow",
     "addonInstance": "ZoteroRefFlow",
-    "releaseTag": "v12.0.0",
+    "releaseTag": "v12.0.1",
     "downloadURL": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/zotero-refflow.xpi",
     "updateURL": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json",
     "issuesURL": "https://github.com/groele/Zotero-RefFlow/issues",

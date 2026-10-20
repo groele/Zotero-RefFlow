@@ -75,3 +75,4 @@ about-updates = Updates are provided by groele/Zotero-RefFlow. Zotero 10.0.6–1
 about-release-notes = Release notes
 semanticScholarKey-label = Semantic Scholar API Key (optional)
 semanticScholarKey-description = Uses the official Graph API. Leave empty for anonymous access; a configured key is sent using x-api-key.
+semanticScholarKey-get = Get / view a free Semantic Scholar API key

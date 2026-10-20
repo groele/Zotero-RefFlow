@@ -1,5 +1,11 @@
 # Zotero RefFlow
 
+## v12.0.1 - 2026-10-20
+
+- 在设置面板中增加 Semantic Scholar API Key 申请链接（指向官方申请入口），与 OpenAlex 保持一致。
+- Add Semantic Scholar API key registration link to preferences panel.
+- Update localization strings for Chinese, English and Italian.
+
 ## V12 / 12.0.0 - 2026-10-19
 
 - Upgrade major version to V12 / 12.0.0.
