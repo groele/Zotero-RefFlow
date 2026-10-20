@@ -1,4 +1,4 @@
-/* Native preferences follow the compact card and disclosure pattern used by MetaFlow. */
+/* Native preferences follow a compact, always-visible MetaFlow-style hierarchy. */
 #zotero-prefpane-refflow {
   box-sizing: border-box;
   display: block;
@@ -27,7 +27,7 @@
 .refflow-pref-brand h1 { font-size: 18px; font-weight: 650; letter-spacing: -0.02em; }
 .refflow-pref-brand p { margin-top: 3px; color: var(--fill-secondary, GrayText); font-size: 12px; }
 
-.refflow-setting-card {
+.refflow-setting-group {
   min-width: 0;
   margin-block: 0 10px;
   overflow: clip;
@@ -36,30 +36,42 @@
   background: color-mix(in srgb, currentColor 2%, transparent);
 }
 
-.refflow-setting-card > summary {
+.refflow-setting-group > h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   min-height: 42px;
   padding: 9px 13px;
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.refflow-setting-card > summary::-webkit-details-marker { display: none; }
-.refflow-setting-card > summary::after { content: "›"; color: var(--fill-secondary, GrayText); font-size: 18px; transition: transform 150ms ease; }
-.refflow-setting-card[open] > summary::after { transform: rotate(90deg); }
-.refflow-setting-card > summary:hover { background: color-mix(in srgb, currentColor 4%, transparent); }
-.refflow-setting-card > summary:focus-visible { outline: 2px solid Highlight; outline-offset: -2px; }
-.refflow-setting-card > summary h2 { font-size: 13px; font-weight: 600; }
-
-.refflow-card-body {
+.refflow-setting-group-body {
   min-width: 0;
   margin: 0 !important;
   padding: 12px 13px 14px;
   border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.refflow-setting-subgroup {
+  min-width: 0;
+  margin: 0 0 14px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.refflow-setting-subgroup:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.refflow-setting-subgroup > h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 #zotero-prefpane-refflow label,
@@ -94,9 +106,9 @@
 
 @media (max-width: 520px) {
   #zotero-prefpane-refflow { padding-inline: 6px; }
-  .refflow-card-body { padding-inline: 10px; }
+  .refflow-setting-group-body { padding-inline: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .refflow-setting-card > summary::after { transition: none; }
+  .refflow-setting-group { transition: none; }
 }

@@ -1,5 +1,10 @@
 # Zotero RefFlow
 
+## v12.2.0 - 2026-10-20
+
+- Consolidate the native preferences page into three always-visible groups without changing preference IDs or lifecycle bindings.
+- Align README download links and the update manifest with the v12.2.0 Release asset; record the final XPI SHA-256 in `update.json`.
+
 ## v12.0.2 - 2026-10-20
 
 - Rework the native preferences page into responsive, keyboard-accessible disclosure cards based on MetaFlow's settings layout.

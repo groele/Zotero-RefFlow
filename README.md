@@ -6,9 +6,9 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-![Version](https://img.shields.io/badge/version-12.0.2-blue) ![Zotero](https://img.shields.io/badge/Zotero-10.0.6%E2%80%9311.*-green) ![License](https://img.shields.io/badge/license-AGPL-3.0-or-later-lightgrey)
+![Version](https://img.shields.io/badge/version-12.2.0-blue) ![Zotero](https://img.shields.io/badge/Zotero-10.0.6%E2%80%9311.*-green) ![License](https://img.shields.io/badge/license-AGPL-3.0-or-later-lightgrey)
 
-[Download](https://github.com/groele/Zotero-RefFlow/releases/download/v12.0.2/zotero-refflow.xpi) · [Report an Issue](https://github.com/groele/Zotero-RefFlow/issues) · [Releases](https://github.com/groele/Zotero-RefFlow/releases)
+[Download](https://github.com/groele/Zotero-RefFlow/releases/download/v12.2.0/zotero-refflow.xpi) · [Report an Issue](https://github.com/groele/Zotero-RefFlow/issues) · [Releases](https://github.com/groele/Zotero-RefFlow/releases)
 
 **Zotero Flow Series**
 
@@ -35,7 +35,7 @@ For interface examples and implementation details, see the [project documentatio
 
 | Item | Details |
 | --- | --- |
-| Add-on version | `12.0.2` |
+| Add-on version | `12.2.0` |
 | Add-on ID | `refflow@groele.github.io` |
 | Declared Zotero range | `10.0.6–11.*` |
 | Verification | Windows Zotero 10.0.6 and Zotero 11.0-dev.5 were tested in the documented environments; future Zotero 11 releases are not thereby guaranteed. |
@@ -44,7 +44,7 @@ The declared compatibility range is not a guarantee that every Zotero version ha
 
 ## Installation
 
-1. [Download the XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.0.2/zotero-refflow.xpi) for the current release (`zotero-refflow.xpi`).
+1. [Download the XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.2.0/zotero-refflow.xpi) for the current release (`zotero-refflow.xpi`).
 2. Open Zotero → **Tools → Plugins** (or the add-on manager in your version).
 3. Choose **Install Add-on From File**, select the XPI, and restart Zotero if requested.
 

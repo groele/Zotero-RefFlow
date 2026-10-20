@@ -9,9 +9,9 @@
       <html:p>__buildVersion__</html:p>
     </html:div>
   </html:header>
-  <html:details class="refflow-setting-card" open="open">
-    <html:summary><html:h2 data-l10n-id="caption-online"></html:h2></html:summary>
-    <html:div class="refflow-card-body">
+  <html:section class="refflow-setting-group" aria-labelledby="refflow-online-title">
+    <html:h2 id="refflow-online-title" data-l10n-id="caption-online"></html:h2>
+    <html:div class="refflow-setting-group-body">
     <html:label data-l10n-id="openAlexKey-label" for="__addonRef__-openalex-key"></html:label>
     <html:input type="password" id="__addonRef__-openalex-key" preference="extensions.zotero.__addonRef__.openAlexKey" autocomplete="off" />
     <html:p data-l10n-id="openAlexKey-description"></html:p>
@@ -21,10 +21,11 @@
     <html:p data-l10n-id="semanticScholarKey-description"></html:p>
     <html:a href="https://www.semanticscholar.org/product/api#api-key-form" data-l10n-id="semanticScholarKey-get"></html:a>
     </html:div>
-  </html:details>
-  <html:details class="refflow-setting-card">
-    <html:summary><html:h2 data-l10n-id="caption-refresh"></html:h2></html:summary>
-    <html:div class="refflow-card-body">
+  </html:section>
+  <html:section class="refflow-setting-group" aria-labelledby="refflow-retrieval-title">
+    <html:h2 id="refflow-retrieval-title" data-l10n-id="caption-refresh"></html:h2>
+    <html:div class="refflow-setting-group-body">
+    <html:div class="refflow-setting-subgroup">
     <checkbox native="true" id="__addonRef__-auto-refresh" data-l10n-id="autoRefresh"
       preference="extensions.zotero.__addonRef__.autoRefresh" />
     <html:div style="
@@ -42,10 +43,8 @@
       </html:input>
     </html:div>
     </html:div>
-  </html:details>
-  <html:details class="refflow-setting-card">
-    <html:summary><html:h2 data-l10n-id="caption-source"></html:h2></html:summary>
-    <html:div class="refflow-card-body">
+    <html:div class="refflow-setting-subgroup">
+    <html:h3 data-l10n-id="caption-source"></html:h3>
     <html:div style="
       display: flex;
       flex-direction: row;
@@ -65,10 +64,8 @@
       <html:span style="margin: 4px 0;" data-l10n-id="prioritySource-end"></html:span>
     </html:div>
     </html:div>
-  </html:details>
-  <html:details class="refflow-setting-card">
-    <html:summary><html:h2 data-l10n-id="caption-tip"></html:h2></html:summary>
-    <html:div class="refflow-card-body">
+    <html:div class="refflow-setting-subgroup">
+    <html:h3 data-l10n-id="caption-tip"></html:h3>
     <hbox style="margin: 4px 0;margin-left: .7em;">
       <html:span style="margin: auto 0; margin-right: .5em;" data-l10n-id="tipBackgroundColor"></html:span>
       <html:input style="width: 6em; margin: auto 0; height: 1em;" type="text" id="__addonRef__-tip-background-color"
@@ -110,19 +107,15 @@
       </html:span>
     </hbox>
     </html:div>
-  </html:details>
-  <html:details class="refflow-setting-card">
-    <html:summary><html:h2 data-l10n-id="caption-save"></html:h2></html:summary>
-    <html:div class="refflow-card-body">
+    <html:div class="refflow-setting-subgroup">
+    <html:h3 data-l10n-id="caption-save"></html:h3>
     <checkbox native="true" id="__addonRef__-save-pdf-references" data-l10n-id="savePDFReferences"
       preference="extensions.zotero.__addonRef__.savePDFReferences" />
     <checkbox native="true" id="__addonRef__-save-api-references" data-l10n-id="saveAPIReferences"
       preference="extensions.zotero.__addonRef__.saveAPIReferences" />
     </html:div>
-  </html:details>
-  <html:details class="refflow-setting-card">
-    <html:summary><html:h2 data-l10n-id="caption-match"></html:h2></html:summary>
-    <html:div class="refflow-card-body">
+    <html:div class="refflow-setting-subgroup">
+    <html:h3 data-l10n-id="caption-match"></html:h3>
     <hbox style="margin-left: .7em;display: flex;align-items: center;">
       <html:span style="margin: auto 0; margin-right: .5em;" data-l10n-id="notInLibarayOpacity-start"></html:span>
       <html:input style="width: 4em; margin: auto 0; height: 1em;" type="range" min="0" max="1" step="0.01" id="__addonRef__-not-in-library-opacity"
@@ -131,11 +124,12 @@
       <html:span style="margin: auto 0; margin-left: .5em;" data-l10n-id="notInLibarayOpacity-end"></html:span>
     </hbox>
     </html:div>
-  </html:details>
-  <html:details class="refflow-setting-card" id="__addonRef__-about">
-    <html:summary><html:h2>__addonName__</html:h2></html:summary>
-    <html:div class="refflow-card-body">
-    <html:h2>__addonName__ · __buildVersion__</html:h2>
+    </html:div>
+  </html:section>
+  <html:section class="refflow-setting-group" aria-labelledby="refflow-about-title">
+    <html:h2 id="refflow-about-title">__addonName__ · __buildVersion__</html:h2>
+    <html:div class="refflow-setting-group-body">
+    <html:div class="refflow-setting-subgroup" id="__addonRef__-about">
     <html:p data-l10n-id="about-maintainer"></html:p>
     <html:p data-l10n-id="about-origin"></html:p>
     <html:p data-l10n-id="about-updates"></html:p>
@@ -146,5 +140,6 @@
       <html:a id="__addonRef__-release-notes-link" href="__releaseNotesURL__" data-l10n-id="about-release-notes"></html:a>
     </html:div>
     </html:div>
-  </html:details>
+    </html:div>
+  </html:section>
 </vbox>

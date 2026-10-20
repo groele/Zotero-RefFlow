@@ -6,9 +6,9 @@
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
-![Version](https://img.shields.io/badge/version-12.0.2-blue) ![Zotero](https://img.shields.io/badge/Zotero-10.0.6%E2%80%9311.*-green) ![License](https://img.shields.io/badge/license-AGPL-3.0-or-later-lightgrey)
+![Version](https://img.shields.io/badge/version-12.2.0-blue) ![Zotero](https://img.shields.io/badge/Zotero-10.0.6%E2%80%9311.*-green) ![License](https://img.shields.io/badge/license-AGPL-3.0-or-later-lightgrey)
 
-[下载插件](https://github.com/groele/Zotero-RefFlow/releases/download/v12.0.2/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues) · [版本发布](https://github.com/groele/Zotero-RefFlow/releases)
+[下载插件](https://github.com/groele/Zotero-RefFlow/releases/download/v12.2.0/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues) · [版本发布](https://github.com/groele/Zotero-RefFlow/releases)
 
 **Zotero Flow Series**
 
@@ -35,7 +35,7 @@ Zotero RefFlow 是 Zotero Flow Series 中独立维护的插件，获取参考文
 
 | 项目 | 说明 |
 | --- | --- |
-| 插件版本 | `12.0.2` |
+| 插件版本 | `12.2.0` |
 | 插件 ID | `refflow@groele.github.io` |
 | 声明兼容范围 | `10.0.6–11.*` |
 | 验证情况 | 现有记录涉及 Windows Zotero 10.0.6 及 Zotero 11.0-dev.5；不代表后续 Zotero 11 正式版本均已验证。 |
@@ -44,7 +44,7 @@ Zotero RefFlow 是 Zotero Flow Series 中独立维护的插件，获取参考文
 
 ## 安装指南
 
-1. [下载当前版本 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.0.2/zotero-refflow.xpi)（`zotero-refflow.xpi`）。
+1. [下载当前版本 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.2.0/zotero-refflow.xpi)（`zotero-refflow.xpi`）。
 2. 打开 Zotero 的 **工具 → 插件**（不同版本的菜单名称可能不同）。
 3. 选择 **从文件安装插件**，选中 XPI，按提示重启。
 
