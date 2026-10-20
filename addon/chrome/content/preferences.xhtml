@@ -9,8 +9,8 @@
       <html:p>__buildVersion__</html:p>
     </html:div>
   </html:header>
-  <html:section class="refflow-setting-group" aria-labelledby="refflow-online-title">
-    <html:h2 id="refflow-online-title" data-l10n-id="caption-online"></html:h2>
+  <html:details class="refflow-setting-group" aria-labelledby="refflow-online-title" open="open">
+    <html:summary><html:span id="refflow-online-title" data-l10n-id="caption-online"></html:span></html:summary>
     <html:div class="refflow-setting-group-body">
     <html:label data-l10n-id="openAlexKey-label" for="__addonRef__-openalex-key"></html:label>
     <html:input type="password" id="__addonRef__-openalex-key" preference="extensions.zotero.__addonRef__.openAlexKey" autocomplete="off" />
@@ -21,9 +21,9 @@
     <html:p data-l10n-id="semanticScholarKey-description"></html:p>
     <html:a href="https://www.semanticscholar.org/product/api#api-key-form" data-l10n-id="semanticScholarKey-get"></html:a>
     </html:div>
-  </html:section>
-  <html:section class="refflow-setting-group" aria-labelledby="refflow-retrieval-title">
-    <html:h2 id="refflow-retrieval-title" data-l10n-id="caption-refresh"></html:h2>
+  </html:details>
+  <html:details class="refflow-setting-group" aria-labelledby="refflow-retrieval-title">
+    <html:summary><html:span id="refflow-retrieval-title" data-l10n-id="caption-refresh"></html:span></html:summary>
     <html:div class="refflow-setting-group-body">
     <html:div class="refflow-setting-subgroup">
     <checkbox native="true" id="__addonRef__-auto-refresh" data-l10n-id="autoRefresh"
@@ -125,9 +125,9 @@
     </hbox>
     </html:div>
     </html:div>
-  </html:section>
-  <html:section class="refflow-setting-group" aria-labelledby="refflow-about-title">
-    <html:h2 id="refflow-about-title">__addonName__ · __buildVersion__</html:h2>
+  </html:details>
+  <html:details class="refflow-setting-group" aria-labelledby="refflow-about-title">
+    <html:summary><html:span id="refflow-about-title">__addonName__ · __buildVersion__</html:span></html:summary>
     <html:div class="refflow-setting-group-body">
     <html:div class="refflow-setting-subgroup" id="__addonRef__-about">
     <html:p data-l10n-id="about-maintainer"></html:p>
@@ -141,5 +141,12 @@
     </html:div>
     </html:div>
     </html:div>
-  </html:section>
+  </html:details>
+  <html:footer class="refflow-pref-footer" aria-label="Release information">
+    <html:div><html:span class="refflow-footer-label">版本</html:span><html:span>v12.3.0</html:span></html:div>
+    <html:div><html:span class="refflow-footer-label">版本说明</html:span><html:span>设置面板风格统一；一级分组可折叠；版本信息独立列示</html:span></html:div>
+    <html:div><html:span class="refflow-footer-label">构建日期</html:span><html:span>2026-10-20</html:span></html:div>
+    <html:div><html:span class="refflow-footer-label">安装包</html:span><html:a href="https://github.com/groele/Zotero-RefFlow/releases/download/v12.3.0/zotero-refflow.xpi">下载 Zotero RefFlow v12.3.0 (.xpi)</html:a></html:div>
+    <html:div><html:span class="refflow-footer-label">GitHub 仓库</html:span><html:a href="https://github.com/groele/Zotero-RefFlow">groele/Zotero-RefFlow</html:a></html:div>
+  </html:footer>
 </vbox>

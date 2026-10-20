@@ -1,5 +1,12 @@
 # Zotero RefFlow
 
+## v12.3.0 - 2026-10-20
+
+- Unify the Zotero Settings preferences pane style across the Flow plugins.
+- Keep only the three top-level settings sections collapsible; preserve all settings and bindings.
+- Show version notes, build date, XPI download, and repository links in separate rows.
+- Build date: 2026-10-20.
+
 ## v12.2.0 - 2026-10-20
 
 - Consolidate the native preferences page into three always-visible groups without changing preference IDs or lifecycle bindings.
