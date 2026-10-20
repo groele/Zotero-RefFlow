@@ -4,7 +4,7 @@
       "updates": [
         {
           "version": "12.0.2",
-          "update_link": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/zotero-refflow.xpi",
+          "update_link": "https://github.com/groele/Zotero-RefFlow/releases/download/v12.0.2/zotero-refflow.xpi",
           "applications": {
             "zotero": {
               "strict_min_version": "10.0.6",
@@ -12,7 +12,7 @@
             }
           },
           "update_hash": "sha256:1415c10488c03d786e0d5f94546386f85d0adb7b9af673bd299e3d2729ebdd43",
-          "update_info_url": "https://github.com/groele/Zotero-RefFlow/blob/main/docs/RELEASE-NOTES.md"
+          "update_info_url": "https://github.com/groele/Zotero-RefFlow/releases/tag/v12.0.2"
         }
       ]
     }
