@@ -1,9 +1,17 @@
 <linkset>
   <html:link rel="localization" href="__addonRef__-preferences.ftl" />
+  <html:link rel="stylesheet" href="chrome://__addonRef__/content/assets/preferences.css" />
 </linkset>
-<vbox id="zotero-prefpane-__addonRef__">
-  <groupbox>
-    <html:h2 data-l10n-id="caption-online"></html:h2>
+<vbox id="zotero-prefpane-__addonRef__" class="refflow-preferences">
+  <html:header class="refflow-pref-header">
+    <html:div class="refflow-pref-brand">
+      <html:h1>__addonName__</html:h1>
+      <html:p>__buildVersion__</html:p>
+    </html:div>
+  </html:header>
+  <html:details class="refflow-setting-card" open="open">
+    <html:summary><html:h2 data-l10n-id="caption-online"></html:h2></html:summary>
+    <html:div class="refflow-card-body">
     <html:label data-l10n-id="openAlexKey-label" for="__addonRef__-openalex-key"></html:label>
     <html:input type="password" id="__addonRef__-openalex-key" preference="extensions.zotero.__addonRef__.openAlexKey" autocomplete="off" />
     <html:p data-l10n-id="openAlexKey-description"></html:p>
@@ -12,9 +20,11 @@
     <html:input type="password" id="__addonRef__-semanticscholar-key" preference="extensions.zotero.__addonRef__.semanticScholarKey" autocomplete="off" />
     <html:p data-l10n-id="semanticScholarKey-description"></html:p>
     <html:a href="https://www.semanticscholar.org/product/api#api-key-form" data-l10n-id="semanticScholarKey-get"></html:a>
-  </groupbox>
-  <groupbox>
-    <html:h2 data-l10n-id="caption-refresh"></html:h2>
+    </html:div>
+  </html:details>
+  <html:details class="refflow-setting-card">
+    <html:summary><html:h2 data-l10n-id="caption-refresh"></html:h2></html:summary>
+    <html:div class="refflow-card-body">
     <checkbox native="true" id="__addonRef__-auto-refresh" data-l10n-id="autoRefresh"
       preference="extensions.zotero.__addonRef__.autoRefresh" />
     <html:div style="
@@ -31,9 +41,11 @@
         preference="extensions.zotero.__addonRef__.notAutoRefreshItemTypes">
       </html:input>
     </html:div>
-  </groupbox>
-  <groupbox>
-    <html:h2 data-l10n-id="caption-source"></html:h2>
+    </html:div>
+  </html:details>
+  <html:details class="refflow-setting-card">
+    <html:summary><html:h2 data-l10n-id="caption-source"></html:h2></html:summary>
+    <html:div class="refflow-card-body">
     <html:div style="
       display: flex;
       flex-direction: row;
@@ -52,9 +64,11 @@
       </menulist>
       <html:span style="margin: 4px 0;" data-l10n-id="prioritySource-end"></html:span>
     </html:div>
-  </groupbox>
-  <groupbox>
-    <html:h2 data-l10n-id="caption-tip"></html:h2>
+    </html:div>
+  </html:details>
+  <html:details class="refflow-setting-card">
+    <html:summary><html:h2 data-l10n-id="caption-tip"></html:h2></html:summary>
+    <html:div class="refflow-card-body">
     <hbox style="margin: 4px 0;margin-left: .7em;">
       <html:span style="margin: auto 0; margin-right: .5em;" data-l10n-id="tipBackgroundColor"></html:span>
       <html:input style="width: 6em; margin: auto 0; height: 1em;" type="text" id="__addonRef__-tip-background-color"
@@ -95,16 +109,20 @@
       <html:span style="margin: auto 0; margin-left: .5em;" data-l10n-id="removeTipAfterMillisecond-end">
       </html:span>
     </hbox>
-  </groupbox>
-  <groupbox>
-    <html:h2 data-l10n-id="caption-save"></html:h2>
+    </html:div>
+  </html:details>
+  <html:details class="refflow-setting-card">
+    <html:summary><html:h2 data-l10n-id="caption-save"></html:h2></html:summary>
+    <html:div class="refflow-card-body">
     <checkbox native="true" id="__addonRef__-save-pdf-references" data-l10n-id="savePDFReferences"
       preference="extensions.zotero.__addonRef__.savePDFReferences" />
     <checkbox native="true" id="__addonRef__-save-api-references" data-l10n-id="saveAPIReferences"
       preference="extensions.zotero.__addonRef__.saveAPIReferences" />
-  </groupbox>
-  <groupbox>
-    <html:h2 data-l10n-id="caption-match"></html:h2>
+    </html:div>
+  </html:details>
+  <html:details class="refflow-setting-card">
+    <html:summary><html:h2 data-l10n-id="caption-match"></html:h2></html:summary>
+    <html:div class="refflow-card-body">
     <hbox style="margin-left: .7em;display: flex;align-items: center;">
       <html:span style="margin: auto 0; margin-right: .5em;" data-l10n-id="notInLibarayOpacity-start"></html:span>
       <html:input style="width: 4em; margin: auto 0; height: 1em;" type="range" min="0" max="1" step="0.01" id="__addonRef__-not-in-library-opacity"
@@ -112,8 +130,11 @@
       </html:input>
       <html:span style="margin: auto 0; margin-left: .5em;" data-l10n-id="notInLibarayOpacity-end"></html:span>
     </hbox>
-  </groupbox>
-  <groupbox id="__addonRef__-about">
+    </html:div>
+  </html:details>
+  <html:details class="refflow-setting-card" id="__addonRef__-about">
+    <html:summary><html:h2>__addonName__</html:h2></html:summary>
+    <html:div class="refflow-card-body">
     <html:h2>__addonName__ · __buildVersion__</html:h2>
     <html:p data-l10n-id="about-maintainer"></html:p>
     <html:p data-l10n-id="about-origin"></html:p>
@@ -124,5 +145,6 @@
       <html:a href="__upstreamURL__" data-l10n-id="about-upstream"></html:a>
       <html:a id="__addonRef__-release-notes-link" href="__releaseNotesURL__" data-l10n-id="about-release-notes"></html:a>
     </html:div>
-  </groupbox>
+    </html:div>
+  </html:details>
 </vbox>

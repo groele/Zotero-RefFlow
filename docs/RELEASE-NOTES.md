@@ -1,5 +1,11 @@
 # Zotero RefFlow
 
+## v12.0.2 - 2026-10-20
+
+- Rework the native preferences page into responsive, keyboard-accessible disclosure cards based on MetaFlow's settings layout.
+- Preserve every preference key, default, input type, localized label, and preference lifecycle hook.
+- Refresh the package version and update feed for this settings-only release.
+
 ## v12.0.1 - 2026-10-20
 
 - 在设置面板中增加 Semantic Scholar API Key 申请链接（指向官方申请入口），与 OpenAlex 保持一致。
