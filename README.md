@@ -1,94 +1,138 @@
-<div align="center">
-
 # Zotero RefFlow
 
-**Discover references, citing works, and related research.**
+**Zotero Flow Series · 文献发现**
 
-[English](README.md) · [简体中文](README.zh-CN.md)
+检索参考文献、被引文献与相关研究。
 
-![Version](https://img.shields.io/badge/version-12.3.3-blue) ![Zotero](https://img.shields.io/badge/Zotero-10.0.6%E2%80%9311.*-green) ![License](https://img.shields.io/badge/license-AGPL-3.0-or-later-lightgrey)
+[简体中文](README.md) · [English](README.en.md)
 
-[Download](https://github.com/groele/Zotero-RefFlow/releases/download/v12.3.3/zotero-refflow.xpi) · [Report an Issue](https://github.com/groele/Zotero-RefFlow/issues) · [Releases](https://github.com/groele/Zotero-RefFlow/releases)
+[![当前版本](https://img.shields.io/badge/version-12.3.3-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.3.3) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.3.3/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
 
-**Zotero Flow Series**
+[产品定位](#overview) · [安装与更新](#installation) · [快速开始](#quick-start) · [核心功能](#features) · [设置与使用](#settings) · [数据、同步与外部服务](#data) · [兼容性与验证范围](#compatibility) · [常见问题](#troubleshooting) · [开发与详细文档](#development) · [系列产品](#series) · [项目来源与许可](#license)
 
-</div>
+<a id="overview"></a>
 
----
+## 产品定位
 
-## Overview
+面向追溯研究来源与扩展阅读的研究者，从本地文档和在线来源检索文献关系，在 Zotero 内查看、筛选与导入候选条目。
 
-Zotero RefFlow is an independently maintained Zotero add-on that discover references, citing works, and related research. It is designed for research workflows that need practical functionality within the Zotero desktop application.
+本插件可以独立安装，按需与系列其他插件组合使用。
 
-## Key Features
+<a id="installation"></a>
 
-- Retrieve reference lists from local PDFs, saved webpages, online indexes and publisher resources.
-- Explore references, citing publications and related works in a Zotero side pane.
-- Search, sort, copy and import results with duplicate-aware matching.
-- Preserve useful cached results and report partial retrieval when sources fail.
+## 安装与更新
 
-## Screenshots
+1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v12.3.3/zotero-refflow.xpi)（插件版本 **12.3.3**），不要安装 Source code ZIP。
+2. 在 Zotero 打开 **工具 → 插件／附加组件**，从齿轮菜单选择 **从文件安装插件**。
+3. 选择 XPI，完成安装；按提示重启 Zotero。
 
-For interface examples and implementation details, see the [project documentation](https://github.com/groele/Zotero-RefFlow/tree/main/docs) where available. Screenshots will be added only after they are verified against the current interface.
+后续可在插件管理器中检查更新。自动检查／安装取决于 Zotero 与该插件的更新设置和兼容范围。升级或迁移前备份重要数据。
 
-## Compatibility
+更新清单: [update.json](https://github.com/groele/Zotero-RefFlow/blob/main/update.json) · 插件 ID: `refflow@groele.github.io`.
 
-| Item | Details |
-| --- | --- |
-| Add-on version | `12.3.3` |
-| Add-on ID | `refflow@groele.github.io` |
-| Declared Zotero range | `10.0.6–11.*` |
-| Verification | Windows Zotero 10.0.6 and Zotero 11.0-dev.5 were tested in the documented environments; future Zotero 11 releases are not thereby guaranteed. |
+<a id="quick-start"></a>
 
-The declared compatibility range is not a guarantee that every Zotero version has been tested.
+## 快速开始
 
-## Installation
+1. 选择带有可用标识或附件的文献，打开其参考文献侧栏。
+2. 按需刷新，切换参考文献、被引文献或相关文献。
+3. 核对来源与匹配结果，再导入需要的条目。
 
-1. [Download the XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.3.3/zotero-refflow.xpi) for the current release (`zotero-refflow.xpi`).
-2. Open Zotero → **Tools → Plugins** (or the add-on manager in your version).
-3. Choose **Install Add-on From File**, select the XPI, and restart Zotero if requested.
+<a id="features"></a>
 
-Update feed: [update.json](https://github.com/groele/Zotero-RefFlow/blob/main/update.json).
+## 核心功能
 
-## Quick Start
+| 功能 | 使用范围 |
+|---|---|
+| 多来源检索 | 从 PDF、网页快照、出版方与在线索引获取可用参考文献。 |
+| 关系浏览 | 区分参考文献、被引文献和相关文献，浏览列表与图谱。 |
+| 结果整理 | 搜索、排序、复制与导入结果；导入前检查匹配与重复项。 |
+| 来源与缓存 | 保留来源、缓存与部分结果提示，避免将相似关系等同为引用关系。 |
 
-1. Download the XPI from the linked Release and install it in Zotero.
-2. Select an item, then open its References pane and refresh the list.
-3. Switch among references, citing works and related works; review matches before importing.
+<a id="settings"></a>
 
-## Configuration & Notes
+## 设置与使用
 
-**10.1.0 repairs, 2026-10-15:** fixes the ten reproducible V10 audit defects and adds a source-built graph renderer, bounded reference-card rendering and shared request admission. See the [repair and validation report](docs/REPAIRS-2026-10-15.md). Legacy imported items without an edit baseline are retained during rollback rather than deleted on uncertain ownership.
+在 **Zotero → 设置 → Zotero RefFlow** 中查看插件偏好页。
 
-Auto selects retrieval sources; automatic refresh is a separate setting and is off by default.
+在 Zotero 设置中配置在线服务密钥、刷新行为、提示和保存选项。来源选择 Auto 与“自动刷新”是不同设置。
 
-Online retrieval depends on external services and their rate limits. Scanned PDFs without a text layer may require OCR. Optional OpenAlex API credentials can be configured in Zotero settings.
+<a id="data"></a>
 
-## Development & Testing
+## 数据、同步与外部服务
 
-Run the following commands from the repository root. Follow project-specific test prerequisites before running native desktop validation.
+- 在线来源包括 Crossref、OpenAlex 和 Semantic Scholar；覆盖度、限流和返回顺序由来源决定。
+- 参考文献快照与缓存不等于完整原文书目；扫描 PDF 可能需要 OCR。导入会创建 Zotero 条目。
+
+<a id="compatibility"></a>
+
+## 兼容性与验证范围
+
+| 项目 | 范围 |
+|---|---|
+| 当前插件版本 | 12.3.3 |
+| 清单声明的 Zotero 范围 | `10.0.6` 至 `11.*` |
+| 当前说明 | 12.3.3 设置页已在 Windows Zotero 10.0.6 原生检查；外部服务和所有图谱／导入场景未在本轮重新验证。 |
+
+插件版本与 Zotero 版本分别管理。清单允许安装，不代表所有版本、操作系统和外部服务均已验证。本次品牌文档更新未重新执行业务功能测试。
+
+<a id="troubleshooting"></a>
+
+## 常见问题
+
+结果不完整时先看来源、部分结果标记、条目 DOI 与附件文本；“未检索到”不代表不存在引用关系。不同来源的排序不能直接当作原文编号。
+
+反馈时提供插件与 Zotero 版本、系统、操作步骤、预期／实际结果和脱敏错误。
+
+<a id="development"></a>
+
+## 开发与详细文档
+
+普通安装无需开发环境。以下为仓库已有开发入口，涉及原生测试时使用独立配置。
 
 ```powershell
 npm ci
 npm run tsc
 npm test
+# Evaluation build: do not promote the installer or update feed
+$env:REFFLOW_NO_PROMOTE = "1"
 npm run build-prod
 ```
 
-These commands describe available project tasks, not a claim that every environment or integration test passes.
+- [数据源与接口规范 / Dataflow and API](docs/DATAFLOW-AND-API-SPEC.md)
+- [修复记录 / Repair record](docs/REPAIRS-2026-10-15.md)
+- [版本说明 / Release notes](docs/RELEASE-NOTES.md)
+- [产品简介 / Product profile](docs/brand/PRODUCT.md)
+- [品牌规范 / Brand guide](docs/brand/BRAND.md)
+- [README 模板 / README template](docs/brand/README-TEMPLATE.md)
+- [后续提升清单 / Improvement priorities](docs/brand/IMPROVEMENTS.md)
+- [原详细指南 · README.md](docs/reference/README.md)
+- [原详细指南 · README.zh-CN.md](docs/reference/README.zh-CN.md)
 
-## Documentation & Support
+原详细指南保留功能细节、快捷键、历史验证与完整致谢；其中版本和测试结果属于各自记录时间。
 
-[Audit](AUDIT.md) · [Release notes](docs/RELEASE-NOTES.md)
+<a id="series"></a>
 
-[Open an issue](https://github.com/groele/Zotero-RefFlow/issues) · [Browse source](https://github.com/groele/Zotero-RefFlow)
+## 系列产品
 
-## Acknowledgements & Attribution
+| 产品 | 定位 |
+|---|---|
+| [Zotero RefFlow](https://github.com/groele/Zotero-RefFlow) | 文献发现 · 检索参考文献、被引文献与相关研究。 |
+| [Zotero MetaFlow](https://github.com/groele/Zotero-MetaFlow) | 元数据整理 · 校验、规范并补全文献元数据。 |
+| [Zotero ViewFlow](https://github.com/groele/Zotero-ViewFlow) | 阅读预览 · 在 Zotero 侧栏预览并复制格式化引文。 |
+| [Zotero MindFlow](https://github.com/groele/Zotero-MindFlow) | 知识组织 · 将文献、批注与思路组织为可编辑导图。 |
+| [Zotero TaskFlow](https://github.com/groele/Zotero-TaskFlow) | 任务推进 · 将文献研读转化为可追踪的任务与计划。 |
+| [Zotero CiteFlow](https://github.com/groele/Zotero-CiteFlow) | 写作引用 · 追踪 Word 文档引用，并连接 Zotero 文献操作。 |
+| [Zotero PaperFlow](https://github.com/groele/Zotero-PaperFlow) | 投稿审稿 · 管理手稿、投稿轮次与审稿回复。 |
 
-Zotero RefFlow was originally developed as a derivative of [MuiseDestiny/zotero-reference](https://github.com/MuiseDestiny/zotero-reference) by MuiseDestiny (Polygon). We acknowledge the original author and contributors for their foundational work. This Zotero Flow Series edition is independently maintained, is not an official release of the upstream project, and is not endorsed by Zotero. Original copyright and applicable third-party notices remain in force.
+各插件分别安装和更新；同属一个系列不意味着共享数据库或已自动联通所有流程。
 
-## License
+<a id="license"></a>
 
-Distributed under **AGPL-3.0-or-later**. See [LICENSE](LICENSE) and any applicable third-party notices for details.
+## 项目来源与许可
 
-Zotero and associated trademarks belong to their respective owners.
+基于 MuiseDestiny（Polygon）的 zotero-reference / Ethereal Reference 独立维护；保留上游版权与第三方声明。
+
+许可: [AGPL-3.0-or-later](LICENSE).
+
+本系列独立维护，并非 Zotero 官方产品。Zotero 及第三方名称、商标与材料归各自权利人所有。

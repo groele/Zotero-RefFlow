@@ -1,0 +1,21 @@
+{
+  "name": "Zotero RefFlow",
+  "series": "Zotero Flow",
+  "role": [
+    "文献发现",
+    "Discovery"
+  ],
+  "shortDescription": [
+    "检索参考文献、被引文献与相关研究。",
+    "Discover references, citing works, and related research."
+  ],
+  "introduction": [
+    "面向追溯研究来源与扩展阅读的研究者，从本地文档和在线来源检索文献关系，在 Zotero 内查看、筛选与导入候选条目。",
+    "For researchers following a paper’s sources and extending a reading list: retrieve literature relationships from local documents and online sources, then review and import candidates in Zotero."
+  ],
+  "githubDescription": "Discover references, citing works, and related research. Part of Zotero Flow.",
+  "repository": "https://github.com/groele/Zotero-RefFlow",
+  "addonID": "refflow@groele.github.io",
+  "version": "12.3.3",
+  "license": "AGPL-3.0-or-later"
+}
