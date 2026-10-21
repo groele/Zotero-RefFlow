@@ -1,4 +1,4 @@
-prefs-label = RefFlow
+prefs-label = Zotero RefFlow
 pane-title =
     .label = Riferimenti
     .tooltiptext = Riferimenti

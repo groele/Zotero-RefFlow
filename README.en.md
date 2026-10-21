@@ -2,6 +2,8 @@
 
 **Zotero Flow Series · Discovery**
 
+*让研究的每一步衔接起来。 / Connect each step of research.*
+
 Discover references, citing works, and related research.
 
 [简体中文](README.md) · [English](README.en.md)
