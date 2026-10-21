@@ -1,3 +1,9 @@
+# Zotero RefFlow 12.3.4
+
+- Match MetaFlow native neutral text, card backgrounds and borders in light and dark themes.
+- Unify ordinary link decoration and retain hover/focus affordances.
+- Validate sequential navigation, expanded content, and the MetaFlow palette reference.
+
 # Zotero RefFlow
 
 ## v12.3.3 - 2026-10-20
