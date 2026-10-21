@@ -1,13 +1,13 @@
 {
   "name": "zotero-refflow",
-  "version": "12.3.4",
+  "version": "12.5.0",
   "description": "Discover references, citing works, and related research.",
   "config": {
     "addonName": "Zotero RefFlow",
     "addonID": "refflow@groele.github.io",
     "addonRef": "refflow",
     "addonInstance": "ZoteroRefFlow",
-    "releaseTag": "v12.3.4",
+    "releaseTag": "v12.5.0",
     "downloadURL": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/zotero-refflow.xpi",
     "updateURL": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json",
     "issuesURL": "https://github.com/groele/Zotero-RefFlow/issues",
