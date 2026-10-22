@@ -49,7 +49,7 @@ cards-cited = Cited
 
 cards-show-library = Show in Zotero
 
-cards-import = Import into Zotero
+cards-import = Add to Zotero by DOI
 
 cards-copy-text = Copy reference text
 
@@ -59,9 +59,9 @@ cards-copy-url = Copy URL
 
 cards-open = Open in Zotero or browser
 
-cards-import-selected = Import selected literature
+cards-import-selected = Add selected literature by DOI
 
-cards-import-all = Import all literature
+cards-import-all = Add all literature by DOI
 
 cards-source-pdf = Source: PDF
 
@@ -109,3 +109,8 @@ cards-rollback-retained = Kept { $count } imported items because they were reuse
 cards-latest-attempt = Latest attempt
 
 graph-origins-changed = Origins changed. Build the graph to load current results.
+
+cards-importing-doi = Looking up DOI in Zotero…
+cards-import-cancelled = Import cancelled; completed items remain in Zotero
+cards-import-failed = DOI import failed; retry
+cards-import-summary = Added: { $added }; existing: { $existing }; failed: { $failed }

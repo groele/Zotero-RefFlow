@@ -15,7 +15,7 @@ const delay=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms));
 test("native translator DOI conflict cannot relabel metadata as the requested publication",async()=>{
   const host:any=Zotero,original=host.Translate;
   host.Translate={Search:class{setIdentifier(){}async getTranslators(){return ["fixture"];}setTranslator(){}async translate(){return [{DOI:"10.1234/wrong",title:"Wrong publication"}];}}};
-  try{assert.equal(await (BatchImporter as any).translatedMetadata("10.1234/expected",100),undefined);}finally{host.Translate=original;}
+  try{await assert.rejects((BatchImporter as any).translatedMetadata("10.1234/expected",100),/conflicting DOI/);}finally{host.Translate=original;}
 });
 test("pane cancellation settles even when the job ignores its signal",async()=>{
   const tasks=new ReferenceTasks(),pane={};let signal:any;

@@ -9,7 +9,7 @@ Discover references, citing works, and related research.
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![Release](https://img.shields.io/badge/version-12.5.1-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.5.1) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.1/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
+[![Release](https://img.shields.io/badge/version-12.5.2-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.5.2) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.2/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
 
 [Overview](#overview) · [Installation and updates](#installation) · [Quick start](#quick-start) · [Key features](#features) · [Settings](#settings) · [Data, sync, and services](#data) · [Compatibility and validation](#compatibility) · [Troubleshooting](#troubleshooting) · [Development and documentation](#development) · [The Flow series](#series) · [Origin and license](#license)
 
@@ -25,7 +25,7 @@ Install this add-on independently and combine it with other Flow products as nee
 
 ## Installation and updates
 
-1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.1/zotero-refflow.xpi) (add-on version **12.5.1**), not the Source code ZIP.
+1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.2/zotero-refflow.xpi) (add-on version **12.5.2**), not the Source code ZIP.
 2. In Zotero, open **Tools → Plugins/Add-ons**, then choose **Install Add-on From File** from the gear menu.
 3. Select the XPI, complete installation, and restart if requested.
 
@@ -73,7 +73,7 @@ Configure service credentials, refresh behavior, tips, and saving in Zotero sett
 
 | Item | Scope |
 |---|---|
-| Current add-on version | 12.5.1 |
+| Current add-on version | 12.5.2 |
 | Declared Zotero range | `10.0.6` through `11.*` |
 | Evidence boundary | The 12.3.4 settings pane was checked in Windows Zotero 10.0.6, including sequential navigation and MetaFlow card palette comparison; external services and all graph/import scenarios were not rerun in this update. |
 
@@ -104,7 +104,7 @@ npm run build-prod
 
 - [数据源与接口规范 / Dataflow and API](docs/DATAFLOW-AND-API-SPEC.md)
 - [修复记录 / Repair record](docs/REPAIRS-2026-10-15.md)
-- [版本说明 / Release notes](docs/releases/v12.5.1.md)
+- [版本说明 / Release notes](docs/releases/v12.5.2.md)
 - [产品简介 / Product profile](docs/brand/PRODUCT.md)
 - [品牌规范 / Brand guide](docs/brand/BRAND.md)
 - [README 模板 / README template](docs/brand/README-TEMPLATE.md)
@@ -139,3 +139,5 @@ Independently maintained derivative of MuiseDestiny (Polygon)’s zotero-referen
 License: [AGPL-3.0-or-later](LICENSE).
 
 This series is independently maintained and is not an official Zotero product. Zotero and third-party names, trademarks, and materials belong to their respective rights holders.
+
+[Release/tag policy](docs/release-tag-policy.md)

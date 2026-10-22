@@ -58,11 +58,11 @@ export default class ReferenceCards {
     this.matchedRows.add(row);
     const ref=(row as any).reference;
     if(!this.providerRetractions.has(ref))this.providerRetractions.set(ref,ref.retraction?{...ref.retraction}:undefined);
-    const generation=this.matchGeneration;
+    const generation=this.matchGeneration,importRevision=row.dataset.importRevision;
     this.matchQueue.push(async()=>{
       if(!current()||!row.isConnected)return;
       const found=await this.views.utils.searchLibraryItem({...ref,_item:undefined},parent.libraryID);
-      if(!current()||!row.isConnected||generation!==this.matchGeneration)return;
+      if(!current()||!row.isConnected||generation!==this.matchGeneration||importRevision!==row.dataset.importRevision||row.querySelector('.reference-action')?.hasAttribute('aria-busy'))return;
       ref._item=found;
       const local=found?this.views.utils.API.retractionChecker.checkLocal(ref.identifiers?.DOI,found):undefined;
       const provider=this.providerRetractions.get(ref);
@@ -166,13 +166,17 @@ export default class ReferenceCards {
       content.append(text,title,about);
       const action=doc.createElement("button");action.type="button";action.className="reference-action";action.textContent=ref._item?"↗":"+";action.title=getString(ref._item?"cards-show-library":"cards-import");
       action.addEventListener("click",async event=>{
-        event.stopPropagation();action.disabled=true;
+        event.stopPropagation();if(action.disabled)return;action.disabled=true;action.setAttribute('aria-busy','true');row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);
+        action.textContent='…';action.title=getString('cards-importing-doi');action.setAttribute('aria-label',action.title);
         try {
           const parent=this.parent();const found=await this.views.utils.searchLibraryItem(ref,parent.libraryID);
-          if(found)this.views.utils.selectItemInLibrary(found, this.body.ownerDocument.defaultView!);
-          else await this.views.importReferences(parent,[ref],{downloadOA:false,createSubCollection:false,createManifestNote:false});
-          if(ref._item){action.textContent="↗";action.title=getString("cards-show-library");action.setAttribute("aria-label",action.title);dot.style.backgroundColor="var(--color-accent, #3678b5)";}
-        }catch(error){if(row.isConnected)this.label().textContent=String(error);ztoolkit.log(error);}finally{action.disabled=false;}
+          if(found){ref._item=found;this.views.utils.selectItemInLibrary(found, this.body.ownerDocument.defaultView!);}
+          else {const result=await this.views.importReferences(parent,[ref],{downloadOA:false,createSubCollection:false,createManifestNote:false});
+            if(result.cancelled)throw new Error(getString('cards-import-cancelled'));
+            if(result.failedCount)throw new Error(result.failures[0]?.reason||getString('cards-import-failed'));
+          }
+          if(ref._item){action.textContent="↗";action.title=getString("cards-show-library");action.setAttribute("aria-label",action.title);dot.style.backgroundColor="var(--color-accent, #3678b5)";dot.title=getString("cards-in-library");row.style.opacity="1";}
+        }catch(error){if(row.isConnected){this.label().textContent=String(error);action.textContent='!';action.title=String(error);action.setAttribute('aria-label',String(error));}ztoolkit.log(error);}finally{row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);action.disabled=false;action.removeAttribute('aria-busy');}
       });
       action.setAttribute("aria-label",action.title);
       row.style.opacity=ref._item?"1":String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`)||"1");
@@ -236,7 +240,7 @@ export default class ReferenceCards {
     add("cards-copy-url",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean).join("\n"),false));
     add("cards-open",()=>refsAtOpen.slice(0,20).forEach(ref=>this.open(ref)));
     separator();
-    const importRefs=async(all:boolean)=>{const parent=parentAtOpen,id=parent.id;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;await this.views.importReferences(parent,refs,{downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true});if(Number(this.body.getAttribute("data-refflow-item-id"))===id)await this.views.refreshReferences(this.body as any,true,false,false,parent);};
+    const importRefs=async(all:boolean)=>{const parent=parentAtOpen,id=parent.id;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.views.importReferences(parent,refs,{downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true});if(Number(this.body.getAttribute("data-refflow-item-id"))===id){this.invalidateLibraryMatches();this.label().textContent=getString(result.cancelled?'cards-import-cancelled':'cards-import-summary',{args:{added:result.importedCount,existing:result.existingCount,failed:result.failedCount}})+(result.failedCount?' · '+result.failures[0]?.reason:'');}};
     add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
     add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const matches=[...String(parent.getField("extra")||"").matchAll(/^refnexus_batch_parent: (refnexus_batch_\w+)$/gm)];const id=matches[matches.length-1]?.[1];if(id){await this.views.rollbackReferences(parent,id);if(Number(this.body.getAttribute("data-refflow-item-id"))===parent.id)await this.views.refreshReferences(this.body as any,true,false,false,parent);}});
     separator();

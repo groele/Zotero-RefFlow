@@ -9,6 +9,7 @@ import ReferenceTasks, { ReferenceTaskContext } from "./referenceTasks";
 import { cacheReferences, readCachedReferences, cacheReferenceResult, readCachedReferenceResult, preferCachedReferences } from "./referenceCache";
 import { retrieveReferenceList, normalizeReferenceResult, ReferenceProvider, ReferenceResult } from "./referenceRetrieval";
 import CitationVerifier from "./verifier";
+import {workIdentity} from "./workIdentity";
 import {referenceData} from "./referenceData";
 import { cleanupSync, cleanupAsync } from "../utils/lifecycle";
 
@@ -27,6 +28,7 @@ export default class Views {
   private tips=new Map<Window,TipUI>();
   private localizationDocuments=new Set<Document>();
   private menus=new Set<Element>();
+  private importJobs=new Map<string,{job:ReturnType<typeof BatchImporter.importAll>;refs:ItemBaseInfo[]}>();
   constructor() {
     initLocale();
     this.utils = new Utils()
@@ -330,12 +332,19 @@ export default class Views {
     this.localizationDocuments.clear();
   }
 
-  public async importReferences(parent: Zotero.Item, refs: ItemBaseInfo[], options: any) {
+  public async importReferences(parent: Zotero.Item, refs: ItemBaseInfo[], options: any = {}) {
     if(this.disposed)throw new Error('RefFlow is stopping');
+    options={downloadOA:true,createSubCollection:true,createManifestNote:true,...options};
+    const key=JSON.stringify([parent.libraryID,parent.id,refs.map(workIdentity),options.collections??parent.getCollections(),(options.relatedParents||[]).map((item:Zotero.Item)=>item.id),Boolean(options.createSubCollection),Boolean(options.createManifestNote),Boolean(options.downloadOA),Boolean(options.allowMetadataWithoutDOI)]);
+    const pending=this.importJobs.get(key);
+    if(pending){const result=await pending.job;refs.forEach((ref,index)=>{ref._item=pending.refs[index]._item;});return result;}
     const panels=[...this.panes].filter(body=>Number(body.getAttribute('data-refflow-item-id'))===parent.id);
     for(const body of panels){(body as any)._importsPending=((body as any)._importsPending||0)+1;const cancel=body.querySelector<HTMLElement>('#refflow-cancel');if(cancel)cancel.hidden=false;}
-    try{return await BatchImporter.importAll(parent,refs,options);}
-    finally{for(const body of panels){(body as any)._importsPending=Math.max(0,((body as any)._importsPending||1)-1);const cancel=body.querySelector<HTMLElement>('#refflow-cancel');if(cancel&&!body.hasAttribute('aria-busy')&&!(body as any)._importsPending)cancel.hidden=true;}}
+    let job:ReturnType<typeof BatchImporter.importAll>;
+    try{job=BatchImporter.importAll(parent,refs,options);}catch(error){job=Promise.reject(error);}
+    this.importJobs.set(key,{job,refs});
+    try{return await job;}
+    finally{this.importJobs.delete(key);for(const body of panels){(body as any)._importsPending=Math.max(0,((body as any)._importsPending||1)-1);const cancel=body.querySelector<HTMLElement>('#refflow-cancel');if(cancel&&!body.hasAttribute('aria-busy')&&!(body as any)._importsPending)cancel.hidden=true;}}
   }
   public async rollbackReferences(parent: Zotero.Item, batchID: string) {
     const removed=await BatchImporter.rollbackBatch(parent,batchID),retained=BatchImporter.lastRollback.retainedIDs.length;

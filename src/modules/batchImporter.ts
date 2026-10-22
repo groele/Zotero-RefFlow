@@ -5,6 +5,8 @@ import {BatchRecord,metadataFingerprint,usesItem,needsRelation,needsMembership} 
 
 export interface BatchImportOptions {
   downloadOA?: boolean;
+  /** Explicit opt-in for callers importing a reference that has no DOI. */
+  allowMetadataWithoutDOI?:boolean;
   createSubCollection?: boolean;
   createManifestNote?: boolean;
   translatorTimeoutMs?: number;
@@ -17,6 +19,7 @@ export interface BatchImportResult {
   batchId: string; total: number; importedCount: number; existingCount: number; failedCount: number;
   downloadCount: number; downloadFailedCount: number; subCollection?: any;
   cancelled?:boolean;
+  failures: Array<{index:number;doi:string;title:string;reason:string}>;
 }
 
 export class BatchImporter {
@@ -56,22 +59,29 @@ export class BatchImporter {
     parent.setField("extra",lines.filter(Boolean).join("\n"));
   }
 
-  private static async translatedMetadata(doi:string,timeoutMs:number,signal?:AbortSignal):Promise<any|undefined> {
+  private static async translatedMetadata(doi:string,timeoutMs:number,signal?:AbortSignal):Promise<any> {
     let timer:any;
     let stop:()=>void=()=>{};
-    // Translator results are metadata only. A late result cannot save an extra
-    // item after the timeout has already caused the fallback to save one.
+    this.checkStopped(signal);
+    // Metadata-only translation leaves creation and rollback in our transaction.
+    // A late translator result never writes an item after cancellation/timeout.
     const job=(async()=>{
       const translate=new (Zotero as any).Translate.Search();translate.setIdentifier({DOI:doi});
-      const translators=await translate.getTranslators();if(!translators?.length||signal?.aborted)return;
+      const translators=await translate.getTranslators();this.checkStopped(signal);
+      if(!translators?.length)throw new Error('No Zotero DOI translator available; update translators and retry');
       translate.setTranslator(translators);
       const metadata=(await translate.translate({libraryID:false,saveAttachments:false}))?.[0];
+      this.checkStopped(signal);
       const returned=CitationVerifier.normalizeDOI(metadata?.DOI);
-      if(returned&&returned!==CitationVerifier.normalizeDOI(doi)){ztoolkit.log("Ignoring conflicting translator DOI");return;}
+      if(!returned || returned!==doi)throw new Error('Zotero DOI lookup returned missing or conflicting DOI; retry without importing this metadata');
+      if(typeof metadata?.title!=='string'||!metadata.title.trim())throw new Error('Zotero DOI lookup returned incomplete metadata; retry');
       return metadata;
     })();
-    try {return await Promise.race([job,new Promise<undefined>(resolve=>{stop=()=>resolve(undefined);signal?.addEventListener('abort',stop,{once:true});if(signal?.aborted)stop();timer=globalThis.setTimeout(()=>resolve(undefined),Math.max(1,timeoutMs));})]);}
-    catch(error){ztoolkit.log("DOI metadata lookup failed",error);return undefined;}
+    try {return await Promise.race([job,new Promise<never>((_resolve,reject)=>{
+      stop=()=>{const error=new Error('DOI import cancelled');error.name='AbortError';reject(error);};
+      signal?.addEventListener('abort',stop,{once:true});if(signal?.aborted)stop();
+      timer=globalThis.setTimeout(()=>reject(new Error('Zotero DOI lookup timed out; check the connection and retry')),Math.max(1,timeoutMs));
+    })]);}
     finally {globalThis.clearTimeout(timer);signal?.removeEventListener('abort',stop);}
   }
 
@@ -97,9 +107,13 @@ export class BatchImporter {
   }
 
   public static importAll(parent:Zotero.Item,refs:ItemBaseInfo[],options:BatchImportOptions={}):Promise<BatchImportResult> {
+    // Freeze the operation's destination and source evidence at invocation.
+    const originalRefs=refs;
+    refs=refs.map(ref=>({...ref,identifiers:{...ref.identifiers},authors:[...(ref.authors||[])]}));
+    options={...options,collections:[...(options.collections??parent.getCollections?.()??[])],relatedParents:options.relatedParents?[...options.relatedParents]:undefined};
     const controller=new AbortController(),stop=()=>controller.abort();options.signal?.addEventListener('abort',stop,{once:true});if(options.signal?.aborted)stop();
     const timer=globalThis.setTimeout(stop,Math.max(1,options.budgetMs??300000));this.sessions.set(controller,parent.id);
-    const job=this.serial(parent.libraryID,()=>{this.checkStopped(controller.signal);return this.importBatch(parent,refs,{downloadOA:true,createSubCollection:true,createManifestNote:true,...options,signal:controller.signal});}).finally(()=>{
+    const job=this.serial(parent.libraryID,()=>{this.checkStopped(controller.signal);return this.importBatch(parent,refs,{downloadOA:true,createSubCollection:true,createManifestNote:true,...options,signal:controller.signal});}).then(result=>{refs.forEach((ref,index)=>{if(ref._item)originalRefs[index]._item=ref._item;});return result;}).finally(()=>{
       globalThis.clearTimeout(timer);options.signal?.removeEventListener('abort',stop);this.sessions.delete(controller);this.jobs.delete(job);
     });this.jobs.add(job);return job;
   }
@@ -115,27 +129,32 @@ export class BatchImporter {
     if(!refs.length)throw new Error("No references to import");
     const batchID=this.generateBatchId();
     const record:BatchRecord={version:2,parentID:parent.id,libraryID:parent.libraryID,createdIDs:[],relations:[],memberships:[],attachments:[],uses:[],states:{}};
-    const result:BatchImportResult={batchId:batchID,total:refs.length,importedCount:0,existingCount:0,failedCount:0,downloadCount:0,downloadFailedCount:0};
+    const result:BatchImportResult={batchId:batchID,total:refs.length,importedCount:0,existingCount:0,failedCount:0,downloadCount:0,downloadFailedCount:0,failures:[]};
     const progress=new ztoolkit.ProgressWindow("Import references",{closeTime:-1}).createLine({text:`0 / ${refs.length}`,type:"default"}).show();
     const collections:number[]=[];
     this.utils.clearLibraryItemCache();
-    try {
+    let initialized=false;
+    const initialize=async()=>{if(initialized)return;
       await this.transaction(async()=>{this.storeRecord(parent,batchID,record);await parent.save();});
       if(options.createSubCollection) {
         await this.transaction(async()=>{
           const col:any=new Zotero.Collection();col.libraryID=parent.libraryID;
           col.name=`[Refs] ${String(parent.getField("title")||"Paper").slice(0,60)}`;
-          col.parentID=parent.getCollections()[0]||false;await col.save();
+          col.parentID=options.collections?.[0]||false;await col.save();
           collections.push(col.id);record.collectionID=col.id;result.subCollection=col;
           this.storeRecord(parent,batchID,record);await parent.save();
         });
       } else {
-        for(const id of options.collections||parent.getCollections()) {
+        for(const id of options.collections||[]) {
           const col=await Zotero.Collections.getAsync(id);
           if(col && col.libraryID===parent.libraryID)collections.push(id);
         }
       }
+      initialized=true;
+    };
+    try {
       const seen=new Map<string,Zotero.Item>();
+      const failed=new Map<string,string>();
       const downloads=new Map<number,{url:string;item:Zotero.Item}>();
       for(let index=0;index<refs.length;index++) {
         this.checkStopped(options.signal);
@@ -143,19 +162,27 @@ export class BatchImporter {
         const identity=workIdentity(ref);
         progress.changeLine({text:`${index+1} / ${refs.length}`,progress:100*(index+1)/Math.max(1,refs.length)});
         try {
-          if(!doi && !(ref.title||ref.text)?.trim())throw new Error("Reference has no usable metadata");
+          if(failed.has(identity))throw new Error(failed.get(identity)!);
           let item=seen.get(identity) || await this.utils.searchLibraryItem({...ref,_item:undefined},parent.libraryID);
           const isNew=!item;
           if(!item) {
-            const metadata=doi?await this.translatedMetadata(doi,options.translatorTimeoutMs??10000,options.signal):undefined;
+            if(!doi&&!options.allowMetadataWithoutDOI)throw new Error('No DOI available; this reference was not imported. Add its identifier in Zotero manually');
+            if(!doi&&!(ref.title||ref.text)?.trim())throw new Error('Reference has no usable metadata');
+            progress.changeLine({text:`${index+1} / ${refs.length} · DOI: ${doi||'metadata'}`});
+            const metadata=doi?await this.translatedMetadata(doi,options.translatorTimeoutMs??20000,options.signal):undefined;
             this.checkStopped(options.signal);
             item=this.makeItem(ref,metadata,parent.libraryID);
             const extra=String(item.getField("extra")||"");item.setField("extra",[extra,this.marker(batchID)].filter(Boolean).join("\n"));
           }
+          this.checkStopped(options.signal);
+          if(parent.deleted||item.deleted||!(Zotero as any).Libraries.get(parent.libraryID)?.editable)throw new Error('Import destination is no longer editable; retry after selecting an available item');
+          await initialize();
+          this.checkStopped(options.signal);
           const target=item;
           const oldCreated=record.createdIDs.length,oldRelations=record.relations.length,oldMemberships=record.memberships.length;
           try {
             await this.transaction(async()=>{
+              this.checkStopped(options.signal);
               if(isNew){await target.save();record.createdIDs.push(target.id);}
               for(const colID of collections) {
                 if(!target.getCollections().includes(colID)) {
@@ -183,9 +210,9 @@ export class BatchImporter {
           if(isNew)result.importedCount++;else result.existingCount++;
           seen.set(identity,target);ref._item=target;
           if(options.downloadOA && ref.oaUrl && library.filesEditable && /^https?:\/\//i.test(ref.oaUrl) && !target.getAttachments().length)downloads.set(target.id,{url:ref.oaUrl,item:target});
-        } catch(error:any) {if(error?.name==='AbortError')throw error;result.failedCount++;ztoolkit.log("Reference import failed",error);}
+        } catch(error:any) {if(error?.name==='AbortError')throw error;result.failedCount++;failed.set(identity,String(error?.message||error));result.failures.push({index,doi:doi||"",title:ref.title||ref.text||"",reason:String(error?.message||error)});ztoolkit.log("Reference import failed",error);}
       }
-      if(options.createManifestNote) {
+      if(options.createManifestNote && result.importedCount+result.existingCount>0) {
         this.checkStopped(options.signal);
         await this.transaction(async()=>{
           const note=new Zotero.Item("note");note.libraryID=parent.libraryID;note.parentID=parent.id;

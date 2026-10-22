@@ -49,7 +49,7 @@ cards-cited = 被引
 
 cards-show-library = 在 Zotero 中显示
 
-cards-import = 导入 Zotero
+cards-import = 通过 DOI 添加到 Zotero
 
 cards-copy-text = 复制参考文献文本
 
@@ -59,9 +59,9 @@ cards-copy-url = 复制 URL
 
 cards-open = 在 Zotero 或浏览器中打开
 
-cards-import-selected = 导入选中的文献
+cards-import-selected = 通过 DOI 添加选中的文献
 
-cards-import-all = 导入全部文献
+cards-import-all = 通过 DOI 添加全部文献
 
 cards-source-pdf = 来源：PDF
 
@@ -109,3 +109,8 @@ cards-rollback-retained = 已保留 { $count } 个被复用或修改的导入条
 cards-latest-attempt = 本次获取
 
 graph-origins-changed = 起始文献已改变，请重新构建关系图。
+
+cards-importing-doi = 正在通过 DOI 添加到 Zotero…
+cards-import-cancelled = 已取消导入；已完成的文献仍保留在 Zotero
+cards-import-failed = DOI 导入失败，请重试
+cards-import-summary = 已添加：{ $added }；已存在：{ $existing }；失败：{ $failed }

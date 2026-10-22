@@ -1,0 +1,68 @@
+{
+  "date": "2026-10-22",
+  "repository": "groele/Zotero-RefFlow",
+  "migrations": [
+    {
+      "plugin": "RefFlow",
+      "old": "V10",
+      "new": "v10.0.0",
+      "commit": "99dda5e32d292ad5018ad42ff4d567d3dd6208ec",
+      "oldObject": "5ce558f512d1b67748c10455d984fd08d520949a",
+      "alreadyCanonical": false,
+      "releaseIDs": [
+        412619142
+      ],
+      "releaseAssets": [
+        "https://github.com/groele/Zotero-RefFlow/releases/download/V10/zotero-refflow.xpi"
+      ]
+    },
+    {
+      "plugin": "RefFlow",
+      "old": "refflow-v10.1.0",
+      "new": "v10.1.0",
+      "commit": "f2fdf65361fee272dbb682f5bc01750614fc446d",
+      "oldObject": "d81785b7b0f299abcf38bcbfb7d921f9fb05c261",
+      "alreadyCanonical": false,
+      "releaseIDs": [
+        413925968
+      ],
+      "releaseAssets": [
+        "https://github.com/groele/Zotero-RefFlow/releases/download/refflow-v10.1.0/zotero-refflow.xpi"
+      ]
+    },
+    {
+      "plugin": "RefFlow",
+      "old": "refnexus-v11.0.0",
+      "new": "v11.0.0",
+      "commit": "7ee52b504422e3615d74c8f60c6ca20aa40170ed",
+      "oldObject": "76b5c14e42395a0570e4d23b987ac2932bba0145",
+      "alreadyCanonical": false,
+      "releaseIDs": [],
+      "releaseAssets": []
+    },
+    {
+      "plugin": "RefFlow",
+      "old": "refnexus-v11.0.1",
+      "new": "v11.0.1",
+      "commit": "bb6cc22b6ad679edca8090c82d287bf3c47a9999",
+      "oldObject": "14feb75b26fa500c5a5b964fed61910b35d60ee2",
+      "alreadyCanonical": false,
+      "releaseIDs": [],
+      "releaseAssets": []
+    },
+    {
+      "plugin": "RefFlow",
+      "old": "refnexus-v11.0.2",
+      "new": "v11.0.2",
+      "commit": "d2f8c30bfa685ef1429ebaac3c23e0f48d77f677",
+      "oldObject": "31b219b9afdbbc95ffd6bdf2354da1436c7ef297",
+      "alreadyCanonical": false,
+      "releaseIDs": [
+        412344657
+      ],
+      "releaseAssets": [
+        "https://github.com/groele/Zotero-RefFlow/releases/download/refnexus-v11.0.2/zotero-refnexus.xpi"
+      ]
+    }
+  ]
+}

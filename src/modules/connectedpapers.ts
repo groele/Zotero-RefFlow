@@ -880,7 +880,8 @@ export default class ConnectedPapers {
                     collections, relatedParents: originItems.slice(1), downloadOA: false,
                     createSubCollection: false, createManifestNote: false
                   });
-                  if (result.failedCount) throw new Error("Graph reference import failed");
+                  if (result.cancelled) throw new Error(getString('cards-import-cancelled'));
+                  if (result.failedCount) throw new Error(result.failures[0]?.reason || getString('cards-import-failed'));
                   popupWin.changeHeadline("[Done] Adding");popupWin.changeLine({ type: "success" });
                   if (!this.disposed) (this.doc.querySelector("#build-graph") as HTMLDivElement)?.click();
                 } catch (error) { popupWin.changeLine({ text: String(error), type: "fail" }); ztoolkit.log(error); }
