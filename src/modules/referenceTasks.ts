@@ -40,6 +40,9 @@ export default class ReferenceTasks {
       if(Date.now()>=deadline)expire();
       globalThis.clearTimeout(timer);controller.signal.removeEventListener("abort",release);
       if (this.tasks.get(target) === task) this.tasks.delete(target);
+      // Signal-only consumers must not continue after the pane operation settles.
+      // Remove ownership first: an abort listener may immediately start a new task.
+      controller.abort();
     });
     return task.promise;
   }

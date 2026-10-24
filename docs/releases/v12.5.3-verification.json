@@ -1,0 +1,28 @@
+{
+  "product": "Zotero RefFlow",
+  "version": "12.5.3",
+  "addonID": "refflow@groele.github.io",
+  "file": "zotero-refflow.xpi",
+  "bytes": 182798,
+  "sha256": "357123890e9863d69f76d8c05ccef2f5516dffb625475e6549e1bcb7f9be7e3f",
+  "sha512": "7a55b2be5d1dffee9e2d18366c6450f6ccce6ca740b83dd56ef3fe54a0583bf84616d7c055fb3344f86e2262a8774fd4966674d2759ba86bb984bd77681649d7",
+  "entries": 34,
+  "sourcePayloadVerified": true,
+  "updateFeedsVerified": [
+    "update.json"
+  ],
+  "sourceBaseCommit": "9e4863ddbbca578c5b1628665769fc8e95a5a12a",
+  "automatedTests": {
+    "passed": 275,
+    "failed": 0
+  },
+  "nativeZotero": {
+    "version": "10.0.6",
+    "profile": "isolated",
+    "initial": 11,
+    "restart": 11,
+    "boundary": "Combined five-plugin controlled checks. RefFlow/MetaFlow lifetime helpers bundled from maintained sources. Not a full workflow or visual audit."
+  },
+  "mainProfileInstalled": false,
+  "automaticUpdateInstallation": "not performed"
+}
