@@ -20,7 +20,7 @@ await test('filtering reaches an unmounted row and restores full results with Es
 });
 await test('native scrolling remounts a bounded later window',async()=>{
  const section=body.closest('item-pane-custom-section').querySelector('collapsible-section');section.open=true;
- const grid=body.querySelector('#related-grid');grid.scrollTop=144*1000;grid.dispatchEvent(new window.Event('scroll'));await delay(100);
+ const grid=body.querySelector('#related-grid');grid.scrollTop=grid.querySelector('.reference-item').getBoundingClientRect().height*1000;grid.dispatchEvent(new window.Event('scroll'));await delay(100);
  const cards=[...grid.querySelectorAll('.reference-item')];check(cards.length<=60&&Number(cards[0].dataset.referenceNumber)>900,'Scroll did not advance: '+cards[0]?.dataset.referenceNumber);
  return {mounted:cards.length,firstNumber:Number(cards[0].dataset.referenceNumber),scrollTop:grid.scrollTop};
 });

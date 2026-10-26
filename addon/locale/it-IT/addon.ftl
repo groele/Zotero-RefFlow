@@ -54,6 +54,7 @@ cards-import-failed = Importazione DOI non riuscita; riprova
 cards-import-summary = Aggiunti: { $added }; già presenti: { $existing }; non riusciti: { $failed }
 cards-import-complete = Importazione DOI completata
 cards-import-downloading = Download dei PDF ad accesso aperto…
+cards-import-download-summary = PDF scaricati: { $downloaded }; download non riusciti: { $failed }
 cards-import-error-no-doi = DOI valido non disponibile; nessun elemento creato. Verifica il DOI e usa Aggiungi elemento tramite identificativo nella barra di Zotero.
 cards-import-error-translator = Nessun traduttore DOI disponibile. Aggiorna i traduttori di Zotero e riprova.
 cards-import-error-identity = Nessuna pubblicazione con il DOI richiesto; nessun elemento creato. Verifica il DOI e riprova.

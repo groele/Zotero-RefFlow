@@ -118,6 +118,7 @@ cards-import-failed = DOI import failed; retry
 cards-import-summary = Added: { $added }; existing: { $existing }; failed: { $failed }
 cards-import-complete = DOI import complete
 cards-import-downloading = Downloading open-access PDFs…
+cards-import-download-summary = PDFs downloaded: { $downloaded }; download failures: { $failed }
 cards-import-error-no-doi = No valid DOI is available; no item was created. Verify the DOI and use Add Item by Identifier in Zotero's toolbar.
 cards-import-error-translator = No DOI translator is available. Update Zotero translators and retry.
 cards-import-error-identity = No work with the requested DOI was returned; no item was created. Verify the DOI and retry.

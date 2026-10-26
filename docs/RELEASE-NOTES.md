@@ -1,3 +1,12 @@
+# Zotero RefFlow 12.5.4
+
+Released 2026-10-26. [Full release notes and checksum](releases/v12.5.4.md).
+
+- Align reference status dots and SVG actions with the first title line; preserve usable hit targets and scaled virtual rows.
+- Harden native DOI import, atomic saves, cancellation ownership and malformed-journal rollback protection.
+- Report PDF download success/failure separately from metadata imports.
+- Validate 301 unit tests, 140 isolated Zotero 10.0.6 functional scenarios and 8 native upgrade/restart checks.
+
 # Zotero RefFlow 12.3.4
 
 - Match MetaFlow native neutral text, card backgrounds and borders in light and dark themes.

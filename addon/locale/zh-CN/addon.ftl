@@ -118,6 +118,7 @@ cards-import-failed = DOI 导入失败，请重试
 cards-import-summary = 已添加：{ $added }；已存在：{ $existing }；失败：{ $failed }
 cards-import-complete = DOI 导入完成
 cards-import-downloading = 正在下载开放获取 PDF…
+cards-import-download-summary = PDF 已下载：{ $downloaded }；下载失败：{ $failed }
 cards-import-error-no-doi = 这篇文献缺少有效 DOI，未创建条目。请核对 DOI 后在 Zotero 顶部“通过标识符添加条目”中导入。
 cards-import-error-translator = 没有可用的 DOI 翻译器，请更新 Zotero 翻译器后重试。
 cards-import-error-identity = DOI 查询未返回相同 DOI 的文献，未创建条目。请核对 DOI 后重试。

@@ -4,7 +4,7 @@ import type Views from "./views";
 import type TipUI from "./tip";
 import {referenceIdentity} from "./referenceIdentity";
 import { cleanupSync } from "../utils/lifecycle";
-import {importFailureText,importErrorText} from './importErrors';
+import {importFailureText,importErrorText,importSummaryText} from './importErrors';
 
 /** Compact reference cards and selection behavior aligned with the supplied XPI. */
 export default class ReferenceCards {
@@ -31,7 +31,7 @@ export default class ReferenceCards {
   private windowStart=0;
   private virtualCount=0;
   private virtual=false;
-  private readonly rowHeight=144;
+  private rowHeight=144;
   private searchIndex=new WeakMap<ItemBaseInfo,string>();
 
   constructor(private views:Views,private body:HTMLElement,private grid:HTMLElement,private search:HTMLInputElement,listLabel='Reference list') {
@@ -55,6 +55,15 @@ export default class ReferenceCards {
   dispose(){if(this.disposed)return;this.disposed=true;this.cleanup.forEach(cleanupSync);this.cleanup=[];for(const menu of this.menus)cleanupSync(()=>menu.remove());this.menus.clear();globalThis.clearTimeout(this.searchTimer);this.clear();}
   clear(){this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.listCurrent=undefined;this.windowStart=0;this.virtualCount=0;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.tip?.clear();this.tip=undefined;this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
   private drainMatches(){while(this.matchActive<4&&this.matchQueue.length){const match=this.matchQueue.shift()!;this.matchActive++;void match().catch(error=>ztoolkit.log(error)).finally(()=>{this.matchActive--;if(!this.disposed)this.drainMatches();});}}
+  private actionIcon(action:HTMLButtonElement,state:'add'|'open'|'busy'|'error',label:string){
+    const doc=action.ownerDocument,ns='http://www.w3.org/2000/svg';
+    action.dataset.actionState=state;action.title=label;action.setAttribute('aria-label',label);
+    const svg=doc.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 16 16');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
+    svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.5');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');
+    if(state==='busy')for(const x of [3,8,13]){const circle=doc.createElementNS(ns,'circle');circle.setAttribute('cx',String(x));circle.setAttribute('cy','8');circle.setAttribute('r','1');circle.setAttribute('fill','currentColor');circle.setAttribute('stroke','none');svg.append(circle);}
+    else{const path=doc.createElementNS(ns,'path');path.setAttribute('d',state==='add'?'M8 3v10M3 8h10':state==='open'?'M4 12 12 4M5 4h7v7':'M8 3.5v6M8 12h0');svg.append(path);}
+    action.replaceChildren(svg);
+  }
   private queueLibraryMatch(row:HTMLElement,parent:Zotero.Item,current:()=>boolean){
     if(this.matchedRows.has(row))return;
     this.matchedRows.add(row);
@@ -69,9 +78,10 @@ export default class ReferenceCards {
       const local=found?this.views.utils.API.retractionChecker.checkLocal(ref.identifiers?.DOI,found):undefined;
       const provider=this.providerRetractions.get(ref);
       ref.retraction=provider?.isRetracted?provider:local?.isRetracted?local:provider;
-      const action=row.querySelector<HTMLElement>(".reference-action")!;
-      action.textContent=found?"↗":"+";action.title=getString(found?"cards-show-library":"cards-import");action.setAttribute("aria-label",action.title);
-      (row.querySelector(".reference-state") as HTMLElement).style.backgroundColor=found?"var(--color-accent, #3678b5)":"var(--color-secondary, #9ca3af)";
+      const action=row.querySelector<HTMLButtonElement>(".reference-action")!;
+      this.actionIcon(action,found?'open':'add',getString(found?"cards-show-library":"cards-import"));
+      const dot=row.querySelector<HTMLElement>('.reference-state')!;
+      dot.style.backgroundColor=found?"var(--color-accent, #3678b5)":"var(--color-secondary, #9ca3af)";dot.title=found?getString('cards-in-library'):String(ref.year||'');
       row.style.opacity=found?"1":String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`)||"1");
       let warning=row.querySelector<HTMLElement>(".reference-retracted");
       if(ref.retraction?.isRetracted){if(!warning){warning=row.ownerDocument.createElement("span");warning.className="reference-retracted";row.querySelector(".reference-description")!.prepend(warning);}warning.textContent=getString("relatedbox-retracted-badge");warning.title=ref.retraction.reason||"";}
@@ -127,6 +137,7 @@ export default class ReferenceCards {
     const anchorKey=this.refs[this.anchor]?referenceIdentity(this.refs[this.anchor]):undefined;
     const scrollTop=this.grid.scrollTop;
     this.virtual=refs.length>200;
+    if(this.virtual){const fontSize=parseFloat(this.body.ownerDocument.defaultView?.getComputedStyle(this.grid)?.fontSize||'13')||13;this.rowHeight=Math.max(144,Math.ceil(fontSize*10.5+24));}
     const indices=refs.map((ref,index)=>index).filter(index=>!this.virtual||this.matches(refs[index]));
     const start=this.virtual?Math.min(this.windowStart,Math.max(0,indices.length-60)):0;
     const displayIndices=this.virtual?indices.slice(start,start+60):indices;
@@ -155,26 +166,31 @@ export default class ReferenceCards {
       const row=doc.createElement("div");row.className="reference-item";row.tabIndex=0;row.setAttribute("role","option");row.setAttribute("aria-selected","false");(row as any).reference=ref;
       if(this.virtual){row.style.height=`${this.rowHeight}px`;row.style.flexShrink='0';row.style.boxSizing='border-box';row.style.overflow='hidden';}
       row.setAttribute("aria-posinset",String(this.virtual?start+offset+1:index+1));row.setAttribute("aria-setsize",String(this.virtual?indices.length:refs.length));
+      const citation=doc.createElement('div');citation.className='reference-citation';
       const marker=doc.createElement("div");marker.className="reference-marker";
       const number=doc.createElement("span");number.className="reference-number";number.textContent=`${numbers[index]}.`;number.title=`${getString("cards-number-label")} ${numbers[index]}`;
       row.dataset.referenceNumber=String(numbers[index]);row.setAttribute("aria-label",`${number.title}: ${ref.title||ref.text||""}`);
       const dot=doc.createElement("span");dot.className="reference-state";
       const age=Math.max(0,new Date().getFullYear()-Number(ref.year||2000));dot.style.backgroundColor=ref._item?"var(--color-accent, #3678b5)":`hsl(210 30% ${Math.min(85,40+age*2)}%)`;dot.title=ref._item?getString("cards-in-library"):String(ref.year||"");
       const content=doc.createElement("div");content.className="reference-description";
+      const heading=doc.createElement('div');heading.className='reference-heading';
       const text=doc.createElement("span");text.className="reference-text";text.textContent=ref.text||ref.title||"";text.title=text.textContent||"";
       const title=doc.createElement("strong");title.className="reference-title";title.textContent=ref.title||ref.text||"";title.title=title.textContent||"";
       if(this.virtual){title.style.display='-webkit-box';title.style.setProperty('-webkit-box-orient','vertical');title.style.setProperty('-webkit-line-clamp','2');title.style.overflow='hidden';}
       const about=doc.createElement("span");about.className="reference-about";about.textContent=[(ref.authors||[]).slice(0,3).join(" / "),ref.year,ref.publicationVenue,(ref as any).citationCount!==undefined?`${getString("cards-cited")} ${(ref as any).citationCount}`:""].filter(Boolean).join(" · ");
+      about.title=about.textContent;
+      if(this.virtual){about.style.display='-webkit-box';about.style.setProperty('-webkit-box-orient','vertical');about.style.setProperty('-webkit-line-clamp','2');about.style.overflow='hidden';}
+      const metadata=doc.createElement('div');metadata.className='reference-metadata';metadata.append(about);metadata.hidden=!about.textContent;
       if(ref.retraction?.isRetracted){const warning=doc.createElement("span");warning.className="reference-retracted";warning.textContent=getString("relatedbox-retracted-badge");warning.title=ref.retraction.reason||"";content.append(warning);}
-      content.append(text,title,about);
-      const action=doc.createElement("button");action.type="button";action.className="reference-action";action.textContent=ref._item?"↗":"+";action.title=getString(ref._item?"cards-show-library":"cards-import");
+      const action=doc.createElement("button");action.type="button";action.className="reference-action";this.actionIcon(action,ref._item?'open':'add',getString(ref._item?"cards-show-library":"cards-import"));
+      action.addEventListener('dblclick',event=>event.stopPropagation());
       action.addEventListener("click",async event=>{
         event.stopPropagation();if(action.disabled||!current()||!row.isConnected)return;
         const parent=this.parent();if(!parent||parent.deleted)return;
         const collections=this.views.utils.importCollections(parent,this.body.ownerDocument.defaultView!);
         const active=()=>current()&&row.isConnected&&this.parent()?.id===parent.id;
         action.disabled=true;action.setAttribute('aria-busy','true');row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);
-        action.textContent='…';action.title=getString('cards-importing-doi');action.setAttribute('aria-label',action.title);
+        this.actionIcon(action,'busy',getString('cards-importing-doi'));
         try {
           const found=await this.views.utils.searchLibraryItem({...ref,_item:undefined},parent.libraryID);
           if(!active())return;
@@ -182,16 +198,16 @@ export default class ReferenceCards {
           else {const result=await this.views.importReferences(parent,[ref],{owner:this.body,collections,downloadOA:false,createSubCollection:false,createManifestNote:false});
             if(result.cancelled)throw new Error(getString('cards-import-cancelled'));
             if(result.failedCount)throw new Error(importFailureText(result.failures[0]));
-            if(active())this.label().textContent=getString('cards-import-summary',{args:{added:result.importedCount,existing:result.existingCount,failed:result.failedCount}});
+            if(active())this.label().textContent=importSummaryText(result);
           }
-          if(active()&&ref._item){action.textContent="↗";action.title=getString("cards-show-library");action.setAttribute("aria-label",action.title);dot.style.backgroundColor="var(--color-accent, #3678b5)";dot.title=getString("cards-in-library");row.style.opacity="1";this.invalidateLibraryMatches();}
-        }catch(error){if(active()){const message=importErrorText(error);this.label().textContent=message;action.textContent='!';action.title=message;action.setAttribute('aria-label',message);}ztoolkit.log(error);}finally{row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);action.disabled=false;action.removeAttribute('aria-busy');}
+          if(active()&&ref._item){this.actionIcon(action,'open',getString("cards-show-library"));dot.style.backgroundColor="var(--color-accent, #3678b5)";dot.title=getString("cards-in-library");row.style.opacity="1";this.invalidateLibraryMatches();}
+        }catch(error){if(active()){const message=importErrorText(error);this.label().textContent=message;this.actionIcon(action,'error',message);}ztoolkit.log(error);}finally{row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);action.disabled=false;action.removeAttribute('aria-busy');}
       });
       action.setAttribute("aria-label",action.title);
       row.style.opacity=ref._item?"1":String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`)||"1");
       title.addEventListener("mouseenter",()=>{if(!Zotero.Prefs.get(`${config.addonRef}.isShowTip`))return;globalThis.clearTimeout(this.hoverTimer);this.hoverTimer=globalThis.setTimeout(()=>{if(!current()||!row.isConnected)return;this.tip=this.views.showTipUI(title.getBoundingClientRect() as any,{...ref,primaryVenue:ref.publicationVenue,identifiers:ref.identifiers||{}} as any,"left",ref.identifiers?.DOI,true,this.body.ownerDocument.defaultView!);},Math.max(100,Math.min(2000,Number(Zotero.Prefs.get(`${config.addonRef}.showTipAfterMillisecond`))||233)));});
       title.addEventListener("mouseleave",()=>{globalThis.clearTimeout(this.hoverTimer);if(this.tip){globalThis.clearTimeout(this.tip.tipTimer);this.tip.tipTimer=globalThis.setTimeout(()=>this.tip?.clear(),this.tip.removeTipAfterMillisecond);}});
-      marker.append(number,dot);row.append(marker,content,action);
+      marker.append(number);citation.append(marker,text);heading.append(dot,title,action);content.append(heading,metadata);row.append(citation,content);
       row.addEventListener("click",event=>this.select(index,event));
       row.addEventListener("dblclick",()=>this.open(ref));
       row.addEventListener("contextmenu",event=>{if(!this.selected.has(ref))this.select(index,event);});
@@ -250,7 +266,7 @@ export default class ReferenceCards {
     add("cards-copy-url",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean).join("\n"),false));
     add("cards-open",()=>refsAtOpen.slice(0,20).forEach(ref=>this.open(ref)));
     separator();
-    const importRefs=async(all:boolean)=>{const parent=parentAtOpen;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.views.importReferences(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true});if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=getString(result.cancelled?'cards-import-cancelled':'cards-import-summary',{args:{added:result.importedCount,existing:result.existingCount,failed:result.failedCount}})+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}};
+    const importRefs=async(all:boolean)=>{const parent=parentAtOpen;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.views.importReferences(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true});if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}};
     add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
     add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const matches=[...String(parent.getField("extra")||"").matchAll(/^refnexus_batch_parent: (refnexus_batch_\w+)$/gm)];const id=matches[matches.length-1]?.[1];if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}});
     separator();

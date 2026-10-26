@@ -21,3 +21,9 @@ export function importErrorText(error:unknown):string {
   if(error instanceof ImportError)return importFailureText({code:error.code,reason:error.message});
   return error instanceof Error?error.message:String(error);
 }
+export function importSummaryText(result:{importedCount:number;existingCount:number;failedCount:number;downloadCount?:number;downloadFailedCount?:number}):string {
+  const summary=importText('cards-import-summary',`New: ${result.importedCount}; existing: ${result.existingCount}; failed: ${result.failedCount}`,
+    {added:result.importedCount,existing:result.existingCount,failed:result.failedCount});
+  const downloaded=result.downloadCount||0,failed=result.downloadFailedCount||0;
+  return downloaded||failed?summary+' · '+importText('cards-import-download-summary',`PDF downloaded: ${downloaded}; failed: ${failed}`,{downloaded,failed}):summary;
+}

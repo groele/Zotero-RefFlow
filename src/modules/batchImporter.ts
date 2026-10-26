@@ -2,7 +2,7 @@ import CitationVerifier from "./verifier";
 import Utils from "./utils";
 import {workIdentity} from './workIdentity';
 import {BatchRecord,metadataFingerprint,usesItem,needsRelation,needsMembership,validateBatchRecord,collectionState,sameCollectionState} from './batchOwnership';
-import {ImportError, ImportErrorCode, importText} from './importErrors';
+import {ImportError, ImportErrorCode, importText, importSummaryText} from './importErrors';
 
 export interface BatchImportOptions {
   downloadOA?: boolean;
@@ -249,13 +249,14 @@ export class BatchImporter {
           const task=queue.shift()!;
           try {
             const attachment=await Zotero.Attachments.importFromURL({url:task.url,parentItemID:task.item.id,libraryID:parent.libraryID,title:"Full Text PDF (Open Access)"});
-            if(attachment){record.attachments.push({id:attachment.id,parentID:task.item.id,metadata:metadataFingerprint(attachment)});result.downloadCount++;await this.transaction(async()=>{this.storeRecord(parent,batchID,record);await parent.save();});}
+            if(!attachment)throw new Error('The OA download returned no attachment');
+            record.attachments.push({id:attachment.id,parentID:task.item.id,metadata:metadataFingerprint(attachment)});await this.transaction(async()=>{this.storeRecord(parent,batchID,record);await parent.save();});result.downloadCount++;
           } catch(error) {result.downloadFailedCount++;ztoolkit.log("OA download failed",error);}
         }
       };
       if(queue.length){progress.changeLine({text:importText('cards-import-downloading','Downloading open-access PDFs…')});await Promise.all([worker(),worker()]);await this.transaction(async()=>{this.storeRecord(parent,batchID,record);await parent.save();});}
       this.checkStopped(options.signal);
-      progress.changeHeadline(importText('cards-import-complete','Import complete'));progress.changeLine({text:importText('cards-import-summary',`New: ${result.importedCount}; existing: ${result.existingCount}; failed: ${result.failedCount}`,{added:result.importedCount,existing:result.existingCount,failed:result.failedCount}),type:result.failedCount?"fail":"success"});
+      progress.changeHeadline(importText('cards-import-complete','Import complete'));progress.changeLine({text:importSummaryText(result),type:result.failedCount||result.downloadFailedCount?"fail":"success"});
       return result;
     } catch(error:any){progress.changeHeadline(importText('cards-import-cancelled','Import stopped; completed changes can be rolled back'));if(error?.name==='AbortError')return {...result,cancelled:true};throw error;}
     finally {progress.startCloseTimer(4000);this.utils.clearLibraryItemCache();}
@@ -280,7 +281,9 @@ export class BatchImporter {
     const records:Array<{owner:Zotero.Item;batchID:string;record:BatchRecord}>=[];
     for(const owner of owners){if(owner.deleted)continue;
       for(const line of String(owner.getField('extra')||'').split(/\r?\n/)){
-        const match=line.match(/^refnexus_record_(refnexus_batch_\w+): (.+)$/);if(!match||match[1]===batchID)continue;
+        // Zotero trims trailing Extra whitespace, so an empty damaged journal
+        // may end at the colon. It must not disappear from ownership checks.
+        const match=line.match(/^refnexus_record_(refnexus_batch_\w+):[ \t]*(.*)$/);if(!match||match[1]===batchID)continue;
         try{const value=validateBatchRecord(JSON.parse(match[2]),owner.id,parent.libraryID);records.push({owner,batchID:match[1],record:value});}
         catch{throw new Error('Cannot safely reconcile another import journal');}
       }
@@ -294,7 +297,7 @@ export class BatchImporter {
     if(!(Zotero as any).Libraries.get(parent.libraryID)?.editable)throw new Error("This library is read-only");
     const lines=String(parent.getField("extra")||"").split(/\r?\n/);
     if(!lines.some(line=>/^(?:refnexus_batch_parent|ref_batch_parent): /.test(line) && line.split(": ")[1]===batchID))return 0;
-    const encoded=lines.find(line=>line.startsWith(this.recordPrefix(batchID)));
+    const encoded=lines.find(line=>line.startsWith(this.recordPrefix(batchID).trimEnd()));
     if(!encoded)return this.rollbackLegacy(parent,batchID);
     validateBatchRecord(JSON.parse(encoded.slice(this.recordPrefix(batchID).length)),parent.id,parent.libraryID);
     const touched=new Set<Zotero.Item>([parent]);
@@ -310,7 +313,7 @@ export class BatchImporter {
     if(parent.deleted||!parent.isRegularItem()||!(Zotero as any).Libraries.get(parent.libraryID)?.editable)throw new Error('The rollback parent or library is no longer editable');
     const lines=String(parent.getField('extra')||'').split(/\r?\n/);
     if(!lines.includes(`refnexus_batch_parent: ${batchID}`)&&!lines.includes(`ref_batch_parent: ${batchID}`))return 0;
-    const encoded=lines.find(line=>line.startsWith(this.recordPrefix(batchID)));
+    const encoded=lines.find(line=>line.startsWith(this.recordPrefix(batchID).trimEnd()));
     if(!encoded)throw new Error('The rollback journal changed before the transaction began');
     const record=validateBatchRecord(JSON.parse(encoded.slice(this.recordPrefix(batchID).length)),parent.id,parent.libraryID);
     const journals=await this.otherRecords(parent,batchID),others=journals.map(journal=>journal.record),retained=new Set<number>();

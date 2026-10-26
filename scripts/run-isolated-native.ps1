@@ -94,7 +94,16 @@ try {
   $waitDeadline=(Get-Date).AddMinutes(4)
   while ((Get-Date) -lt $waitDeadline) {
     Start-Sleep -Milliseconds 500
-    try { $result=Get-Content -LiteralPath ([IO.Path]::GetFullPath($OutputPath)) -Raw | ConvertFrom-Json } catch { continue }
+    # The host atomically replaces its report. Permit delete/rename while the
+    # poller reads, otherwise Windows can reject the host's temporary-file move.
+    $resultReader=$null
+    $resultStream=$null
+    try {
+      $resultStream=[IO.File]::Open([IO.Path]::GetFullPath($OutputPath),[IO.FileMode]::Open,[IO.FileAccess]::Read,([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete))
+      $resultReader=[IO.StreamReader]::new($resultStream)
+      $result=$resultReader.ReadToEnd() | ConvertFrom-Json
+    } catch { continue }
+    finally { if ($resultReader) { $resultReader.Dispose() } elseif ($resultStream) { $resultStream.Dispose() } }
     if ($result.fatal) { Write-Error $result.fatal; exit 1 }
     if ($result.finished) { $result | Select-Object version,passed,failed,finished | ConvertTo-Json; if ($result.failed -gt 0) { exit 1 }; exit 0 }
   }
@@ -104,4 +113,17 @@ try {
 } finally {
   if ($ownedFaultServer -and -not $ownedFaultServer.HasExited) { Stop-Process -Id $ownedFaultServer.Id -ErrorAction SilentlyContinue }
   if ($CloseWhenDone -and $process -and -not $process.HasExited -and -not $process.WaitForExit(5000)) { Stop-Process -Id $process.Id -ErrorAction SilentlyContinue }
+  if ($CloseWhenDone) {
+    # The Windows launcher can exit after handing the profile to a child. Only
+    # clean processes whose command line names this exact generated profile.
+    try {
+      $profileArgument='(?i)-profile\s+"?'+[regex]::Escape($profile)+'"?(?:\s|$)'
+      Get-CimInstance Win32_Process -Filter "Name='zotero.exe'" -ErrorAction Stop |
+        Where-Object { $_.CommandLine -and $_.CommandLine -match $profileArgument } |
+        ForEach-Object {
+          $ownedProcess=Get-Process -Id $_.ProcessId -ErrorAction SilentlyContinue
+          if ($ownedProcess -and -not $ownedProcess.HasExited -and -not $ownedProcess.WaitForExit(5000)) { Stop-Process -Id $ownedProcess.Id -ErrorAction SilentlyContinue }
+        }
+    } catch { Write-Warning "Unable to inspect remaining isolated-profile processes: $($_.Exception.Message)" }
+  }
 }

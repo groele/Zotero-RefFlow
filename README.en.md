@@ -1,4 +1,4 @@
-> Development candidate: **12.5.4** (installer not released). This work hardens native DOI import, transactional saves and rollback protection, cancellation across windows, and long reference lists. All 298 unit tests and 113 native Zotero 10.0.6 scenarios passed. Stable download links and their existing validation notes below still refer to **12.5.3**. [Candidate notes](docs/releases/v12.5.4.md).
+> **12.5.4** hardens native DOI import, transactional rollback, long lists, PDF download feedback, and icon/title alignment. All 301 unit tests and 140 native Zotero 10.0.6 functional scenarios passed. [Release notes](docs/releases/v12.5.4.md).
 
 # Zotero RefFlow
 
@@ -11,7 +11,7 @@ Discover references, citing works, and related research.
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![Release](https://img.shields.io/badge/version-12.5.3-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.5.3) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.3/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
+[![Release](https://img.shields.io/badge/version-12.5.4-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.5.4) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.4/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
 
 [Overview](#overview) · [Installation and updates](#installation) · [Quick start](#quick-start) · [Key features](#features) · [Settings](#settings) · [Data, sync, and services](#data) · [Compatibility and validation](#compatibility) · [Troubleshooting](#troubleshooting) · [Development and documentation](#development) · [The Flow series](#series) · [Origin and license](#license)
 
@@ -27,7 +27,7 @@ Install this add-on independently and combine it with other Flow products as nee
 
 ## Installation and updates
 
-1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.3/zotero-refflow.xpi) (add-on version **12.5.3**), not the Source code ZIP.
+1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.4/zotero-refflow.xpi) (add-on version **12.5.4**), not the Source code ZIP.
 2. In Zotero, open **Tools → Plugins/Add-ons**, then choose **Install Add-on From File** from the gear menu.
 3. Select the XPI, complete installation, and restart if requested.
 
@@ -75,9 +75,9 @@ Configure service credentials, refresh behavior, tips, and saving in Zotero sett
 
 | Item | Scope |
 |---|---|
-| Current add-on version | 12.5.3 |
+| Current add-on version | 12.5.4 |
 | Declared Zotero range | `10.0.6` through `11.*` |
-| Evidence boundary | 12.5.3 passed 275 automated tests and type/production builds; isolated Zotero 10.0.6 checked coexistence and same-source lifecycle modules. External providers, full graphs and all import paths were not rerun. |
+| Evidence boundary | 12.5.4 passed 301 unit tests, type/production builds and 140 isolated Zotero 10.0.6 functional scenarios, including icon alignment, live DOI lookup, attachments and rollback. Zotero 11, other systems and main-profile installation were not verified. |
 
 Add-on and Zotero versions are separate. Declared compatibility does not establish testing on every host, operating system or service. This patch validates the targeted behaviors listed above, not all plugin workflows or main-profile installation.
 
@@ -106,7 +106,7 @@ npm run build-prod
 
 - [数据源与接口规范 / Dataflow and API](docs/DATAFLOW-AND-API-SPEC.md)
 - [修复记录 / Repair record](docs/REPAIRS-2026-10-15.md)
-- [版本说明 / Release notes](docs/releases/v12.5.3.md)
+- [版本说明 / Release notes](docs/releases/v12.5.4.md)
 - [产品简介 / Product profile](docs/brand/PRODUCT.md)
 - [品牌规范 / Brand guide](docs/brand/BRAND.md)
 - [README 模板 / README template](docs/brand/README-TEMPLATE.md)

@@ -31,7 +31,7 @@ try{
  });
  await test('missing DOI shows a localized live status and stays retryable',async()=>{
   const row=body.querySelectorAll('.reference-item')[1],action=row.querySelector('button');action.click();await wait(()=>!action.disabled);
-  check(action.textContent==='!'&&!action.hasAttribute('aria-busy'),'Failure not retryable');const label=body.querySelector('#reference-num');
+  check(action.dataset.actionState==='error'&&!action.hasAttribute('aria-busy'),'Failure not retryable');const label=body.querySelector('#reference-num');
   check(label.getAttribute('role')==='status'&&label.textContent.includes('DOI')&&!label.textContent.includes('refflow-'),'Unlocalized/missing status');
   check(!refs[1]._item,'Missing DOI created an item');return {message:label.textContent,screenshot:await screenshot('no-doi-error')};
  });
@@ -39,7 +39,7 @@ try{
   const original=Zotero.Translate.Search;let calls=0;
   Zotero.Translate.Search=class{setIdentifier(value){this.doi=value.DOI;}async getTranslators(){return ['controlled'];}setTranslator(){}async translate(options){calls++;check(options.libraryID===false&&!options.saveAttachments,'Unmanaged write');return [{itemType:'journalArticle',DOI:this.doi,title:'Native retry metadata',creators:[]}];}};
   try{refs[1].identifiers.DOI='10.1234/native-ui-retry';const action=body.querySelectorAll('.reference-item')[1].querySelector('button');action.click();await wait(()=>!action.disabled);
-   check(refs[1]._item&&action.textContent==='↗'&&calls===1,'Retry did not show success');check(window.ZoteroPane.getSelectedItems()[0]?.id===parent.id,'Import stole selection');
+   check(refs[1]._item&&action.dataset.actionState==='open'&&calls===1,'Retry did not show success');check(window.ZoteroPane.getSelectedItems()[0]?.id===parent.id,'Import stole selection');
    const message=body.querySelector('#reference-num').textContent;check(!message.includes('未创建')&&!message.includes('no item was created')&&message.includes('1'),'Successful retry kept a stale failure status');
    return {calls,selectedParent:parent.id,screenshot:await screenshot('retry-success')};
   }finally{Zotero.Translate.Search=original;}

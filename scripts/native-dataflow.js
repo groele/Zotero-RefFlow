@@ -26,12 +26,12 @@ await test('item notifications update card match and retraction without refetchi
   try {
     await views.refreshReferences(body,false,false,false,parent);const row=body.querySelector('.reference-item');await delay(150);check(!row.reference._item,'Expected initial miss');
     const local=await make(title,doi);for(let i=0;i<70&&row.reference._item?.id!==local.id;i++)await delay(30);
-    check(row.reference._item?.id===local.id,'Notifier did not rematch');check(row.querySelector('.reference-action').textContent==='↗','Missing library action');check(row.querySelector('.reference-retracted'),'Local retraction absent');
+    check(row.reference._item?.id===local.id,'Notifier did not rematch');check(row.querySelector('.reference-action').dataset.actionState==='open','Missing library action');check(row.querySelector('.reference-retracted'),'Local retraction absent');
     local.setField('DOI','10.1234/changed-'+stamp);local.setField('title','Unrelated altered local record');await local.saveTx({skipSelect:true});
     for(let i=0;i<70&&row.reference._item;i++)await delay(30);check(!row.reference._item,'Changed item retained stale match');check(!row.querySelector('.reference-retracted'),'Stale retraction retained');
     local.setField('DOI',doi);local.setField('title',title);await local.saveTx({skipSelect:true});for(let i=0;i<70&&!row.reference._item;i++)await delay(30);
-    await Zotero.Items.trashTx([local.id]);for(let i=0;i<70&&row.querySelector('.reference-action').textContent!=='+';i++)await delay(30);
-    check(!row.reference._item&&row.querySelector('.reference-action').textContent==='+','Deleted item retained match');check(fetches===1,'Notifier refetched remote metadata');return {fetches,addModifyDelete:true,retraction:true};
+    await Zotero.Items.trashTx([local.id]);for(let i=0;i<70&&row.querySelector('.reference-action').dataset.actionState!=='add';i++)await delay(30);
+    check(!row.reference._item&&row.querySelector('.reference-action').dataset.actionState==='add','Deleted item retained match');check(fetches===1,'Notifier refetched remote metadata');return {fetches,addModifyDelete:true,retraction:true};
   }finally{api.getReferenceList=original;api.retractionChecker.checkLocal=localCheck;}
 });
 const paper=id=>({paperId:id,title:'Official provider fixture '+id,externalIds:{DOI:'10.1234/'+id},authors:[{name:'Fixture Author'}],year:2024});

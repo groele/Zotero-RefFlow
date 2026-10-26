@@ -10,7 +10,7 @@ import CitationVerifier from '../src/modules/verifier';
 const row=(doi?:string)=>({title:'Provider short title',authors:[],identifiers:doi?{DOI:doi}:{}} as any);
 async function fixture(run:(ctx:any)=>Promise<void>){
  const z:any=Zotero,tool:any=ztoolkit;
- const saved=Object.fromEntries(['Libraries','DB','Translate','Item','ItemTypes','ItemFields','Collections','Collection'].map(k=>[k,z[k]]));
+ const saved=Object.fromEntries(['Libraries','DB','Translate','Item','ItemTypes','ItemFields','Collections','Collection','Attachments'].map(k=>[k,z[k]]));
  const oldProgress=tool.ProgressWindow,oldUtils=(BatchImporter as any)._utils;
  let ids=100,lookups=0,writes=0,collectionCreates=0;const items:any[]=[];let translate:any=async()=>[{DOI:'10.1234/one',title:'Native full title',creators:[{creatorType:'author',lastName:'Native'}]}];
  class Item {id=0;key='';libraryID=1;itemTypeID=1;fields:any={};relatedItems:string[]=[];collections:number[]=[];creators:any[]=[];
@@ -24,12 +24,29 @@ async function fixture(run:(ctx:any)=>Promise<void>){
  z.Libraries={get:()=>({editable:true,filesEditable:true})};z.DB={executeTransaction:(fn:any)=>fn()};
  z.Collections={getAsync:async(id:number)=>({id,libraryID:1})};z.Collection=class{libraryID=1;id=42;async save(){collectionCreates++;}};
  z.Translate={Search:class{setIdentifier(value:any){assert.equal(value.DOI,'10.1234/one');lookups++;}async getTranslators(){return ['fixture'];}setTranslator(){}async translate(opts:any){assert.equal(opts.libraryID,false);assert.equal(opts.saveAttachments,false);return translate();}}};
- tool.ProgressWindow=class{createLine(){return this;}show(){return this;}changeLine(){}changeHeadline(){}startCloseTimer(){}};
+ const progress:any[]=[];
+ tool.ProgressWindow=class{createLine(){return this;}show(){return this;}changeLine(value:any){progress.push(value);}changeHeadline(){}startCloseTimer(){}};
  BatchImporter.setUtils({clearLibraryItemCache(){},searchLibraryItem:async(ref:any)=>items.find(i=>ref.identifiers.DOI?CitationVerifier.normalizeDOI(i.getField('DOI'))===CitationVerifier.normalizeDOI(ref.identifiers.DOI):i.getField('title')===ref.title),splitCreator:(name:string)=>({name})} as any);
- try{await run({parent,items,z,counts:()=>({lookups,writes,collectionCreates}),setTranslate:(fn:any)=>translate=fn});}
+ try{await run({parent,items,z,progress,counts:()=>({lookups,writes,collectionCreates}),setTranslate:(fn:any)=>translate=fn});}
  finally{Object.assign(z,saved);tool.ProgressWindow=oldProgress;(BatchImporter as any)._utils=oldUtils;}
 }
 const opts={downloadOA:false,createSubCollection:false,createManifestNote:false};
+test('an OA attempt returning no attachment is reported as a download failure',async()=>fixture(async c=>{
+ c.z.Attachments={importFromURL:async()=>undefined};
+ const result=await BatchImporter.importAll(c.parent,[{...row('10.1234/one'),oaUrl:'https://oa.test/paper.pdf'}],{...opts,downloadOA:true});
+ assert.equal(result.importedCount,1);assert.equal(result.failedCount,0);assert.equal(result.downloadCount,0);assert.equal(result.downloadFailedCount,1);
+ assert.equal(c.progress.at(-1).type,'fail');assert.match(c.progress.at(-1).text,/PDF/);
+}));
+test('a rejected OA download remains visible in the completion summary',async()=>fixture(async c=>{
+ c.z.Attachments={importFromURL:async()=>{throw new Error('Controlled PDF failure');}};
+ const result=await BatchImporter.importAll(c.parent,[{...row('10.1234/one'),oaUrl:'https://oa.test/paper.pdf'}],{...opts,downloadOA:true});
+ assert.equal(result.importedCount,1);assert.equal(result.downloadFailedCount,1);assert.equal(c.progress.at(-1).type,'fail');assert.match(c.progress.at(-1).text,/PDF/);
+}));
+test('disabled OA fetching does not call the downloader or report an attachment failure',async()=>fixture(async c=>{
+ let calls=0;c.z.Attachments={importFromURL:async()=>{calls++;}};
+ const result=await BatchImporter.importAll(c.parent,[{...row('10.1234/one'),oaUrl:'https://oa.test/paper.pdf'}],opts);
+ assert.equal(calls,0);assert.equal(result.downloadFailedCount,0);assert.equal(c.progress.at(-1).type,'success');
+}));
 test('actual import chain normalizes DOI, uses native metadata and deduplicates aliases',async()=>fixture(async c=>{
  const refs=[row('https://doi.org/10.1234/ONE'),row('10.1234/one')];const r=await BatchImporter.importAll(c.parent,refs,opts);
  assert.equal(r.importedCount,1);assert.equal(r.existingCount,1);assert.equal(c.counts().lookups,1);assert.equal(c.items[0].getField('title'),'Native full title');assert.equal(refs[0]._item,refs[1]._item);assert.deepEqual(c.items[0].getCollections(),[8]);

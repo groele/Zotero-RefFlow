@@ -23,11 +23,11 @@ await test('explicit cancellation during discovery discards late discoveries wit
  finally{Zotero.Translate.Search=original;}
 });
 await test('clearing one long list resets the virtual viewport for the next paper',async()=>{
- const rows=refs(2000,'First paper');body.references=rows;await body._cards.render(rows,()=>true);const grid=body.querySelector('#related-grid');grid.scrollTop=144*1000;grid.dispatchEvent(new window.Event('scroll'));await delay(100);check(Number(grid.querySelector('.reference-item').dataset.referenceNumber)>900,'Initial scroll failed');
+ const rows=refs(2000,'First paper');body.references=rows;await body._cards.render(rows,()=>true);const grid=body.querySelector('#related-grid');grid.scrollTop=grid.querySelector('.reference-item').getBoundingClientRect().height*1000;grid.dispatchEvent(new window.Event('scroll'));await delay(100);check(Number(grid.querySelector('.reference-item').dataset.referenceNumber)>900,'Initial scroll failed');
  body._cards.clear();const next=refs(500,'Next paper');body.references=next;await body._cards.render(next,()=>true);const first=grid.querySelector('.reference-item');check(first.dataset.referenceNumber==='1'&&grid.scrollTop===0,'Old virtual viewport leaked into a different paper: '+JSON.stringify({first:first.dataset.referenceNumber,scrollTop:grid.scrollTop}));return {first:1,mounted:grid.querySelectorAll('.reference-item').length};
 });
 await test('a shorter refreshed long list mounts a full bounded final window',async()=>{
- const rows=refs(2000,'Before refresh');body.references=rows;body._cards.clear();await body._cards.render(rows,()=>true);const grid=body.querySelector('#related-grid');grid.scrollTop=144*1000;grid.dispatchEvent(new window.Event('scroll'));await delay(100);
+ const rows=refs(2000,'Before refresh');body.references=rows;body._cards.clear();await body._cards.render(rows,()=>true);const grid=body.querySelector('#related-grid');grid.scrollTop=grid.querySelector('.reference-item').getBoundingClientRect().height*1000;grid.dispatchEvent(new window.Event('scroll'));await delay(100);
  const next=refs(300,'After refresh');body.references=next;await body._cards.render(next,()=>true);const mounted=grid.querySelectorAll('.reference-item');check(mounted.length===60,'Refreshed list mounted only '+mounted.length+' rows');check(Number(mounted[0].dataset.referenceNumber)<=241,'Virtual window was clamped to a single last item');return {mounted:mounted.length,first:mounted[0].dataset.referenceNumber};
 });
 await test('scrolling the final virtual window settles without a remount loop',async()=>{
@@ -47,7 +47,7 @@ await test('a filtered short list also updates accessibility positions',async()=
 await test('read-only destination preflight has a localized retryable UI failure',async()=>{
  const rows=[{title:'Read-only destination',identifiers:{DOI:'10.1234/lifecycle-readonly'}}];body._cards.clear();body.references=rows;await body._cards.render(rows,()=>true);const original=Zotero.Libraries.get,library=original.call(Zotero.Libraries,parent.libraryID),proxy=new Proxy(library,{get(target,key,receiver){return key==='editable'?false:Reflect.get(target,key,receiver);}});
  Zotero.Libraries.get=function(id){return id===parent.libraryID?proxy:original.call(this,id);};
- try{const action=body.querySelector('.reference-action');action.click();await wait(()=>!action.disabled);const text=body.querySelector('#reference-num').textContent;check(action.textContent==='!'&&!action.hasAttribute('aria-busy')&&!rows[0]._item,'Readonly failure state incorrect');check(text&&!text.includes('read-only')&&!text.includes('refflow-'),'Raw or missing permission error: '+text);return {created:0,message:text};}
+ try{const action=body.querySelector('.reference-action');action.click();await wait(()=>!action.disabled);const text=body.querySelector('#reference-num').textContent;check(action.dataset.actionState==='error'&&!action.hasAttribute('aria-busy')&&!rows[0]._item,'Readonly failure state incorrect');check(text&&!text.includes('read-only')&&!text.includes('refflow-'),'Raw or missing permission error: '+text);return {created:0,message:text};}
  finally{Zotero.Libraries.get=original;}
 });
 report.finished=new Date().toISOString();report.passed=report.tests.filter(row=>row.ok).length;report.failed=report.tests.filter(row=>!row.ok).length;report.hostErrors=Zotero.getErrors(true).map(String);await save();

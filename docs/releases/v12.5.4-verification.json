@@ -1,0 +1,37 @@
+{
+  "version": "12.5.4",
+  "addonID": "refflow@groele.github.io",
+  "bytes": 187619,
+  "sha256": "c8c72c1993819e93003c82d8425a07db6dd93984cbdbfe174e4588f8ef7dadf2",
+  "host": "Windows Zotero 10.0.6",
+  "unitTests": {
+    "passed": 301,
+    "failed": 0
+  },
+  "nativeFunctionalLeafScenarios": 140,
+  "isolatedNativeFileUpgrade": {
+    "passed": 4,
+    "failed": 0
+  },
+  "actualProcessRestart": {
+    "passed": 4,
+    "failed": 0
+  },
+  "installerSource": "local production XPI during preflight; public asset re-download verified separately after publication",
+  "updateFeed": {
+    "url": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json",
+    "asset": "https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.4/zotero-refflow.xpi",
+    "hash": "sha256:c8c72c1993819e93003c82d8425a07db6dd93984cbdbfe174e4588f8ef7dadf2"
+  },
+  "compatibilityDeclared": {
+    "min": "10.0.6",
+    "max": "11.*"
+  },
+  "notVerified": [
+    "Zotero 11 runtime",
+    "other operating systems",
+    "user main-profile installation",
+    "automatic-update scheduler end to end",
+    "screen-reader speech output"
+  ]
+}
