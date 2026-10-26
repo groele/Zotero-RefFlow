@@ -20,7 +20,11 @@ export function workIdentity(ref:ItemBaseInfo):string {
 
 export function selectLibraryMatch(ref:ItemBaseInfo,items:Zotero.Item[]):Zotero.Item|undefined {
   const doi=CitationVerifier.normalizeDOI(ref.identifiers?.DOI);
-  const candidates=items.filter(item=>!item.deleted&&item.isRegularItem());
+  const candidates=items.filter(item=>{
+    if(item.deleted||!item.isRegularItem())return false;
+    const other=CitationVerifier.normalizeDOI(String(item.getField('DOI')));
+    return !doi||!other||other===doi;
+  });
   if(doi){const exact=candidates.find(item=>CitationVerifier.normalizeDOI(String(item.getField('DOI')))===doi);if(exact)return exact;}
   const arxiv=arxivIdentity(ref.identifiers?.arXiv),cnki=cnkiIdentity(ref.identifiers?.CNKI);
   if(arxiv||cnki){

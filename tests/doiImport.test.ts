@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import BatchImporter from '../src/modules/batchImporter';
 import Views from '../src/modules/views';
 import ReferenceCards from '../src/modules/referenceCards';
+import Utils from '../src/modules/utils';
+import CitationVerifier from '../src/modules/verifier';
 
 const row=(doi?:string)=>({title:'Provider short title',authors:[],identifiers:doi?{DOI:doi}:{}} as any);
 async function fixture(run:(ctx:any)=>Promise<void>){
@@ -23,7 +25,7 @@ async function fixture(run:(ctx:any)=>Promise<void>){
  z.Collections={getAsync:async(id:number)=>({id,libraryID:1})};z.Collection=class{libraryID=1;id=42;async save(){collectionCreates++;}};
  z.Translate={Search:class{setIdentifier(value:any){assert.equal(value.DOI,'10.1234/one');lookups++;}async getTranslators(){return ['fixture'];}setTranslator(){}async translate(opts:any){assert.equal(opts.libraryID,false);assert.equal(opts.saveAttachments,false);return translate();}}};
  tool.ProgressWindow=class{createLine(){return this;}show(){return this;}changeLine(){}changeHeadline(){}startCloseTimer(){}};
- BatchImporter.setUtils({clearLibraryItemCache(){},searchLibraryItem:async(ref:any)=>items.find(i=>i.getField('DOI')===ref.identifiers.DOI),splitCreator:(name:string)=>({name})} as any);
+ BatchImporter.setUtils({clearLibraryItemCache(){},searchLibraryItem:async(ref:any)=>items.find(i=>ref.identifiers.DOI?CitationVerifier.normalizeDOI(i.getField('DOI'))===CitationVerifier.normalizeDOI(ref.identifiers.DOI):i.getField('title')===ref.title),splitCreator:(name:string)=>({name})} as any);
  try{await run({parent,items,z,counts:()=>({lookups,writes,collectionCreates}),setTranslate:(fn:any)=>translate=fn});}
  finally{Object.assign(z,saved);tool.ProgressWindow=oldProgress;(BatchImporter as any)._utils=oldUtils;}
 }
@@ -31,6 +33,24 @@ const opts={downloadOA:false,createSubCollection:false,createManifestNote:false}
 test('actual import chain normalizes DOI, uses native metadata and deduplicates aliases',async()=>fixture(async c=>{
  const refs=[row('https://doi.org/10.1234/ONE'),row('10.1234/one')];const r=await BatchImporter.importAll(c.parent,refs,opts);
  assert.equal(r.importedCount,1);assert.equal(r.existingCount,1);assert.equal(c.counts().lookups,1);assert.equal(c.items[0].getField('title'),'Native full title');assert.equal(refs[0]._item,refs[1]._item);assert.deepEqual(c.items[0].getCollections(),[8]);
+}));
+test('DOI lookup selects matching metadata beyond the first translator row',async()=>fixture(async c=>{
+ c.setTranslate(async()=>[{DOI:'10.1234/wrong',title:'Wrong'}, {DOI:'10.1234/one',title:'Matching native title'}]);
+ const result=await BatchImporter.importAll(c.parent,[row('10.1234/one')],opts);
+ assert.equal(result.importedCount,1);assert.equal(c.items[0].getField('title'),'Matching native title');
+}));
+test('external item created during DOI lookup is reused before committing',async()=>fixture(async c=>{
+ let release:any;c.setTranslate(()=>new Promise(resolve=>release=resolve));
+ const refs=[row('10.1234/one')];const job=BatchImporter.importAll(c.parent,refs,opts);
+ while(!release)await new Promise(resolve=>setTimeout(resolve,0));
+ const external=new c.z.Item();external.setField('DOI','10.1234/one');external.setField('title','External import');await external.save();
+ release([{DOI:'10.1234/one',title:'Native'}]);const result=await job;
+ assert.equal(result.importedCount,0);assert.equal(result.existingCount,1);assert.equal(c.items.length,1);assert.equal(refs[0]._item,external);
+}));
+for(const sub of [true,false])test('invalid collection fails without writing even with subcollection '+sub,async()=>fixture(async c=>{
+ c.z.Collections={getAsync:async()=>({id:8,libraryID:2})};
+ const result=await BatchImporter.importAll(c.parent,[row('10.1234/one')],{...opts,collections:[8],createSubCollection:sub});
+ assert.equal(result.failedCount,1);assert.equal(c.counts().writes,0);assert.equal(c.counts().collectionCreates,0);
 }));
 for(const [name,value] of [['missing DOI',[{title:'Unproven'}]],['conflict',[{DOI:'10.1234/wrong',title:'Wrong'}]],['empty title',[{DOI:'10.1234/one',title:''}]],['empty result',[]]] as any[]){
  test('DOI import rejects '+name+' without writing a partial provider item or empty journal',async()=>fixture(async c=>{c.setTranslate(async()=>value);const r=await BatchImporter.importAll(c.parent,[row('10.1234/one')],{...opts,createSubCollection:true,createManifestNote:true});assert.equal(r.failedCount,1);assert.equal(r.failures.length,1);assert.equal(c.counts().writes,0);assert.equal(c.counts().collectionCreates,0);}));
@@ -51,4 +71,38 @@ for(const stillBusy of [true,false])test('late local match cannot overwrite DOI 
  cards.views={utils:{searchLibraryItem:()=>new Promise(resolve=>release=resolve)}};
  const row:any={reference:ref,dataset:{importRevision:'0'},isConnected:true,querySelector:()=>({hasAttribute:()=>stillBusy})};
  cards.queueLibraryMatch(row,{libraryID:1},()=>true);const task=cards.matchQueue.shift()();while(!release)await Promise.resolve();row.dataset.importRevision=stillBusy?'1':'2';release(undefined);await task;assert.equal(ref._item,imported);
+});
+
+test('independent abort signals never share one import result',async()=>fixture(async c=>{
+ const views:any=Object.create(Views.prototype);views.disposed=false;views.panes=new Set();views.importJobs=new Map();
+ let release:any;c.setTranslate(()=>new Promise(resolve=>release=resolve));
+ const one=views.importReferences(c.parent,[row('10.1234/one')],opts);
+ while(!release)await new Promise(resolve=>setTimeout(resolve,0));
+ const controller=new AbortController();const two=views.importReferences(c.parent,[row('10.1234/one')],{...opts,signal:controller.signal});
+ controller.abort();release([{DOI:'10.1234/one',title:'Native'}]);
+ const [a,b]=await Promise.all([one,two]);assert.equal(a.importedCount,1);assert.equal(b.cancelled,true);assert.equal(b.importedCount,0);assert.notEqual(a.batchId,b.batchId);
+}));
+test('destination deleted during DOI lookup creates no item, collection or journal',async()=>fixture(async c=>{
+ let release:any;c.setTranslate(()=>new Promise(resolve=>release=resolve));const job=BatchImporter.importAll(c.parent,[row('10.1234/one')],{...opts,createSubCollection:true});
+ while(!release)await new Promise(resolve=>setTimeout(resolve,0));c.z.Collections={getAsync:async()=>undefined};release([{DOI:'10.1234/one',title:'Native'}]);
+ const result=await job;assert.equal(result.failedCount,1);assert.equal(result.failures[0].code,'destination');assert.equal(c.counts().writes,0);assert.equal(c.counts().collectionCreates,0);
+}));
+test('reference-array edits during lookup do not corrupt caller synchronization',async()=>fixture(async c=>{
+ let release:any;c.setTranslate(()=>new Promise(resolve=>release=resolve));const ref=row('10.1234/one'),refs=[ref];
+ const job=BatchImporter.importAll(c.parent,refs,opts);while(!release)await new Promise(resolve=>setTimeout(resolve,0));refs.splice(0,1);
+ release([{DOI:'10.1234/one',title:'Native'}]);assert.equal((await job).importedCount,1);assert.equal(ref._item,c.items[0]);
+}));
+test('no DOI still reuses an existing local item without a translator',async()=>fixture(async c=>{
+ const existing=new c.z.Item();existing.setField('title','Provider short title');await existing.save();
+ const result=await BatchImporter.importAll(c.parent,[row()],opts);assert.equal(result.existingCount,1);assert.equal(c.counts().lookups,0);
+}));
+test('import lookup bypasses display caches and stale-generation miss handling',async()=>{
+ const utils:any=Object.create(Utils.prototype),target={id:4};let lookups=0;
+ utils.itemCache=new Map([['1:doi:10.1234/one:library-item',null]]);utils.searchItem=async()=>{lookups++;return target;};
+ assert.equal(await utils.searchLibraryItem(row('10.1234/one'),1,true),target);assert.equal(lookups,1);
+});
+test('import destinations use same-window same-library collection snapshots',()=>{
+ const utils:any=Object.create(Utils.prototype);const parent:any={libraryID:2,getCollections:()=>[8,9]};
+ const win:any={ZoteroPane:{getSelectedCollections:()=>[{id:3,libraryID:1},{id:4,libraryID:2},{id:4,libraryID:2},{id:5,libraryID:2,deleted:true}]}};
+ assert.deepEqual(utils.importCollections(parent,win),[4]);win.ZoteroPane.getSelectedCollections=()=>[{id:3,libraryID:1}];assert.deepEqual(utils.importCollections(parent,win),[8,9]);
 });

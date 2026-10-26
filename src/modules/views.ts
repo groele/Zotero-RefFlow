@@ -29,6 +29,8 @@ export default class Views {
   private localizationDocuments=new Set<Document>();
   private menus=new Set<Element>();
   private importJobs=new Map<string,{job:ReturnType<typeof BatchImporter.importAll>;refs:ItemBaseInfo[]}>();
+  private importOwnerIDs=new WeakMap<object,number>();
+  private importOwnerSequence=0;
   constructor() {
     initLocale();
     this.utils = new Utils()
@@ -44,6 +46,7 @@ export default class Views {
     for(const menu of this.menus)if(menu.ownerDocument===win.document){cleanupSync(()=>menu.remove());this.menus.delete(menu);}
     cleanupSync(() => this.tips.get(win)?.clear());this.tips.delete(win);
     win.document.querySelectorAll(`item-pane-custom-section[data-pane$="-${config.addonRef}-references"] [data-type="body"]`).forEach(body => {
+      cleanupSync(() => BatchImporter.cancelImports(undefined,body));
       cleanupSync(() => this.referenceTasks.invalidate(body));
       cleanupSync(() => (body as any)._cards?.dispose());
       this.panes.delete(body as HTMLElement);
@@ -263,7 +266,7 @@ export default class Views {
         this.resetReferencePane(body);
         body.setAttribute("data-refflow-item-id", String(item?.parentItem?.id || item?.id || ""));
       },
-      onDestroy: ({ body }) => {this.panes.delete(body as HTMLElement);this.referenceTasks.invalidate(body);(body as any)._cards?.dispose();}
+      onDestroy: ({ body }) => {BatchImporter.cancelImports(undefined,body);this.panes.delete(body as HTMLElement);this.referenceTasks.invalidate(body);(body as any)._cards?.dispose();}
     });
     if (!registered) {
       ztoolkit.log("Zotero refused to register the RefFlow item-pane section");
@@ -286,7 +289,7 @@ export default class Views {
   }
 
   private cancelReferencePane(body:Element):void {
-    BatchImporter.cancelImports(Number(body.getAttribute('data-refflow-item-id')));
+    BatchImporter.cancelImports(Number(body.getAttribute('data-refflow-item-id')),body);
     this.referenceTasks.invalidate(body);
     body.removeAttribute("aria-busy");
     body.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
@@ -334,22 +337,29 @@ export default class Views {
 
   public async importReferences(parent: Zotero.Item, refs: ItemBaseInfo[], options: any = {}) {
     if(this.disposed)throw new Error('RefFlow is stopping');
+    refs=[...refs];
     options={downloadOA:true,createSubCollection:true,createManifestNote:true,...options};
-    const key=JSON.stringify([parent.libraryID,parent.id,refs.map(workIdentity),options.collections??parent.getCollections(),(options.relatedParents||[]).map((item:Zotero.Item)=>item.id),Boolean(options.createSubCollection),Boolean(options.createManifestNote),Boolean(options.downloadOA),Boolean(options.allowMetadataWithoutDOI)]);
+    let ownerID=0;
+    if(options.owner){this.importOwnerIDs??=new WeakMap();ownerID=this.importOwnerIDs.get(options.owner)||0;
+      if(!ownerID){ownerID=this.importOwnerSequence=(this.importOwnerSequence||0)+1;this.importOwnerIDs.set(options.owner,ownerID);}}
+    const key=JSON.stringify([parent.libraryID,parent.id,refs.map(workIdentity),options.collections??parent.getCollections(),(options.relatedParents||[]).map((item:Zotero.Item)=>item.id),Boolean(options.createSubCollection),Boolean(options.createManifestNote),Boolean(options.downloadOA),Boolean(options.allowMetadataWithoutDOI),options.translatorTimeoutMs??20000,options.budgetMs??300000,ownerID]);
     const pending=this.importJobs.get(key);
-    if(pending){const result=await pending.job;refs.forEach((ref,index)=>{ref._item=pending.refs[index]._item;});return result;}
-    const panels=[...this.panes].filter(body=>Number(body.getAttribute('data-refflow-item-id'))===parent.id);
+    // Independently cancellable callers must not inherit another caller's signal.
+    if(pending&&!options.signal){const result=await pending.job;refs.forEach((ref,index)=>{ref._item=pending.refs[index]._item;});return result;}
+    const panels=[...this.panes].filter(body=>(!options.owner||options.owner===body)&&Number(body.getAttribute('data-refflow-item-id'))===parent.id);
     for(const body of panels){(body as any)._importsPending=((body as any)._importsPending||0)+1;const cancel=body.querySelector<HTMLElement>('#refflow-cancel');if(cancel)cancel.hidden=false;}
     let job:ReturnType<typeof BatchImporter.importAll>;
     try{job=BatchImporter.importAll(parent,refs,options);}catch(error){job=Promise.reject(error);}
-    this.importJobs.set(key,{job,refs});
+    if(!options.signal)this.importJobs.set(key,{job,refs});
     try{return await job;}
-    finally{this.importJobs.delete(key);for(const body of panels){(body as any)._importsPending=Math.max(0,((body as any)._importsPending||1)-1);const cancel=body.querySelector<HTMLElement>('#refflow-cancel');if(cancel&&!body.hasAttribute('aria-busy')&&!(body as any)._importsPending)cancel.hidden=true;}}
+    finally{if(this.importJobs.get(key)?.job===job)this.importJobs.delete(key);for(const body of panels){(body as any)._importsPending=Math.max(0,((body as any)._importsPending||1)-1);const cancel=body.querySelector<HTMLElement>('#refflow-cancel');if(cancel&&!body.hasAttribute('aria-busy')&&!(body as any)._importsPending)cancel.hidden=true;}}
   }
   public async rollbackReferences(parent: Zotero.Item, batchID: string) {
+    try{
     const removed=await BatchImporter.rollbackBatch(parent,batchID),retained=BatchImporter.lastRollback.retainedIDs.length;
     if(retained)new ztoolkit.ProgressWindow('RefFlow').createLine({text:getString('cards-rollback-retained',{args:{count:retained}}),type:'default'}).show();
     return removed;
+    }catch(error){ztoolkit.log('Reference rollback failed',error);const failure=new Error(getString('cards-rollback-failed'));(failure as any).cause=error;throw failure;}
   }
 
   private getPanelItem(panel: Element): Zotero.Item | undefined {

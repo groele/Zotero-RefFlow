@@ -18,6 +18,11 @@ test('local candidates corroborate author and year and reject ambiguous DOI iden
   assert.equal(selectLibraryMatch(ref({authors:['Smith'],year:'2024'}),[item(1)])?.id,1);
   assert.equal(selectLibraryMatch(ref({identifiers:{DOI:'10.1234/a'}}),[item(1,'Jones','1995','10.1234/a')])?.id,1);
 });
+test('graph publication years may be numeric during local matching',()=>{
+  const graphRef=ref({title:'A graph title that does not exist',year:2023,identifiers:{DOI:'10.1234/new-node'}});
+  assert.equal(selectLibraryMatch(graphRef,[item(1)]),undefined);
+  assert.equal(selectLibraryMatch(ref({year:2024,authors:['Smith']}),[item(1)])?.id,1);
+});
 test('batch and cache identity distinguish metadata and non-DOI provider identifiers',()=>{
   assert.notEqual(workIdentity(ref({authors:['Smith'],year:'1995'})),workIdentity(ref({authors:['Jones'],year:'2024'})));
   assert.notEqual(workIdentity(ref({identifiers:{CNKI:'https://kns.cnki.net/x?FileName=A&DbCode=CJFD'}})),workIdentity(ref({identifiers:{CNKI:'https://kns.cnki.net/x?FileName=B&DbCode=CJFD'}})));

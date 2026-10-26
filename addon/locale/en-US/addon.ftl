@@ -105,6 +105,8 @@ cards-context-changed = The item or document changed. Refresh to retrieve its re
 
 cards-list-name = Reference list
 cards-rollback-retained = Kept { $count } imported items because they were reused or modified.
+cards-rollback-summary = Batch rollback complete: { $count } items moved to Trash. Reused or modified content is kept.
+cards-rollback-failed = Rollback failed. Check library permissions and the batch journal, then retry.
 
 cards-latest-attempt = Latest attempt
 
@@ -114,3 +116,12 @@ cards-importing-doi = Looking up DOI in Zotero…
 cards-import-cancelled = Import cancelled; completed items remain in Zotero
 cards-import-failed = DOI import failed; retry
 cards-import-summary = Added: { $added }; existing: { $existing }; failed: { $failed }
+cards-import-complete = DOI import complete
+cards-import-downloading = Downloading open-access PDFs…
+cards-import-error-no-doi = No valid DOI is available; no item was created. Verify the DOI and use Add Item by Identifier in Zotero's toolbar.
+cards-import-error-translator = No DOI translator is available. Update Zotero translators and retry.
+cards-import-error-identity = No work with the requested DOI was returned; no item was created. Verify the DOI and retry.
+cards-import-error-metadata = The DOI lookup returned an empty title; no item was created. Retry later.
+cards-import-error-timeout = The DOI lookup timed out; no item was created. Check the connection and retry.
+cards-import-error-destination = The target library, collection or origin item is unavailable. Select an available destination and retry.
+cards-import-error-lookup = Zotero DOI lookup failed; no item was created. Check the connection and translators, then retry.

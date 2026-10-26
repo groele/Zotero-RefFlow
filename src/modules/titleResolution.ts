@@ -1,6 +1,6 @@
 import CitationVerifier, { CandidateWork } from "./verifier";
 
-export interface TitleQuery { title: string; author?: string; year?: string; }
+export interface TitleQuery { title: string; author?: string; year?: string | number; }
 export interface TitleCandidate<T> { value: T; work: CandidateWork; id?: string; }
 
 /** One identity must survive verification. Provider ordering is never evidence. */
@@ -8,7 +8,7 @@ export function selectUniqueTitle<T>(query: TitleQuery, candidates: TitleCandida
   const title = CitationVerifier.cleanTitle(query.title);
   if (!title) return;
   const author = query.author?.trim();
-  const year = query.year?.match(/\b(19\d\d|20\d\d)\b/)?.[0];
+  const year = String(query.year ?? '').match(/\b(19\d\d|20\d\d)\b/)?.[0];
   const accepted = candidates.filter(({ work, id }) => {
     if (typeof work.title !== "string" || !work.title.trim()) return false;
     if (!CitationVerifier.normalizeDOI(work.doi) && !id) return false;

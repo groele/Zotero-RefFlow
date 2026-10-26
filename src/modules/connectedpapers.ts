@@ -7,6 +7,8 @@ import buildGraphData from "./GraphData";
 import {graphColor} from "./graphModel";
 import { cleanupSync } from "../utils/lifecycle";
 import {getString} from '../utils/locale';
+import {importFailureText,importErrorText} from './importErrors';
+import BatchImporter from './batchImporter';
 
 export default class ConnectedPapers {
   private doc: Document;
@@ -48,6 +50,7 @@ export default class ConnectedPapers {
   public shutdown() {
     if (this.disposed) return;
     this.disposed = true;
+    cleanupSync(() => BatchImporter.cancelImports(undefined,this));
     cleanupSync(() => this.graphController?.abort());
     cleanupSync(() => this.graphEventCleanup?.());
     cleanupSync(() => this.requests.dispose());
@@ -670,6 +673,7 @@ export default class ConnectedPapers {
 
   public addItem(parent: HTMLDivElement, info: ItemInfo, color?: string): any {
     let tipUI: TipUI, timer: number | undefined
+    const originsAtRender=[...this.itemIDs];
     const itemNode: any = ztoolkit.UI.appendElement({
       tag: "div",
       classList: ["item"],
@@ -844,15 +848,17 @@ export default class ConnectedPapers {
       ],
     }, parent)
 
-    ztoolkit.UI.appendElement({
-      tag: "div",
+    const importAction:any=ztoolkit.UI.appendElement({
+      tag: "button",
+      attributes:{type:'button',title:getString(info?._itemID?'cards-show-library':'cards-import'),'aria-label':getString(info?._itemID?'cards-show-library':'cards-import')},
       styles: {
         width: "2em",
         height: "2em",
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        cursor: "pointer"
+        cursor: "pointer",
+        background: 'transparent',border:'none',padding:'0',flexShrink:'0'
       },
       properties: {
         innerHTML: info?._itemID ?
@@ -864,34 +870,38 @@ export default class ConnectedPapers {
         {
           type: "click",
           listener: async (event: any) => {
+            event.stopPropagation();
+            if(this.disposed||importAction.disabled||!itemNode.isConnected)return;
             if (info._itemID) {
-              this.win.ZoteroPane.selectItem(info._itemID as number)
+              const existing=Zotero.Items.get(info._itemID as number);
+              if(existing&&!existing.deleted)await this.views.utils.selectItemInLibrary(existing,this.win);
             } else {
+              if(originsAtRender.join(',')!==this.itemIDs.join(','))return;
               const DOI = info.identifiers.DOI
-              const originItems = this.itemIDs.map(id => Zotero.Items.get(id)).filter((item): item is Zotero.Item => Boolean(item));
+              const originItems = originsAtRender.map(id => Zotero.Items.get(id)).filter((item): item is Zotero.Item => Boolean(item));
               
               let add = async (collections: number[]) => {
-                let popupWin = new ztoolkit.ProgressWindow("[Pending] Adding", { closeTime: -1 })
+                if(this.disposed||importAction.disabled||!itemNode.isConnected||originsAtRender.join(',')!==this.itemIDs.join(','))return;
+                importAction.disabled=true;importAction.setAttribute('aria-busy','true');importAction.title=getString('cards-importing-doi');
+                let popupWin = new ztoolkit.ProgressWindow(getString('cards-importing-doi'), { closeTime: -1 })
                   .createLine({ text: DOI, type: "default" })
                   .show()
                 try {
-                  if (!originItems.length || originItems.some(item => !item)) throw new Error("Graph origins are unavailable");
+                  if (!originItems.length || originItems.length!==originsAtRender.length || originItems.some(item => item.deleted)) throw new Error(getString('graph-origins-changed'));
                   const result = await this.views.importReferences(originItems[0], [info], {
-                    collections, relatedParents: originItems.slice(1), downloadOA: false,
+                    owner:this,collections, relatedParents: originItems.slice(1), downloadOA: false,
                     createSubCollection: false, createManifestNote: false
                   });
                   if (result.cancelled) throw new Error(getString('cards-import-cancelled'));
-                  if (result.failedCount) throw new Error(result.failures[0]?.reason || getString('cards-import-failed'));
-                  popupWin.changeHeadline("[Done] Adding");popupWin.changeLine({ type: "success" });
-                  if (!this.disposed) (this.doc.querySelector("#build-graph") as HTMLDivElement)?.click();
-                } catch (error) { popupWin.changeLine({ text: String(error), type: "fail" }); ztoolkit.log(error); }
-                finally { popupWin.startCloseTimer(3000); }
+                  if (result.failedCount) throw new Error(importFailureText(result.failures[0]));
+                  if(info._item)info._itemID=info._item.id;
+                  popupWin.changeHeadline(getString('cards-import-complete'));popupWin.changeLine({ type: "success" });
+                  if (!this.disposed&&itemNode.isConnected&&originsAtRender.join(',')===this.itemIDs.join(',')) (this.doc.querySelector("#build-graph") as HTMLDivElement)?.click();
+                } catch (error) { popupWin.changeLine({ text: importErrorText(error), type: "fail" }); ztoolkit.log(error); }
+                finally { popupWin.startCloseTimer(3000);importAction.disabled=false;importAction.removeAttribute('aria-busy');importAction.title=getString(info._itemID?'cards-show-library':'cards-import');importAction.setAttribute('aria-label',importAction.title); }
               }
               // 获取分类
-              const selectedCollections = (this.win.ZoteroPane as any).getSelectedCollections?.() || [];
-              const collections: number[] = selectedCollections
-                .filter((collection: any) => collection && Number.isFinite(Number(collection.id)))
-                .map((collection: any) => Number(collection.id));
+              const collections: number[] = originItems[0]?this.views.utils.importCollections(originItems[0],this.win):[];
               if (event.ctrlKey || event.metaKey) {
                 let rect = itemNode.getBoundingClientRect()
                 // 构建分类选择

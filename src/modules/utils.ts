@@ -37,7 +37,7 @@ class Utils {
     // 1. DOI 探测与归一化
     // Removing every space also absorbs following journal names into the DOI.
     // Normal PDF line reconstruction already joins wrapped DOI glyph runs.
-    const doiMatch = text.match(/10\.\d{4,9}\/[-._;()/:A-Za-z0-9><]+/);
+    const doiMatch = text.match(/10\.\d{4,9}\/[^\s"'`\\]+/);
     if (doiMatch) {
       const clean = CitationVerifier.normalizeDOI(doiMatch[0]);
       if (clean && !/(cnki|issn)/i.test(clean)) {
@@ -329,10 +329,14 @@ class Utils {
    * @param libraryID 可选文库 ID
    * @returns 
    */
-  public async searchLibraryItem(info: ItemBaseInfo, libraryID?: number): Promise<Zotero.Item | undefined> {
+  public async searchLibraryItem(info: ItemBaseInfo, libraryID?: number, fresh=false): Promise<Zotero.Item | undefined> {
     await Zotero.Promise.delay(0);
     libraryID=libraryID || this.resolveLibraryID();
     if(!libraryID)return undefined;
+    // Imports query again inside their write transaction. Cache invalidation is
+    // allowed to drop display hints, but must never turn an existing item into
+    // a definitive miss immediately before an insert.
+    if(fresh)return this.searchItem(info,libraryID);
     const key = `${libraryID}:${workIdentity(info)}:library-item`;
     if (this.itemCache.has(key)) {
       const cached = this.itemCache.get(key);
@@ -392,6 +396,14 @@ class Utils {
   public selectItemInLibrary(item: Zotero.Item, win: Window = window) {
     (win as any).Zotero_Tabs.select('zotero-pane');
     return (win as any).ZoteroPane.selectItem(item.id);
+  }
+
+  /** Snapshot only collections in the operation's owning window and library. */
+  public importCollections(parent: Zotero.Item, win: Window): number[] {
+    const selected=(win as any).ZoteroPane?.getSelectedCollections?.() || [];
+    const ids=selected.filter((col:any)=>col&&!col.deleted&&col.libraryID===parent.libraryID)
+      .map((col:any)=>Number(col.id)).filter((id:number)=>Number.isSafeInteger(id)&&id>0);
+    return [...new Set<number>(ids.length?ids:parent.getCollections())];
   }
 
   public getItemType(item: Zotero.Item): string | undefined {

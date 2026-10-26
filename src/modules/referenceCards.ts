@@ -4,6 +4,7 @@ import type Views from "./views";
 import type TipUI from "./tip";
 import {referenceIdentity} from "./referenceIdentity";
 import { cleanupSync } from "../utils/lifecycle";
+import {importFailureText,importErrorText} from './importErrors';
 
 /** Compact reference cards and selection behavior aligned with the supplied XPI. */
 export default class ReferenceCards {
@@ -28,6 +29,7 @@ export default class ReferenceCards {
   private cleanup:Array<()=>void>=[];
   private listCurrent?:()=>boolean;
   private windowStart=0;
+  private virtualCount=0;
   private virtual=false;
   private readonly rowHeight=144;
   private searchIndex=new WeakMap<ItemBaseInfo,string>();
@@ -43,7 +45,7 @@ export default class ReferenceCards {
     grid.setAttribute('aria-label',listLabel);
     const onScroll=()=>{
       if(!this.virtual||!this.listCurrent?.())return;
-      const start=Math.max(0,Math.floor(grid.scrollTop/this.rowHeight)-8);
+      const start=Math.min(Math.max(0,Math.floor(grid.scrollTop/this.rowHeight)-8),Math.max(0,this.virtualCount-60));
       if(Math.abs(start-this.windowStart)<8)return;
       this.windowStart=start;void this.render(this.refs,this.listCurrent);
     };
@@ -51,7 +53,7 @@ export default class ReferenceCards {
     this.cleanup.push(()=>search.removeEventListener("input",onInput),()=>search.removeEventListener("keydown",onKeyDown),()=>grid.removeEventListener("contextmenu",onContextMenu));
   }
   dispose(){if(this.disposed)return;this.disposed=true;this.cleanup.forEach(cleanupSync);this.cleanup=[];for(const menu of this.menus)cleanupSync(()=>menu.remove());this.menus.clear();globalThis.clearTimeout(this.searchTimer);this.clear();}
-  clear(){this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.tip?.clear();this.tip=undefined;this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
+  clear(){this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.listCurrent=undefined;this.windowStart=0;this.virtualCount=0;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.tip?.clear();this.tip=undefined;this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
   private drainMatches(){while(this.matchActive<4&&this.matchQueue.length){const match=this.matchQueue.shift()!;this.matchActive++;void match().catch(error=>ztoolkit.log(error)).finally(()=>{this.matchActive--;if(!this.disposed)this.drainMatches();});}}
   private queueLibraryMatch(row:HTMLElement,parent:Zotero.Item,current:()=>boolean){
     if(this.matchedRows.has(row))return;
@@ -110,7 +112,8 @@ export default class ReferenceCards {
     if(this.virtual){this.windowStart=0;this.grid.scrollTop=0;for(const ref of this.selected)if(!this.matches(ref))this.selected.delete(ref);if(this.listCurrent)void this.render(this.refs,this.listCurrent);return;}
     const tokens=this.search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean);
     for(const row of this.rows){const ref=(row as any).reference as ItemBaseInfo;const hay=[ref.text,ref.title,...(ref.authors||[]),ref.year,ref.publicationVenue,ref.identifiers?.DOI].join(" ").toLocaleLowerCase();row.hidden=!tokens.every(token=>hay.includes(token));if(row.hidden)this.selected.delete(ref);}
-    this.updateSelection();this.label().textContent=`${this.visible().length} / ${this.rows.length} · ${this.body.getAttribute("data-refflow-result-source")||""}`;
+    const visible=this.visible();visible.forEach((row,index)=>{row.setAttribute('aria-posinset',String(index+1));row.setAttribute('aria-setsize',String(visible.length));});
+    this.updateSelection();this.label().textContent=`${visible.length} / ${this.rows.length} · ${this.body.getAttribute("data-refflow-result-source")||""}`;
     if(this.empty)this.empty.hidden=this.visible().length>0||this.rows.length===0;
   }
   async render(refs:ItemBaseInfo[],current:()=>boolean){
@@ -125,10 +128,10 @@ export default class ReferenceCards {
     const scrollTop=this.grid.scrollTop;
     this.virtual=refs.length>200;
     const indices=refs.map((ref,index)=>index).filter(index=>!this.virtual||this.matches(refs[index]));
-    const start=this.virtual?Math.min(this.windowStart,Math.max(0,indices.length-1)):0;
+    const start=this.virtual?Math.min(this.windowStart,Math.max(0,indices.length-60)):0;
     const displayIndices=this.virtual?indices.slice(start,start+60):indices;
     this.clear();this.search.value=query;this.refs=refs;
-    this.listCurrent=current;this.windowStart=start;
+    this.listCurrent=current;this.windowStart=start;this.virtualCount=indices.length;
     const externalCurrent=current,generation=this.generation;
     current=()=>externalCurrent()&&this.generation===generation&&!this.disposed;
     this.matchCurrent=current;
@@ -147,11 +150,11 @@ export default class ReferenceCards {
       }this.drainMatches();
     },{rootMargin:"80px"});
 
-    for(const index of displayIndices) {
+    for(const [offset,index] of displayIndices.entries()) {
       const ref=refs[index],doc=this.body.ownerDocument;
       const row=doc.createElement("div");row.className="reference-item";row.tabIndex=0;row.setAttribute("role","option");row.setAttribute("aria-selected","false");(row as any).reference=ref;
       if(this.virtual){row.style.height=`${this.rowHeight}px`;row.style.flexShrink='0';row.style.boxSizing='border-box';row.style.overflow='hidden';}
-      row.setAttribute("aria-posinset",String(index+1));row.setAttribute("aria-setsize",String(refs.length));
+      row.setAttribute("aria-posinset",String(this.virtual?start+offset+1:index+1));row.setAttribute("aria-setsize",String(this.virtual?indices.length:refs.length));
       const marker=doc.createElement("div");marker.className="reference-marker";
       const number=doc.createElement("span");number.className="reference-number";number.textContent=`${numbers[index]}.`;number.title=`${getString("cards-number-label")} ${numbers[index]}`;
       row.dataset.referenceNumber=String(numbers[index]);row.setAttribute("aria-label",`${number.title}: ${ref.title||ref.text||""}`);
@@ -166,17 +169,23 @@ export default class ReferenceCards {
       content.append(text,title,about);
       const action=doc.createElement("button");action.type="button";action.className="reference-action";action.textContent=ref._item?"↗":"+";action.title=getString(ref._item?"cards-show-library":"cards-import");
       action.addEventListener("click",async event=>{
-        event.stopPropagation();if(action.disabled)return;action.disabled=true;action.setAttribute('aria-busy','true');row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);
+        event.stopPropagation();if(action.disabled||!current()||!row.isConnected)return;
+        const parent=this.parent();if(!parent||parent.deleted)return;
+        const collections=this.views.utils.importCollections(parent,this.body.ownerDocument.defaultView!);
+        const active=()=>current()&&row.isConnected&&this.parent()?.id===parent.id;
+        action.disabled=true;action.setAttribute('aria-busy','true');row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);
         action.textContent='…';action.title=getString('cards-importing-doi');action.setAttribute('aria-label',action.title);
         try {
-          const parent=this.parent();const found=await this.views.utils.searchLibraryItem(ref,parent.libraryID);
-          if(found){ref._item=found;this.views.utils.selectItemInLibrary(found, this.body.ownerDocument.defaultView!);}
-          else {const result=await this.views.importReferences(parent,[ref],{downloadOA:false,createSubCollection:false,createManifestNote:false});
+          const found=await this.views.utils.searchLibraryItem({...ref,_item:undefined},parent.libraryID);
+          if(!active())return;
+          if(found){ref._item=found;await this.views.utils.selectItemInLibrary(found, this.body.ownerDocument.defaultView!);}
+          else {const result=await this.views.importReferences(parent,[ref],{owner:this.body,collections,downloadOA:false,createSubCollection:false,createManifestNote:false});
             if(result.cancelled)throw new Error(getString('cards-import-cancelled'));
-            if(result.failedCount)throw new Error(result.failures[0]?.reason||getString('cards-import-failed'));
+            if(result.failedCount)throw new Error(importFailureText(result.failures[0]));
+            if(active())this.label().textContent=getString('cards-import-summary',{args:{added:result.importedCount,existing:result.existingCount,failed:result.failedCount}});
           }
-          if(ref._item){action.textContent="↗";action.title=getString("cards-show-library");action.setAttribute("aria-label",action.title);dot.style.backgroundColor="var(--color-accent, #3678b5)";dot.title=getString("cards-in-library");row.style.opacity="1";}
-        }catch(error){if(row.isConnected){this.label().textContent=String(error);action.textContent='!';action.title=String(error);action.setAttribute('aria-label',String(error));}ztoolkit.log(error);}finally{row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);action.disabled=false;action.removeAttribute('aria-busy');}
+          if(active()&&ref._item){action.textContent="↗";action.title=getString("cards-show-library");action.setAttribute("aria-label",action.title);dot.style.backgroundColor="var(--color-accent, #3678b5)";dot.title=getString("cards-in-library");row.style.opacity="1";this.invalidateLibraryMatches();}
+        }catch(error){if(active()){const message=importErrorText(error);this.label().textContent=message;action.textContent='!';action.title=message;action.setAttribute('aria-label',message);}ztoolkit.log(error);}finally{row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);action.disabled=false;action.removeAttribute('aria-busy');}
       });
       action.setAttribute("aria-label",action.title);
       row.style.opacity=ref._item?"1":String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`)||"1");
@@ -231,18 +240,19 @@ export default class ReferenceCards {
   menu(event?:MouseEvent){
     if(this.disposed)return;
     const parentAtOpen=this.parent(),refsAtOpen=this.subset(),allAtOpen=[...this.refs];
+    const collectionsAtOpen=this.views.utils.importCollections(parentAtOpen,this.body.ownerDocument.defaultView!);
     const samePanel=()=>!this.disposed&&this.body.isConnected&&Number(this.body.getAttribute("data-refflow-item-id"))===parentAtOpen.id;
     const doc:any=this.body.ownerDocument,popup=doc.createXULElement("menupopup") as any;popup.setAttribute("data-refflow-menu","references");
-    const add=(key:string,action:()=>any,checked?:boolean)=>{const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(checked!==undefined){item.setAttribute("type","checkbox");item.checked=checked;}item.addEventListener("command",()=>Promise.resolve().then(()=>{if(!this.disposed)return action();}).catch(error=>{this.label().textContent=String(error);ztoolkit.log(error);}));popup.append(item);};
+    const add=(key:string,action:()=>any,checked?:boolean)=>{const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(checked!==undefined){item.setAttribute("type","checkbox");item.checked=checked;}item.addEventListener("command",()=>Promise.resolve().then(()=>{if(samePanel())return action();}).catch(error=>{if(samePanel())this.label().textContent=importErrorText(error);ztoolkit.log(error);}));popup.append(item);};
     const separator=()=>popup.append(doc.createXULElement("menuseparator"));
     add("cards-copy-text",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.text||ref.title).join("\n"),false));
     add("cards-copy-doi",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.identifiers?.DOI).filter(Boolean).join("\n"),false));
     add("cards-copy-url",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean).join("\n"),false));
     add("cards-open",()=>refsAtOpen.slice(0,20).forEach(ref=>this.open(ref)));
     separator();
-    const importRefs=async(all:boolean)=>{const parent=parentAtOpen,id=parent.id;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.views.importReferences(parent,refs,{downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true});if(Number(this.body.getAttribute("data-refflow-item-id"))===id){this.invalidateLibraryMatches();this.label().textContent=getString(result.cancelled?'cards-import-cancelled':'cards-import-summary',{args:{added:result.importedCount,existing:result.existingCount,failed:result.failedCount}})+(result.failedCount?' · '+result.failures[0]?.reason:'');}};
+    const importRefs=async(all:boolean)=>{const parent=parentAtOpen;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.views.importReferences(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true});if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=getString(result.cancelled?'cards-import-cancelled':'cards-import-summary',{args:{added:result.importedCount,existing:result.existingCount,failed:result.failedCount}})+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}};
     add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
-    add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const matches=[...String(parent.getField("extra")||"").matchAll(/^refnexus_batch_parent: (refnexus_batch_\w+)$/gm)];const id=matches[matches.length-1]?.[1];if(id){await this.views.rollbackReferences(parent,id);if(Number(this.body.getAttribute("data-refflow-item-id"))===parent.id)await this.views.refreshReferences(this.body as any,true,false,false,parent);}});
+    add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const matches=[...String(parent.getField("extra")||"").matchAll(/^refnexus_batch_parent: (refnexus_batch_\w+)$/gm)];const id=matches[matches.length-1]?.[1];if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}});
     separator();
     for(const source of ["Auto","PDF","Web","API"])add(source==="Auto"?"cards-source-auto":source==="Web"?"cards-source-web":source==="PDF"?"cards-source-pdf":"cards-source-online",()=>{if(!samePanel())return;this.body.querySelector<HTMLSelectElement>("select")!.value=source;this.body.querySelector("select")!.dispatchEvent(new (this.body.ownerDocument.defaultView as any).Event("change"));},this.body.getAttribute("source")===source);
     for(const sort of ["Original","Recency","Cited Count"])add(sort==="Original"?"cards-sort-original":sort==="Recency"?"cards-sort-recency":"cards-sort-cited",async()=>{if(!samePanel())return;Zotero.Prefs.set(`${config.addonRef}.sortBy`,sort);await this.views.sortReferences(this.body);},Zotero.Prefs.get(`${config.addonRef}.sortBy`)===sort);

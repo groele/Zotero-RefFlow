@@ -4,6 +4,22 @@ import assert from "node:assert";
 import Requests from "../src/modules/requests";
 
 describe("Requests Suite", () => {
+  test("a transport canceller delivered after timeout still cancels the expired attempt", async () => {
+    const original = Zotero.HTTP.request;
+    let receiver: (cancel: () => void) => void, release: (value: any) => void, cancelled = 0;
+    Zotero.HTTP.request = (_method: string, _url: string, options: any) => {
+      receiver = options.cancellerReceiver;
+      return new Promise(resolve => { release = resolve; });
+    };
+    const client = new Requests({ timeoutMs: 15, budgetMs: 100 });
+    try {
+      assert.equal(await client.get('https://api.test/late-canceller'), undefined);
+      receiver!(() => { cancelled++; });
+      assert.equal(cancelled, 1);
+      assert.equal(client.metrics.requests, 1);
+      assert.equal(client.metrics.timeouts, 1);
+    } finally { release!({ status: 200, response: { late: true } }); client.dispose(); Zotero.HTTP.request = original; }
+  });
   test("429 cools down all paths on one origin while a new key and other origins remain usable",async()=>{
     const original=Zotero.HTTP.request;let calls=0;
     Zotero.HTTP.request=async (_method:string,url:string,options:any)=>{calls++;return options.headers.Authorization||url.includes('other.test')?{status:200,response:{ok:true}}:{status:429,getResponseHeader:(name:string)=>name==='Retry-After'?'60':null};};

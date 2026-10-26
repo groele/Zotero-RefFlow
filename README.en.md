@@ -1,3 +1,5 @@
+> Development candidate: **12.5.4** (installer not released). This work hardens native DOI import, transactional saves and rollback protection, cancellation across windows, and long reference lists. All 298 unit tests and 113 native Zotero 10.0.6 scenarios passed. Stable download links and their existing validation notes below still refer to **12.5.3**. [Candidate notes](docs/releases/v12.5.4.md).
+
 # Zotero RefFlow
 
 

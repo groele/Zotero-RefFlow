@@ -33,6 +33,7 @@ class Handler(BaseHTTPRequestHandler):
                 headers['Content-Type'] = 'application/pdf'
             else:
                 with lock: data = {'path': path, 'count': count, 'hits': dict(hits), 'active': active, 'maximum': maximum}
+                data['service'] = 'refflow-native-fault-server'
                 payload = json.dumps(data).encode()
                 headers['Content-Type'] = 'application/json'
             self.send_response(status)

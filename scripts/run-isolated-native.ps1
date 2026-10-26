@@ -6,10 +6,12 @@ param(
   [switch]$WithoutPlugin,
   [switch]$SeedLegacyPreferences,
   [switch]$SkipOnline,
+  [switch]$WithFaultServer,
   [switch]$Wait,
   [switch]$CloseWhenDone
 )
 $ErrorActionPreference='Stop'
+if ($WithFaultServer -and -not $Wait) { throw '-WithFaultServer requires -Wait so the task-owned server can be stopped after validation' }
 $testRoot=Join-Path ([IO.Path]::GetTempPath()) ('refflow-z10-release-'+(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[guid]::NewGuid().ToString('N').Substring(0,6))
 $profile=Join-Path $testRoot 'profile'
 $data=Join-Path $testRoot 'data'
@@ -66,11 +68,29 @@ user_pref("extensions.zotero.refflow.sortBy", "Original");
 '@
 }
 Set-Content -LiteralPath (Join-Path $profile 'user.js') -Value $prefs -Encoding utf8NoBOM
-if ($Wait) { Set-Content -LiteralPath ([IO.Path]::GetFullPath($OutputPath)) -Value '{"pending":true}' -Encoding utf8NoBOM }
-$process=Start-Process -FilePath $ZoteroPath -WindowStyle Hidden -Environment @{TEMP=$nativeTemp;TMP=$nativeTemp} -ArgumentList @('-no-remote','-purgecaches','-profile',('"'+$profile+'"')) -PassThru
-@{profile=$profile;processID=$process.Id;output=[IO.Path]::GetFullPath($OutputPath);driver=$driver} | ConvertTo-Json
-
-if ($Wait) {
+$ownedFaultServer=$null
+$process=$null
+try {
+  if ($WithFaultServer) {
+    $faultServerReady=$false
+    try { $health=Invoke-RestMethod -Uri 'http://127.0.0.1:18796/health' -TimeoutSec 1; if ($health.service -ne 'refflow-native-fault-server') { throw 'Port 18796 is occupied by another service' }; $faultServerReady=$true } catch {
+      if ($_.Exception.Message -like '*occupied by another service*') { throw }
+    }
+    if (-not $faultServerReady) {
+      $pythonExecutable=(Get-Command python -ErrorAction Stop).Source
+      $ownedFaultServer=Start-Process -FilePath $pythonExecutable -WindowStyle Hidden -WorkingDirectory $PSScriptRoot -ArgumentList @('-u', ('"'+(Join-Path $PSScriptRoot 'native-http-server.py')+'"')) -RedirectStandardOutput (Join-Path $testRoot 'http-server.log') -RedirectStandardError (Join-Path $testRoot 'http-server-errors.log') -PassThru
+      for ($attempt=0;$attempt -lt 10;$attempt++) {
+        try { $health=Invoke-RestMethod -Uri 'http://127.0.0.1:18796/health' -TimeoutSec 1; if ($health.service -eq 'refflow-native-fault-server') { $faultServerReady=$true; break } } catch { }
+        if ($ownedFaultServer.HasExited) { break }
+        Start-Sleep -Milliseconds 100
+      }
+      if (-not $faultServerReady) { throw 'RefFlow fault server did not become ready; inspect http-server-errors.log in the isolated test root' }
+    }
+  }
+  if ($Wait) { Set-Content -LiteralPath ([IO.Path]::GetFullPath($OutputPath)) -Value '{"pending":true}' -Encoding utf8NoBOM }
+  $process=Start-Process -FilePath $ZoteroPath -WindowStyle Hidden -Environment @{TEMP=$nativeTemp;TMP=$nativeTemp} -ArgumentList @('-no-remote','-purgecaches','-profile',('"'+$profile+'"')) -PassThru
+  @{profile=$profile;processID=$process.Id;output=[IO.Path]::GetFullPath($OutputPath);driver=$driver} | ConvertTo-Json
+  if ($Wait) {
   $waitDeadline=(Get-Date).AddMinutes(4)
   while ((Get-Date) -lt $waitDeadline) {
     Start-Sleep -Milliseconds 500
@@ -80,4 +100,8 @@ if ($Wait) {
   }
   Write-Error 'Native tests did not finish within four minutes; inspect the isolated profile and partial report.'
   exit 1
+  }
+} finally {
+  if ($ownedFaultServer -and -not $ownedFaultServer.HasExited) { Stop-Process -Id $ownedFaultServer.Id -ErrorAction SilentlyContinue }
+  if ($CloseWhenDone -and $process -and -not $process.HasExited -and -not $process.WaitForExit(5000)) { Stop-Process -Id $process.Id -ErrorAction SilentlyContinue }
 }

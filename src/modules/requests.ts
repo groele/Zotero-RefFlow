@@ -199,7 +199,7 @@ export default class Requests {
         });
         const timeout=Math.max(1,Math.min(this.options.timeoutMs,deadline-Date.now()));
         const timeoutPromise = new Promise<never>((_, reject) => {
-          timerId = globalThis.setTimeout(() => {this.metrics.timeouts++;cancel?.();reject(new Error(`Request timeout after ${timeout}ms`));}, timeout);
+          timerId = globalThis.setTimeout(() => {stopped=true;this.metrics.timeouts++;cancel?.();reject(new Error(`Request timeout after ${timeout}ms`));}, timeout);
         });
 
         const reqPromise = Zotero.HTTP.request(method, url, {
@@ -212,7 +212,7 @@ export default class Requests {
           // Zotero defaults to retrying 429/5xx for up to an hour. This client
           // owns the bounded retry policy, so disable nested native retries.
           errorDelayMax: 0,
-          cancellerReceiver: (fn:()=>void)=>{cancel=fn;if(this.disposed||signal?.aborted) fn();}
+          cancellerReceiver: (fn:()=>void)=>{cancel=fn;if(stopped||this.disposed||signal?.aborted) fn();}
         } as any);
         this.metrics.requests++;
 

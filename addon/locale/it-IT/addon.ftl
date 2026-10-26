@@ -41,7 +41,23 @@ cards-context-changed = The item or document changed. Refresh to retrieve its re
 
 cards-list-name = Elenco riferimenti
 cards-rollback-retained = Conservati { $count } elementi riutilizzati o modificati.
+cards-rollback-summary = Ripristino completato: { $count } elementi spostati nel cestino. Il contenuto riutilizzato o modificato viene conservato.
+cards-rollback-failed = Ripristino non riuscito. Verifica i permessi della biblioteca e il registro del lotto, poi riprova.
 
 cards-latest-attempt = Ultimo tentativo
 
 graph-origins-changed = Origini modificate. Ricostruisci il grafico.
+
+cards-importing-doi = Ricerca DOI in Zotero…
+cards-import-cancelled = Importazione annullata; gli elementi completati rimangono in Zotero
+cards-import-failed = Importazione DOI non riuscita; riprova
+cards-import-summary = Aggiunti: { $added }; già presenti: { $existing }; non riusciti: { $failed }
+cards-import-complete = Importazione DOI completata
+cards-import-downloading = Download dei PDF ad accesso aperto…
+cards-import-error-no-doi = DOI valido non disponibile; nessun elemento creato. Verifica il DOI e usa Aggiungi elemento tramite identificativo nella barra di Zotero.
+cards-import-error-translator = Nessun traduttore DOI disponibile. Aggiorna i traduttori di Zotero e riprova.
+cards-import-error-identity = Nessuna pubblicazione con il DOI richiesto; nessun elemento creato. Verifica il DOI e riprova.
+cards-import-error-metadata = Titolo vuoto nella risposta DOI; nessun elemento creato. Riprova più tardi.
+cards-import-error-timeout = Ricerca DOI scaduta; nessun elemento creato. Controlla la connessione e riprova.
+cards-import-error-destination = Biblioteca, raccolta o elemento di origine non disponibile. Seleziona una destinazione valida e riprova.
+cards-import-error-lookup = Ricerca DOI di Zotero non riuscita; nessun elemento creato. Controlla connessione e traduttori, poi riprova.

@@ -5,6 +5,21 @@ import CitationVerifier, { CandidateWork } from "../src/modules/verifier";
 
 describe("CitationVerifier Suite", () => {
   describe("normalizeDOI", () => {
+    test('preserves balanced suffix punctuation and legacy SICI identifiers', () => {
+      for (const doi of ['10.1007/bf012345(01)', '10.1002/(sici)1097-0258(19981130)17:22<2625::aid-sim16>3.0.co;2-1']) {
+        assert.strictEqual(CitationVerifier.normalizeDOI(doi), doi);
+        assert.strictEqual(CitationVerifier.normalizeDOI(`(${doi}).`), doi);
+      }
+    });
+    test('handles copied invisible/fullwidth text, URL parameters and encoded suffixes', () => {
+      assert.strictEqual(CitationVerifier.normalizeDOI('\u200bＤＯＩ：１０.１２３４/ＡＢＣ\u200b'), '10.1234/abc');
+      assert.strictEqual(CitationVerifier.normalizeDOI('https://doi.org/10.1234/ABC?utm_source=test#section'), '10.1234/abc');
+      assert.strictEqual(CitationVerifier.normalizeDOI('https://doi.org/10.1234/a%28b%29'), '10.1234/a(b)');
+      assert.strictEqual(CitationVerifier.normalizeDOI('https://doi.org/10.1234/%41%42%43'), '10.1234/abc');
+    });
+    test('rejects ambiguous multiple identifiers rather than picking the first', () => {
+      assert.strictEqual(CitationVerifier.normalizeDOI('10.1234/one 10.1234/two'), undefined);
+    });
     test("should normalize standard lowercase DOI", () => {
       assert.strictEqual(
         CitationVerifier.normalizeDOI("10.1038/s41586-020-2649-2"),

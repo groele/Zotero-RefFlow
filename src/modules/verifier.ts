@@ -26,23 +26,36 @@ export class CitationVerifier {
    */
   public static normalizeDOI(doi?: string): string | undefined {
     if (typeof doi !== "string" || !doi) return undefined;
-    let clean = doi.trim().toLowerCase();
+    let clean = doi.replace(/[\u200B-\u200D\u2060\uFEFF]/g, '')
+      .replace(/[\uFF01-\uFF5E]/g, char => String.fromCharCode(char.charCodeAt(0) - 0xFEE0))
+      .trim().toLowerCase();
+    // URL tracking parameters are not part of the DOI. Decode the path only
+    // after separating them, so encoded punctuation in an identifier survives.
+    const url = clean.match(/https?:\/\/(?:dx\.)?doi\.org\/[^\s]+/i)?.[0];
+    if (url) {
+      // A DOI field must describe a single work, including when it holds URLs.
+      if ((clean.match(/10\.\d{4,9}\//g) || []).length > 1) return undefined;
+      clean = url.replace(/^https?:\/\/(?:dx\.)?doi\.org\//i, '').split(/[?#]/, 1)[0];
+    }
     try {
-      clean = decodeURIComponent(clean);
+      clean = decodeURIComponent(clean).toLowerCase();
     } catch {}
     clean = clean.replace(/^https?:\/\/(dx\.)?doi\.org\//i, "");
     clean = clean.replace(/^doi:\s*/i, "");
-    clean = clean.replace(/^[\s(\[{<"']+|[.\s,;:()\[\]}>"']+$/g, "");
-    const match = clean.match(/10\.\d{4,9}\/[-._;()/:a-z0-9]+/);
+    if ((clean.match(/10\.\d{4,9}\//g) || []).length > 1) return undefined;
+    const match = clean.match(/10\.\d{4,9}\/[^\s"'`\\]+/);
     if (!match) return undefined;
     let result = match[0];
-    if (result.endsWith(")") && !result.includes("(")) {
-      result = result.slice(0, -1);
-    }
-    if (result.endsWith("]") && !result.includes("[")) {
-      result = result.slice(0, -1);
-    }
-    return result.replace(/[.\s,;:]+$/, "");
+    // Remove citation wrappers, never a balanced suffix such as ...(01).
+    let previous: string;
+    do {
+      previous = result;
+      result = result.replace(/[.,;:，。；：、]+$/, '');
+      for (const [open, close] of [['(', ')'], ['[', ']'], ['{', '}'], ['<', '>']]) {
+        while (result.endsWith(close) && result.split(close).length > result.split(open).length) result = result.slice(0, -1);
+      }
+    } while (result !== previous);
+    return /^10\.\d{4,9}\/.+/.test(result) ? result : undefined;
   }
 
   /**

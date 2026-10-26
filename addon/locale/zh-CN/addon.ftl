@@ -105,6 +105,8 @@ cards-context-changed = 文献或文档已改变，请刷新
 
 cards-list-name = 参考文献列表
 cards-rollback-retained = 已保留 { $count } 个被复用或修改的导入条目。
+cards-rollback-summary = 已完成批次撤回，{ $count } 个条目移至回收站；复用或修改过的内容予以保留。
+cards-rollback-failed = 撤回失败，请检查文库权限和批次记录后重试。
 
 cards-latest-attempt = 本次获取
 
@@ -114,3 +116,12 @@ cards-importing-doi = 正在通过 DOI 添加到 Zotero…
 cards-import-cancelled = 已取消导入；已完成的文献仍保留在 Zotero
 cards-import-failed = DOI 导入失败，请重试
 cards-import-summary = 已添加：{ $added }；已存在：{ $existing }；失败：{ $failed }
+cards-import-complete = DOI 导入完成
+cards-import-downloading = 正在下载开放获取 PDF…
+cards-import-error-no-doi = 这篇文献缺少有效 DOI，未创建条目。请核对 DOI 后在 Zotero 顶部“通过标识符添加条目”中导入。
+cards-import-error-translator = 没有可用的 DOI 翻译器，请更新 Zotero 翻译器后重试。
+cards-import-error-identity = DOI 查询未返回相同 DOI 的文献，未创建条目。请核对 DOI 后重试。
+cards-import-error-metadata = DOI 返回的题名为空，未创建条目。请稍后重试。
+cards-import-error-timeout = DOI 查询超时，未创建条目。请检查网络后重试。
+cards-import-error-destination = 目标文库、分类或起始文献已不可用，请重新选择后重试。
+cards-import-error-lookup = Zotero DOI 查询失败，未创建条目。请检查网络及翻译器后重试。

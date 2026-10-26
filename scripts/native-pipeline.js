@@ -36,7 +36,7 @@ await test('one provider deadline leaves another shared XHR subscriber healthy',
       .then(response=>({status:response.status,response:{results:[paper('W2')],meta:{count:1}}}));
   };
   try{const [short,long]=await Promise.allSettled([provider.getNeighborhood('10.1234/origin','Citations',undefined,40),provider.getNeighborhood('10.1234/origin','Citations',undefined,2000)]);
-    check(short.status==='rejected','Short operation did not expire');check(long.status==='fulfilled'&&long.value.references.length===1,'Other subscriber lost response');check(network===1&&cancelled===0,'Shared transport was broken');return {network,cancelled,deduplicated:client.metrics.deduplicated};}
+    check(short.status==='rejected','Short operation did not expire');check(long.status==='fulfilled'&&long.value.references.length===1,'Other subscriber lost response '+JSON.stringify({short:{status:short.status,reason:String(short.reason)},long:long.status==='fulfilled'?long:{status:long.status,reason:String(long.reason)},network,cancelled,lastFailure:client.lastFailure}));check(network===1&&cancelled===0,'Shared transport was broken');return {network,cancelled,deduplicated:client.metrics.deduplicated};}
   finally{client.dispose();Zotero.HTTP.request=original;}
 });
 await test('hydration validates identities and creates only four concurrent producers',async()=>{
@@ -109,8 +109,12 @@ await test('native import rejects conflicting translator identity and stores nor
   const original=Zotero.Translate.Search,parent=new Zotero.Item('journalArticle');parent.setField('title','Translator identity parent '+stamp);await parent.saveTx({skipSelect:true});
   Zotero.Translate.Search=class{setIdentifier(){}async getTranslators(){return ['controlled'];}setTranslator(){}async translate(){return [{itemType:'journalArticle',DOI:'10.1234/wrong',title:'WRONG TRANSLATOR PUBLICATION'}];}};
   try{const ref={title:'Expected reference '+stamp,text:'Expected reference '+stamp,identifiers:{DOI:'https://doi.org/10.1234/EXPECTED-'+stamp},authors:[],type:'note'};
-    const result=await views.importReferences(parent,[ref],{downloadOA:false,createSubCollection:false,createManifestNote:false});
-    check(result.importedCount===1&&ref._item,'Import failed');check(ref._item.getField('title')===ref.title,'Conflicting translator metadata leaked');check(ref._item.getField('DOI')==='10.1234/expected-'+stamp,'DOI was not normalized');check(ref._item.isRegularItem(),'Created an attachment/note instead of bibliographic item');
+    const options={downloadOA:false,createSubCollection:false,createManifestNote:false};
+    const failed=await views.importReferences(parent,[ref],options);
+    check(failed.importedCount===0&&failed.failedCount===1&&!ref._item,'Conflicting translator identity was saved');
+    Zotero.Translate.Search=class{setIdentifier(value){this.doi=value.DOI;}async getTranslators(){return ['controlled'];}setTranslator(){}async translate(){return [{itemType:'journalArticle',DOI:this.doi,title:'Verified native publication'}];}};
+    const result=await views.importReferences(parent,[ref],options);
+    check(result.importedCount===1&&ref._item,'Verified retry failed');check(ref._item.getField('title')==='Verified native publication','Native metadata not used');check(ref._item.getField('DOI')==='10.1234/expected-'+stamp,'DOI was not normalized');check(ref._item.isRegularItem(),'Created an attachment/note instead of bibliographic item');
     await views.rollbackReferences(parent,result.batchId);check(ref._item.deleted,'Rollback failed');return {identityPreserved:true,normalized:true,regularItem:true,rollback:true};
   }finally{Zotero.Translate.Search=original;}
 });

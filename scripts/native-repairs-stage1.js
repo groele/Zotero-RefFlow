@@ -5,7 +5,8 @@ const save=()=>Zotero.File.putContentsAsync(cfg.output,JSON.stringify(report,nul
 const test=async(name,run)=>{try{report.tests.push({name,ok:true,detail:await run()});}catch(error){report.tests.push({name,ok:false,error:String(error),stack:error.stack});}await save();};
 const make=async(title,author,year)=>{const item=new Zotero.Item('journalArticle');item.setField('title',title);if(year)item.setField('date',year);if(author)item.setCreators([{creatorType:'author',lastName:author}]);await item.saveTx({skipSelect:true});return item;};
 const ref=(title,author='Smith',year='2024')=>({title,text:title,authors:[author],year,identifiers:{},type:'journalArticle'});
-const opts={downloadOA:false,createSubCollection:false,createManifestNote:false};
+// Synthetic no-DOI fixtures exercise ownership, not the user-facing DOI policy.
+const opts={allowMetadataWithoutDOI:true,downloadOA:false,createSubCollection:false,createManifestNote:false};
 await test('local search rejects conflicting metadata and distinguishes cached evidence',async()=>{
  const title='Native identity '+stamp,item=await make(title,'Smith','1995');views.utils.clearLibraryItemCache();
  check(!await views.utils.searchLibraryItem(ref(title,'Jones','2024'),item.libraryID),'Conflicting work matched');

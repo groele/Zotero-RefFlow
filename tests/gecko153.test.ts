@@ -221,8 +221,8 @@ test("menu command catches a synchronous action failure instead of leaking an ev
   }, documentElement: { append: () => {} } };
   const cards: any = Object.create(ReferenceCards.prototype);
   Object.assign(cards, { refs: [], menus: new Set(), parent: () => ({ id: 1 }), subset: () => [], label: () => label,
-    body: { ownerDocument: doc, getAttribute: () => "API", closest: () => null },
-    views: { utils: { copyText: () => { throw new Error("clipboard failed synchronously"); } } } });
+    body: { ownerDocument: doc, isConnected:true, getAttribute: (name:string) => name==='data-refflow-item-id'?'1':'API', closest: () => null },
+    views: { utils: { importCollections:()=>[], copyText: () => { throw new Error("clipboard failed synchronously"); } } } });
   try { cards.menu();entries[0].dispatch("command");await tick();
     assert.match(label.textContent, /clipboard failed synchronously/);assert.equal(logged.length, 1);
     const checks = entries.filter(entry => entry.type === "checkbox");

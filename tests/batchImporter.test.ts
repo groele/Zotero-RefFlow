@@ -22,10 +22,10 @@ test("legacy rollback retains creations without a user-edit baseline and keeps u
   const item=(itemID:number,libraryID:number,extra:string)=>({id:itemID,libraryID,deleted:false,isRegularItem:()=>true,getField:()=>extra});
   z.Libraries={get:()=>({editable:true})};
   z.Items={getAsync:async()=>[item(101,1,`import_batch: ${id}`),item(102,1,`import_batch: ${id}_other`),item(103,2,`import_batch: ${id}`),item(999,1,`import_batch: ${id}`)],trashTx:async(ids:number[])=>trashed=ids};
-  let extra=`ref_batch_parent: ${id}\nkeep this user text`;
+  let extra=`ref_batch_parent: ${id}\nkeep this user text\nResearch note: ${id}`;
   const parent:any={id:999,libraryID:1,getField:()=>extra,setField:(_:string,value:string)=>extra=value,saveTx:async()=>{}};
   try {
-    assert.equal(await BatchImporter.rollbackBatch(parent,id),0);assert.deepEqual(trashed,[]);assert.deepEqual(BatchImporter.lastRollback.retainedIDs,[101]);assert.equal(extra,'keep this user text');
+    assert.equal(await BatchImporter.rollbackBatch(parent,id),0);assert.deepEqual(trashed,[]);assert.deepEqual(BatchImporter.lastRollback.retainedIDs,[101]);assert.equal(extra,`keep this user text\nResearch note: ${id}`);
     trashed=[];assert.equal(await BatchImporter.rollbackBatch(parent,id),0);assert.deepEqual(trashed,[]);
   }finally{z.Items=originalItems;z.Libraries=originalLibraries;}
 });
