@@ -1,0 +1,60 @@
+{
+  "version": "12.5.6",
+  "status": "release-payload-verified",
+  "addonID": "refflow@groele.github.io",
+  "bytes": 192003,
+  "sha256": "36a840c7e2d7a36bb1bd9e33b96174da67eac7bcccce79cb03bf874ea269cd87",
+  "zipEntries": 34,
+  "zipCRC": "passed",
+  "unitPassed": 310,
+  "nativeLeafPassed": 118,
+  "nativeReports": {
+    "final-native-batch-journal-restart.json": {
+      "passed": 2,
+      "failed": 0
+    },
+    "final-native-batch-journal.json": {
+      "passed": 6,
+      "failed": 0
+    },
+    "final-native-batch-results.json": {
+      "passed": 16,
+      "failed": 0
+    },
+    "final-native-doi-workflow-native-dataflow.json": {
+      "passed": 13,
+      "failed": 0
+    },
+    "final-native-doi-workflow-native-pipeline.json": {
+      "passed": 15,
+      "failed": 0
+    },
+    "final-native-doi-workflow-native-repairs-stage3.json": {
+      "passed": 8,
+      "failed": 0
+    },
+    "final-native-doi-workflow.json": {
+      "passed": 22,
+      "failed": 0
+    },
+    "final-native-review-details.json": {
+      "passed": 8,
+      "failed": 0
+    },
+    "final-native-review-protection-ownership.json": {
+      "passed": 15,
+      "failed": 0
+    },
+    "final-native-review-protection.json": {
+      "passed": 17,
+      "failed": 0
+    }
+  },
+  "installedExactPackageInIsolatedProfiles": true,
+  "mainProfileInstalled": false,
+  "automaticUpdateInstalled": false,
+  "stableAssetsAndFeedsPreserved": true,
+  "releaseAssetURL": "https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.6/zotero-refflow.xpi",
+  "sourceBaseCommit": "d5f9d8ecdfc385e0da492f66f462e5beb3b76e03",
+  "sourcePayloadFingerprint": "matched isolated-acceptance snapshot"
+}

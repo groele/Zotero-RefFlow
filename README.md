@@ -1,4 +1,4 @@
-> **12.5.5**：按维护要求更新版本标签与安装包，功能沿用 12.5.4。140 个原生功能场景为 12.5.4 的验证记录。[版本说明](docs/releases/v12.5.5.md)。
+> **12.5.6**：批次内部记录迁入本地 JSON，保留期刊指标与手写 Extra；完善导入失败明细、定向重试和撤销保护。[版本说明](docs/releases/v12.5.6.md)。
 
 # Zotero RefFlow
 
@@ -11,7 +11,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![当前版本](https://img.shields.io/badge/version-12.5.5-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.5.5) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.5/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
+[![当前版本](https://img.shields.io/badge/version-12.5.6-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.5.6) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.6/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
 
 [产品定位](#overview) · [安装与更新](#installation) · [快速开始](#quick-start) · [核心功能](#features) · [设置与使用](#settings) · [数据、同步与外部服务](#data) · [兼容性与验证范围](#compatibility) · [常见问题](#troubleshooting) · [开发与详细文档](#development) · [系列产品](#series) · [项目来源与许可](#license)
 
@@ -27,7 +27,7 @@
 
 ## 安装与更新
 
-1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.5/zotero-refflow.xpi)（插件版本 **12.5.5**），不要安装 Source code ZIP。
+1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.6/zotero-refflow.xpi)（插件版本 **12.5.6**），不要安装 Source code ZIP。
 2. 在 Zotero 打开 **工具 → 插件／附加组件**，从齿轮菜单选择 **从文件安装插件**。
 3. 选择 XPI，完成安装；按提示重启 Zotero。
 
@@ -75,9 +75,9 @@
 
 | 项目 | 范围 |
 |---|---|
-| 当前插件版本 | 12.5.5 |
+| 当前插件版本 | 12.5.6 |
 | 清单声明的 Zotero 范围 | `10.0.6` 至 `11.*` |
-| 当前说明 | 12.5.5 沿用 12.5.4 功能；301 项单测重新运行，140 个原生功能场景为 12.5.4 验证记录，含图标对齐、DOI 在线解析、附件及撤回；Zotero 11、其他系统和主 profile 安装未验证。 |
+| 当前说明 | 310 项单测、118 项隔离 Windows Zotero 10.0.6 原生场景通过，含同一生产包重启检查。外部响应受控；主 profile 安装、自动更新安装、Zotero 11 和其他系统未验证。 |
 
 插件版本与 Zotero 版本分别管理。兼容声明不等于已验证所有宿主、系统和外部服务；本轮仅验证上述定向行为，未覆盖所有业务流程或主环境安装。
 
@@ -106,7 +106,7 @@ npm run build-prod
 
 - [数据源与接口规范 / Dataflow and API](docs/DATAFLOW-AND-API-SPEC.md)
 - [修复记录 / Repair record](docs/REPAIRS-2026-10-15.md)
-- [版本说明 / Release notes](docs/releases/v12.5.5.md)
+- [版本说明 / Release notes](docs/releases/v12.5.6.md)
 - [产品简介 / Product profile](docs/brand/PRODUCT.md)
 - [品牌规范 / Brand guide](docs/brand/BRAND.md)
 - [README 模板 / README template](docs/brand/README-TEMPLATE.md)
