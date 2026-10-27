@@ -10,6 +10,8 @@ const make=async(title,doi)=>{const item=new Zotero.Item('journalArticle');item.
 const collection=async(name)=>{const item=new Zotero.Collection();item.libraryID=Zotero.Libraries.userLibraryID;item.name=name;await item.saveTx();return item;};
 const select=async(parent)=>{await window.ZoteroPane.selectItem(parent.id);let body;await wait(()=>{body=window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');return body?._cards&&!body._cards.disposed&&body.getAttribute('data-refflow-item-id')===String(parent.id);});return body;};
 const ref=(doi)=>({title:'Reference '+doi,authors:[],identifiers:{DOI:doi}});
+const journalPath=PathUtils.join(Zotero.DataDirectory.dir,'refflow-batch-journal-v1.json');
+const editJournal=async(batchID,edit)=>{const data=await IOUtils.readJSON(journalPath),row=data.entries.find(row=>row.batchID===batchID);check(row,'Missing local journal');edit(row.record);await IOUtils.writeJSON(journalPath,data,{tmpPath:journalPath+'.tmp'});};
 const opts={downloadOA:false,createSubCollection:false,createManifestNote:false,collections:[]};
 const native=Zotero.Translate.Search;
 Zotero.Translate.Search=class{setIdentifier(value){this.doi=value.DOI;}async getTranslators(){return ['controlled'];}setTranslator(){}async translate(options){check(options.libraryID===false&&!options.saveAttachments,'Unmanaged write');return [{itemType:'journalArticle',DOI:this.doi,title:'Native '+this.doi,creators:[]}];}};
@@ -38,7 +40,7 @@ try{
  });
  await test('a pre-change journal without a collection baseline conservatively preserves the collection',async()=>{
   const parent=await make('Old collection journal'),rows=[ref('10.1234/protect-legacy-col')],batch=await views.importReferences(parent,rows,{...opts,createSubCollection:true});
-  const prefix='refnexus_record_'+batch.batchId+': ';parent.setField('extra',String(parent.getField('extra')).split('\n').map(line=>{if(!line.startsWith(prefix))return line;const value=JSON.parse(line.slice(prefix.length));delete value.collectionState;return prefix+JSON.stringify(value);}).join('\n'));await parent.saveTx({skipSelect:true});
+  await editJournal(batch.batchId,value=>{delete value.collectionState;});
   rows[0]._item.removeFromCollection(batch.subCollection.id);await rows[0]._item.saveTx({skipSelect:true});
   await views.rollbackReferences(parent,batch.batchId);check(await Zotero.Collections.getAsync(batch.subCollection.id),'Unverifiable historical collection was erased');return {legacyCollectionPreserved:true};
  });
@@ -55,9 +57,9 @@ try{
  });
  await test('malformed subrecord is rejected before any native relationship or item write',async()=>{
   const parent=await make('Malformed journal protection'),rows=[ref('10.1234/protect-malformed')],batch=await views.importReferences(parent,rows,opts),item=rows[0]._item,originalExtra=parent.getField('extra');
-  const prefix='refnexus_record_'+batch.batchId+': ';parent.setField('extra',String(originalExtra).split('\n').map(line=>{if(!line.startsWith(prefix))return line;const data=JSON.parse(line.slice(prefix.length));data.uses=[{id:item.id,parents:null,collections:[]}];return prefix+JSON.stringify(data);}).join('\n'));await parent.saveTx({skipSelect:true});const corrupt=parent.getField('extra');
+  const originalJournal=await IOUtils.readUTF8(journalPath);await editJournal(batch.batchId,data=>{data.uses=[{id:item.id,parents:null,collections:[]}];});const corrupt=parent.getField('extra');
   try{let failed=false;try{await views.rollbackReferences(parent,batch.batchId);}catch{failed=true;}check(failed&&!item.deleted&&parent.relatedItems.includes(item.key)&&parent.getField('extra')===corrupt,'Corrupt journal changed native data');return {rejected:true,unchanged:true};}
-  finally{parent.setField('extra',originalExtra);await parent.saveTx({skipSelect:true});}
+  finally{await IOUtils.writeUTF8(journalPath,originalJournal);}
  });
  await test('native rollback write failure restores live objects and keeps the journal retryable',async()=>{
   const parent=await make('Rollback failure recovery'),rows=[ref('10.1234/protect-rollback-failure')],batch=await views.importReferences(parent,rows,opts),item=rows[0]._item,originalExtra=parent.getField('extra');
@@ -70,7 +72,7 @@ try{
  await test('legacy marker cleanup preserves user Extra lines with the same suffix and late edits',async()=>{
   const parent=await make('Legacy Extra protection'),id='ref_batch_extra_'+Date.now();parent.setField('extra',`ref_batch_parent: ${id}\nUser research note: ${id}`);await parent.saveTx({skipSelect:true});
   const original=Zotero.Items.getAsync;let injected=false;
-  Zotero.Items.getAsync=async function(...args){if(!injected){injected=true;parent.setField('extra',String(parent.getField('extra'))+'\nLate user Extra edit');await parent.saveTx({skipSelect:true});}return original.apply(this,args);};
+  Zotero.Items.getAsync=async function(...args){if(!injected){injected=true;parent.setField('extra',String(parent.getField('extra'))+'\nLate user Extra edit');await parent.save({skipSelect:true});}return original.apply(this,args);};
   try{await views.rollbackReferences(parent,id);const text=String(parent.getField('extra'));check(text.includes('User research note: '+id)&&text.includes('Late user Extra edit')&&!text.includes('ref_batch_parent:'),'Legacy cleanup discarded user Extra');return {userLinesPreserved:true,lateEditPreserved:true};}finally{Zotero.Items.getAsync=original;}
  });
  await test('cancelling one native window leaves the other window import active for the same parent',async()=>{
@@ -110,10 +112,10 @@ try{
  });
  await test('native rollback menu presents a localized failure for damaged journals',async()=>{
   const parent=await make('Rollback menu error status'),rows=[ref('10.1234/protect-rollback-menu-error')],batch=await views.importReferences(parent,rows,opts),originalExtra=parent.getField('extra'),prefix='refnexus_record_'+batch.batchId+': ';
-  parent.setField('extra',String(originalExtra).split('\n').map(line=>{if(!line.startsWith(prefix))return line;const value=JSON.parse(line.slice(prefix.length));value.attachments=null;return prefix+JSON.stringify(value);}).join('\n'));await parent.saveTx({skipSelect:true});
+  const originalJournal=await IOUtils.readUTF8(journalPath);await editJournal(batch.batchId,value=>{value.attachments=null;});
   try{const body=await select(parent);body.references=rows;await body._cards.render(rows,()=>true);body._cards.menu();const popup=window.document.querySelector('menupopup[data-refflow-menu=references]'),command=[...popup.children].find(node=>/撤回|rollback|ripristin/i.test(node.getAttribute('label')||''));check(command,'Rollback command absent');command.dispatchEvent(new window.Event('command'));popup.hidePopup();
    await wait(()=>/撤回失败|Rollback failed|Ripristino non riuscito/.test(body.querySelector('#reference-num').textContent));check(!rows[0]._item.deleted,'Damaged journal deleted data');return {failureLocalized:true,screenshot:await screenshot(body,'rollback-failure')};
-  }finally{parent.setField('extra',originalExtra);await parent.saveTx({skipSelect:true});}
+  }finally{await IOUtils.writeUTF8(journalPath,originalJournal);}
  });
  await test('existing native ownership and attachment protection suite',async()=>{
   const output=cfg.output.replace(/\.json$/,'-ownership.json'),code=await Zotero.File.getContentsAsync(cfg.workspace+'\\scripts\\native-repairs-stage1.js');

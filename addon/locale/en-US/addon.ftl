@@ -135,3 +135,6 @@ cards-batch-copied = Failed DOIs copied
 cards-batch-retry-hint = Only failed reference imports are retried. Saved references are kept; stopped, unattempted references are not included.
 cards-batch-pdf-hint = PDF download failures are separate. This action does not retry PDFs for references already saved.
 cards-batch-more = Show more failures ({ $remaining } remaining)
+
+cards-batch-storage-error = Could not migrate import history
+cards-batch-storage-preserved = Original Extra was preserved. Check that the Zotero data directory is writable and retry after restarting.

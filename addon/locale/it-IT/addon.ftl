@@ -71,3 +71,6 @@ cards-batch-copied = DOI non riusciti copiati
 cards-batch-retry-hint = Vengono riprovate solo le importazioni non riuscite. I riferimenti salvati restano; quelli non tentati dopo lo stop sono esclusi.
 cards-batch-pdf-hint = Gli errori PDF sono separati. Questa azione non riprova i PDF dei riferimenti già salvati.
 cards-batch-more = Mostra altri errori ({ $remaining } rimanenti)
+
+cards-batch-storage-error = Impossibile migrare la cronologia delle importazioni
+cards-batch-storage-preserved = Il contenuto originale di Extra è stato conservato. Verificare che la cartella dati di Zotero sia scrivibile e riprovare dopo il riavvio.

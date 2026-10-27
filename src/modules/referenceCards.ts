@@ -2,6 +2,7 @@ import {config} from "../../package.json";
 import {getString} from "../utils/locale";
 import type Views from "./views";
 import type TipUI from "./tip";
+import BatchImporter from "./batchImporter";
 import BatchResults from "./batchResults";
 import {referenceIdentity} from "./referenceIdentity";
 import { cleanupSync } from "../utils/lifecycle";
@@ -9,6 +10,7 @@ import {importFailureText,importErrorText,importSummaryText} from './importError
 
 /** Compact reference cards and selection behavior aligned with the supplied XPI. */
 export default class ReferenceCards {
+  private migratedParents=new Set<number>();
   private refs:ItemBaseInfo[]=[];
   private batchResults:BatchResults;
   private selected=new Set<ItemBaseInfo>();
@@ -132,6 +134,12 @@ export default class ReferenceCards {
   }
   async render(refs:ItemBaseInfo[],current:()=>boolean){
     if(this.disposed)return;
+    const parent=this.parent();
+    if(parent?.id&&!this.migratedParents.has(parent.id)&&String(parent.getField('extra')||'').includes('refnexus_record_')){
+      this.migratedParents.add(parent.id);
+      try{await BatchImporter.migrateLegacy(parent);}catch(error){ztoolkit.log('Batch journal migration failed',error);new ztoolkit.ProgressWindow(getString('cards-batch-storage-error')).createLine({text:getString('cards-batch-storage-preserved'),type:'fail'}).show();}
+      if(this.disposed||!current())return;
+    }
     const query=this.search.value;
     const selected=new Set([...this.selected].map(referenceIdentity));
     const active=this.grid.ownerDocument.activeElement as HTMLElement|null;
@@ -154,7 +162,6 @@ export default class ReferenceCards {
     this.grid.style.maxHeight=this.virtual?'65vh':'';
     const spacer=(height:number)=>{const node=this.body.ownerDocument.createElement('div');node.style.height=`${height}px`;node.style.flexShrink='0';node.setAttribute('aria-hidden','true');return node;};
     if(this.virtual)fragment.append(spacer(start*this.rowHeight));
-    const parent=this.parent();
     const original:ItemBaseInfo[]=(this.body as any).references||refs;
     const positions=new Map(original.map((ref,index)=>[ref,index+1]));
     const numbers=refs.map((ref,index)=>Number.isSafeInteger(Number(ref.number))&&Number(ref.number)>0?Number(ref.number):(positions.get(ref)||index+1));
@@ -278,7 +285,7 @@ export default class ReferenceCards {
     separator();
     const importRefs=async(all:boolean)=>{const parent=parentAtOpen;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.batchResults.run(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true},refs.map(ref=>allAtOpen.indexOf(ref)+1));if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}};
     add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
-    add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const matches=[...String(parent.getField("extra")||"").matchAll(/^refnexus_batch_parent: (refnexus_batch_\w+)$/gm)];const id=matches[matches.length-1]?.[1];if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}});
+    add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const id=await BatchImporter.latestBatchID(parent).catch(error=>{ztoolkit.log('Failed to read rollback journal',error);throw new Error(getString('cards-rollback-failed'));});if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}});
     separator();
     for(const source of ["Auto","PDF","Web","API"])add(source==="Auto"?"cards-source-auto":source==="Web"?"cards-source-web":source==="PDF"?"cards-source-pdf":"cards-source-online",()=>{if(!samePanel())return;this.body.querySelector<HTMLSelectElement>("select")!.value=source;this.body.querySelector("select")!.dispatchEvent(new (this.body.ownerDocument.defaultView as any).Event("change"));},this.body.getAttribute("source")===source);
     for(const sort of ["Original","Recency","Cited Count"])add(sort==="Original"?"cards-sort-original":sort==="Recency"?"cards-sort-recency":"cards-sort-cited",async()=>{if(!samePanel())return;Zotero.Prefs.set(`${config.addonRef}.sortBy`,sort);await this.views.sortReferences(this.body);},Zotero.Prefs.get(`${config.addonRef}.sortBy`)===sort);

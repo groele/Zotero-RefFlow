@@ -9,7 +9,7 @@ export interface BatchRecord {
   collectionState?:CollectionState;
   uses?:BatchUse[];states?:Record<string,CreatedState>;
 }
-/** Journals are editable Extra text. Reject malformed ownership before writes. */
+/** Validate local and legacy journals before using their ownership evidence. */
 export function validateBatchRecord(value:any,parentID:number,libraryID:number):BatchRecord {
   const id=(n:any)=>Number.isSafeInteger(n)&&n>0;
   const ids=(rows:any)=>Array.isArray(rows)&&rows.every(id);

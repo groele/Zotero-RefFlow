@@ -10,7 +10,7 @@ import CitationVerifier from '../src/modules/verifier';
 const row=(doi?:string)=>({title:'Provider short title',authors:[],identifiers:doi?{DOI:doi}:{}} as any);
 async function fixture(run:(ctx:any)=>Promise<void>){
  const z:any=Zotero,tool:any=ztoolkit;
- const saved=Object.fromEntries(['Libraries','DB','Translate','Item','ItemTypes','ItemFields','Collections','Collection','Attachments'].map(k=>[k,z[k]]));
+ const saved=Object.fromEntries(['Libraries','DB','Translate','Item','ItemTypes','ItemFields','Collections','Collection','Attachments','getMainWindow','Items','Search'].map(k=>[k,z[k]]));
  const oldProgress=tool.ProgressWindow,oldUtils=(BatchImporter as any)._utils;
  let ids=100,lookups=0,writes=0,collectionCreates=0;const items:any[]=[];let translate:any=async()=>[{DOI:'10.1234/one',title:'Native full title',creators:[{creatorType:'author',lastName:'Native'}]}];
  class Item {id=0;key='';libraryID=1;itemTypeID=1;fields:any={};relatedItems:string[]=[];collections:number[]=[];creators:any[]=[];
@@ -19,6 +19,10 @@ async function fixture(run:(ctx:any)=>Promise<void>){
  getAttachments(){return [];}getCreators(){return this.creators;}setCreators(v:any){this.creators=v;}addRelatedItem(item:any){this.relatedItems.push(item.key);}
  async save(){writes++;if(!this.id){this.id=++ids;this.key='K'+this.id;items.push(this);}return this.id;}
  }
+ let journal:any;
+ z.getMainWindow=()=>({IOUtils:{exists:async()=>journal!==undefined,readJSON:async()=>JSON.parse(JSON.stringify(journal)),writeJSON:async(_path:string,data:any)=>{journal=JSON.parse(JSON.stringify(data));}}});
+ z.Search=class{libraryID=1;addCondition(){}async search(){return [];}};
+ z.Items={getAsync:async(ids:number|number[])=>Array.isArray(ids)?ids.map(id=>id===1?parent:items.find(item=>item.id===id)).filter(Boolean):ids===1?parent:items.find(item=>item.id===ids)};
  const parent=new Item();parent.id=1;parent.key='PARENT';parent.fields.title='Parent';parent.collections=[8];
  z.Item=Item;z.ItemTypes={getID:()=>1};z.ItemFields={getID:(f:string)=>f,isValidForType:()=>true};
  z.Libraries={get:()=>({editable:true,filesEditable:true})};z.DB={executeTransaction:(fn:any)=>fn()};

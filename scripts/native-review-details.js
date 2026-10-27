@@ -32,7 +32,7 @@ try{
  await test('a real local HTTP PDF is attached and its successful count is visible',async()=>{
   const parent=await make('Actual PDF download status'),rows=[ref('success')],message=await menuImport(parent,rows),ids=rows[0]._item.getAttachments();
   check(ids.length===1,'Expected one real PDF attachment');const file=await Zotero.Items.getAsync(ids[0]);check(file.attachmentContentType==='application/pdf'&&await file.fileExists(),'Downloaded PDF is missing');check(message.includes('PDF')&&message.includes('已下载：1'),'Successful PDF count hidden: '+message);
-  const image=await screenshot('pdf-success'),batch=String(parent.getField('extra')).match(/^refnexus_batch_parent: (refnexus_batch_\w+)$/m)?.[1];check(batch,'Missing batch');await views.rollbackReferences(parent,batch);check(file.deleted&&rows[0]._item.deleted,'Owned unedited PDF/item did not roll back');return {downloaded:1,message,rollback:true,screenshot:image};
+  const image=await screenshot('pdf-success'),batch=(await IOUtils.readJSON(PathUtils.join(Zotero.DataDirectory.dir,'refflow-batch-journal-v1.json'))).entries.filter(row=>row.record.parentID===parent.id).pop()?.batchID;check(batch,'Missing batch');await views.rollbackReferences(parent,batch);check(file.deleted&&rows[0]._item.deleted,'Owned unedited PDF/item did not roll back');return {downloaded:1,message,rollback:true,screenshot:image};
  });
  for(const empty of ['', ' '])await test('a '+(empty?'whitespace':'zero-length')+' other active journal blocks destructive rollback',async()=>{
   const parent=await make('Ownership owner '+empty.length),other=await make('Damaged journal owner '+empty.length),rows=[ref('journal-'+empty.length)],batch=await views.importReferences(parent,rows,opts),prefix='refnexus_record_refnexus_batch_damaged_'+other.id+': ';
@@ -43,7 +43,7 @@ try{
  });
  await test('an empty own journal is rejected without clearing recovery markers',async()=>{
   const parent=await make('Empty own journal'),rows=[ref('own-journal')],batch=await views.importReferences(parent,rows,opts),prefix='refnexus_record_'+batch.batchId+':';
-  parent.setField('extra',String(parent.getField('extra')).split('\n').map(line=>line.startsWith(prefix)?prefix:line).join('\n'));await parent.saveTx({skipSelect:true});const before=String(parent.getField('extra'));let rejected=false;
+  parent.setField('extra','refnexus_batch_parent: '+batch.batchId+'\n'+prefix);await parent.saveTx({skipSelect:true});const before=String(parent.getField('extra'));let rejected=false;
   try{await views.rollbackReferences(parent,batch.batchId);}catch{rejected=true;}
   try{check(rejected&&!rows[0]._item.deleted&&String(parent.getField('extra'))===before,'Empty modern journal was treated as legacy and its recovery marker removed');return {rejected:true,recoveryMarkersPreserved:true};}
   finally{parent.setField('extra','');await parent.saveTx({skipSelect:true});}

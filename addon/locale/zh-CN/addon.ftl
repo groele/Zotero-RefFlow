@@ -135,3 +135,6 @@ cards-batch-copied = 已复制失败 DOI
 cards-batch-retry-hint = 仅重试文献导入失败项；已保存文献保留，停止后未尝试的文献不在本次重试范围内。
 cards-batch-pdf-hint = PDF 下载失败单独统计；本操作不会重试已保存文献的 PDF 下载。
 cards-batch-more = 显示更多失败项（剩余 { $remaining } 项）
+
+cards-batch-storage-error = 无法迁移导入记录
+cards-batch-storage-preserved = 原有“其他”内容已保留。请检查 Zotero 数据目录是否可写，并在重启后重试。
