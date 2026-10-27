@@ -1,3 +1,4 @@
+import {JournalCommitPendingError,JournalUnavailableError} from './batchJournal';
 import {getString} from '../utils/locale';
 
 export type ImportErrorCode = 'no-doi' | 'translator' | 'identity' | 'metadata' | 'timeout' | 'destination' | 'lookup';
@@ -18,6 +19,8 @@ export function importFailureText(failure?: {code?: string; reason?: string}): s
     failure.reason || importText('cards-import-failed', 'DOI import failed; retry');
 }
 export function importErrorText(error:unknown):string {
+  if(error instanceof JournalCommitPendingError)return importText('cards-journal-committed','Items were saved; finish saving the local journal before importing again.');
+  if(error instanceof JournalUnavailableError)return importText('cards-journal-unknown','The local journal needs inspection. Preserve it and its backup; automatic recovery is unavailable.');
   if(error instanceof ImportError)return importFailureText({code:error.code,reason:error.message});
   return error instanceof Error?error.message:String(error);
 }

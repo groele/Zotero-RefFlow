@@ -41,7 +41,13 @@ async function run() {
   for(let i=0;i<300&&(!win.ZoteroPane?.itemsView||!win.ZoteroPane?.collectionsView?.itemTreeView);i++)await Zotero.Promise.delay(100);
   const code=await Zotero.File.getContentsAsync(cfg.script);
   const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
-  await new AsyncFunction('Zotero','window','cfg',code)(Zotero,Zotero.getMainWindow(),cfg);
+  const reportWrite=Zotero.File.putContentsAsync,reportStem=cfg.output.replace(/\.json$/,'');
+  Zotero.File.putContentsAsync=async function(path,...args){
+    if(typeof path!=='string'||!path.startsWith(reportStem)||!path.endsWith('.json'))return reportWrite.call(this,path,...args);
+    for(let attempt=0;;attempt++){try{return await reportWrite.call(this,path,...args);}catch(error){if(attempt>=4||!/NotAllowedError|NS_ERROR_FILE_ACCESS_DENIED/.test(String(error)))throw error;await Zotero.Promise.delay(50*(attempt+1));}}
+  };
+  try{await new AsyncFunction('Zotero','window','cfg',code)(Zotero,Zotero.getMainWindow(),cfg);}finally{Zotero.File.putContentsAsync=reportWrite;}
+
   if(cfg.closeWhenDone){await Zotero.ZoteroRefFlow?.views?.storage?.flush();Services.startup.quit(Ci.nsIAppStartup.eForceQuit);}
 }
 "@

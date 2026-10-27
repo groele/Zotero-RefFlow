@@ -138,3 +138,12 @@ cards-batch-more = 显示更多失败项（剩余 { $remaining } 项）
 
 cards-batch-storage-error = 无法迁移导入记录
 cards-batch-storage-preserved = 原有“其他”内容已保留。请检查 Zotero 数据目录是否可写，并在重启后重试。
+
+cards-journal-inspect = 检查本地批次记录
+cards-journal-committed = 文献已保存，但本地日志尚未完成保存。请重试保存日志，不要重复导入。
+cards-journal-unknown = 本地日志需要检查。请保留日志及备份；当前没有足够的提交证据，无法自动恢复。
+cards-journal-ready = 本地批次记录可用。
+cards-journal-backup = 已保留上一次日志快照；恢复时应与同一文库备份配对。
+cards-journal-copy = 复制脱敏诊断
+cards-journal-retry = 重试完成日志保存
+cards-batch-attempt = 第 { $number } 次尝试

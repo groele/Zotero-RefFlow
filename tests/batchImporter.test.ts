@@ -58,3 +58,12 @@ test("legacy migration preserves a manual Extra edit made while child identities
  try{const journal=(await import('../src/modules/batchJournal')).default;await journal.transaction(()=>(BatchImporter as any).migrateRecords(1,parent));assert.equal(extra,'SCI: 是\nLate manual note');assert.equal(childExtra,'');assert.equal(file.entries.length,1);}
  finally{z.getMainWindow=original.win;z.Items=original.Items;z.Search=original.Search;z.DB=original.DB;}
 });
+
+
+test("per-call rollback results retain ownership across concurrent libraries",async()=>{
+ const original=(BatchImporter as any).rollback,previous=BatchImporter.lastRollback;
+ try{(BatchImporter as any).rollback=async(parent:any,_batch:string,outcome:any)=>{outcome.retainedIDs=[parent.id];await new Promise(resolve=>setTimeout(resolve,parent.libraryID===1?8:1));BatchImporter.lastRollback={retainedIDs:[999]};return parent.id;};
+ const [a,b]=await Promise.all([BatchImporter.rollbackBatchDetailed({id:11,libraryID:1} as any,"a"),BatchImporter.rollbackBatchDetailed({id:22,libraryID:2} as any,"b")]);
+ assert.deepEqual(a,{removed:11,retainedIDs:[11]});assert.deepEqual(b,{removed:22,retainedIDs:[22]});
+ }finally{(BatchImporter as any).rollback=original;BatchImporter.lastRollback=previous;}
+});

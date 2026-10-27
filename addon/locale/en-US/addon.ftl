@@ -138,3 +138,12 @@ cards-batch-more = Show more failures ({ $remaining } remaining)
 
 cards-batch-storage-error = Could not migrate import history
 cards-batch-storage-preserved = Original Extra was preserved. Check that the Zotero data directory is writable and retry after restarting.
+
+cards-journal-inspect = Inspect local batch journal
+cards-journal-committed = Items were saved, but the local journal still needs finalization. Retry saving the journal rather than importing again.
+cards-journal-unknown = The local journal needs inspection. Preserve it and its backup; there is insufficient commit evidence for automatic recovery.
+cards-journal-ready = The local batch journal is ready.
+cards-journal-backup = A previous journal snapshot is preserved. Pair it with a backup of the same library when recovering.
+cards-journal-copy = Copy sanitized diagnostics
+cards-journal-retry = Finish saving journal
+cards-batch-attempt = Attempt { $number }

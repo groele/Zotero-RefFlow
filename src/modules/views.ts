@@ -70,6 +70,8 @@ export default class Views {
           .refflow-card-search {box-sizing:border-box;width:100%;margin:4px 0 6px;padding:5px 8px;border:1px solid var(--material-border,#ccc);border-radius:4px;background:var(--material-background,#fff);color:inherit;}
           .refflow-status {font-size:.85em;opacity:.75;border:0!important;padding:0!important;min-height:18px;}
           .zotero-editpane-related[data-refflow-item-id] .reference-item {display:flex;flex-direction:column;gap:4px;padding:6px 4px;border-radius:4px;cursor:default;min-width:0;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-journal-status {padding:8px;margin-block:8px;border:1px solid currentColor;border-radius:7px;overflow-wrap:anywhere;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-journal-status button {font:inherit;margin:3px;max-width:100%;white-space:normal;}
           .zotero-editpane-related[data-refflow-item-id] .refflow-batch-results {margin-block:8px;padding:8px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:7px;background:color-mix(in srgb,currentColor 2%,transparent);font:inherit;overflow-wrap:anywhere;}
           .zotero-editpane-related[data-refflow-item-id] .refflow-batch-results summary {cursor:pointer;font-weight:600;}
           .zotero-editpane-related[data-refflow-item-id] .refflow-batch-results p {margin-block:6px;font-size:.95em;}
@@ -369,7 +371,7 @@ export default class Views {
   }
   public async rollbackReferences(parent: Zotero.Item, batchID: string) {
     try{
-    const removed=await BatchImporter.rollbackBatch(parent,batchID),retained=BatchImporter.lastRollback.retainedIDs.length;
+    const outcome=await BatchImporter.rollbackBatchDetailed(parent,batchID),removed=outcome.removed,retained=outcome.retainedIDs.length;
     if(retained)new ztoolkit.ProgressWindow('RefFlow').createLine({text:getString('cards-rollback-retained',{args:{count:retained}}),type:'default'}).show();
     return removed;
     }catch(error){ztoolkit.log('Reference rollback failed',error);const failure=new Error(getString('cards-rollback-failed'));(failure as any).cause=error;throw failure;}

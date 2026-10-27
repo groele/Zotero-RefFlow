@@ -9,7 +9,7 @@ export default class BatchResults {
   private generation=0;
   constructor(private views:Views,private body:HTMLElement,private grid:HTMLElement){}
   clear(){this.generation++;this.panel?.remove();this.panel=undefined;}
-  async run(parent:Zotero.Item,refs:ItemBaseInfo[],options:BatchImportOptions,positions=refs.map((_,i)=>i+1),focus=false):Promise<BatchImportResult>{
+  async run(parent:Zotero.Item,refs:ItemBaseInfo[],options:BatchImportOptions,positions=refs.map((_,i)=>i+1),focus=false,attempts:BatchImportResult[]=[]):Promise<BatchImportResult>{
     const generation=++this.generation;
     const current=()=>generation===this.generation&&this.body.isConnected&&Number(this.body.getAttribute('data-refflow-item-id'))===parent.id&&!parent.deleted;
     // Capture metadata and membership before the request can yield to selection changes.
@@ -26,6 +26,8 @@ export default class BatchResults {
       const summary=doc.createElement('summary');summary.textContent=getString('cards-batch-results')+' · '+importSummaryText(result);summary.tabIndex=0;panel.append(summary);
       const status=doc.createElement('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.textContent=result.cancelled?getString('cards-import-cancelled'):importSummaryText(result);panel.append(status);
       const usable=()=>this.panel===panel&&this.body.isConnected&&Number(this.body.getAttribute('data-refflow-item-id'))===parent.id&&!parent.deleted;
+      const history=[...attempts,result];
+      if(history.length>1){const list=doc.createElement('ol');list.className='refflow-batch-attempts';for(const [index,attempt] of history.entries()){const row=doc.createElement('li');row.textContent=getString('cards-batch-attempt',{args:{number:index+1}})+' · '+importSummaryText(attempt);list.append(row);}panel.append(list);}
       const failed=result.failures.filter(f=>Number.isSafeInteger(f.index)&&f.index>=0&&f.index<snapshot.length);
       if(failed.length){
         const list=doc.createElement('ol');list.className='refflow-batch-failures';
@@ -44,7 +46,7 @@ export default class BatchResults {
         retry.addEventListener('click',()=>{
           if(retry.disabled||!usable())return;
           const nextOptions={...captured,collections:result.subCollection?[result.subCollection.id]:captured.collections,createSubCollection:result.subCollection?false:captured.createSubCollection};
-          void this.run(parent,failed.map(f=>snapshot[f.index]),nextOptions,failed.map(f=>positions[f.index]),true).then(()=>{if(this.body.isConnected&&Number(this.body.getAttribute('data-refflow-item-id'))===parent.id)(this.body as any)._cards?.invalidateLibraryMatches();}).catch(error=>{ztoolkit.log(error);});
+          void this.run(parent,failed.map(f=>snapshot[f.index]),nextOptions,failed.map(f=>positions[f.index]),true,history).then(()=>{if(this.body.isConnected&&Number(this.body.getAttribute('data-refflow-item-id'))===parent.id)(this.body as any)._cards?.invalidateLibraryMatches();}).catch(error=>{ztoolkit.log(error);});
         });actions.append(copy,retry);panel.append(actions);
         const hint=doc.createElement('p');hint.textContent=getString('cards-batch-retry-hint');panel.append(hint);
       }

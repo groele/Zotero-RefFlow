@@ -4,6 +4,8 @@ import type Views from "./views";
 import type TipUI from "./tip";
 import BatchImporter from "./batchImporter";
 import BatchResults from "./batchResults";
+import JournalStatus from "./journalStatus";
+import {JournalCommitPendingError,JournalUnavailableError} from "./batchJournal";
 import {referenceIdentity} from "./referenceIdentity";
 import { cleanupSync } from "../utils/lifecycle";
 import {importFailureText,importErrorText,importSummaryText} from './importErrors';
@@ -13,6 +15,7 @@ export default class ReferenceCards {
   private migratedParents=new Set<number>();
   private refs:ItemBaseInfo[]=[];
   private batchResults:BatchResults;
+  private journalStatus:JournalStatus;
   private selected=new Set<ItemBaseInfo>();
   private anchor=0;
   private disposed=false;
@@ -39,7 +42,7 @@ export default class ReferenceCards {
   private searchIndex=new WeakMap<ItemBaseInfo,string>();
 
   constructor(private views:Views,private body:HTMLElement,private grid:HTMLElement,private search:HTMLInputElement,listLabel='Reference list') {
-    this.batchResults=new BatchResults(views,body,grid);
+    this.batchResults=new BatchResults(views,body,grid);this.journalStatus=new JournalStatus(views,body,grid);
     const onInput=()=>{globalThis.clearTimeout(this.searchTimer);this.searchTimer=globalThis.setTimeout(()=>this.filter(),80);};
     const onKeyDown=(event:KeyboardEvent)=>{if(event.key==="Escape"){event.preventDefault();globalThis.clearTimeout(this.searchTimer);search.value="";this.filter();}};
     const onContextMenu=(event:MouseEvent)=>{event.preventDefault();this.menu(event);};
@@ -58,7 +61,7 @@ export default class ReferenceCards {
     this.cleanup.push(()=>search.removeEventListener("input",onInput),()=>search.removeEventListener("keydown",onKeyDown),()=>grid.removeEventListener("contextmenu",onContextMenu));
   }
   dispose(){if(this.disposed)return;this.disposed=true;this.cleanup.forEach(cleanupSync);this.cleanup=[];for(const menu of this.menus)cleanupSync(()=>menu.remove());this.menus.clear();globalThis.clearTimeout(this.searchTimer);this.clear();}
-  clear(preserveResults=false){if(!preserveResults)this.batchResults.clear();this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.listCurrent=undefined;this.windowStart=0;this.virtualCount=0;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.clearTip();this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
+  clear(preserveResults=false){if(!preserveResults){this.batchResults.clear();this.journalStatus.clear();}this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.listCurrent=undefined;this.windowStart=0;this.virtualCount=0;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.clearTip();this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
   private clearTip(){const tip=this.tip;this.tip=undefined;if(tip){globalThis.clearTimeout(tip.tipTimer);tip.clear();}}
   private drainMatches(){while(this.matchActive<4&&this.matchQueue.length){const match=this.matchQueue.shift()!;this.matchActive++;void match().catch(error=>ztoolkit.log(error)).finally(()=>{this.matchActive--;if(!this.disposed)this.drainMatches();});}}
   private actionIcon(action:HTMLButtonElement,state:'add'|'open'|'busy'|'error',label:string){
@@ -136,8 +139,7 @@ export default class ReferenceCards {
     if(this.disposed)return;
     const parent=this.parent();
     if(parent?.id&&!this.migratedParents.has(parent.id)&&String(parent.getField('extra')||'').includes('refnexus_record_')){
-      this.migratedParents.add(parent.id);
-      try{await BatchImporter.migrateLegacy(parent);}catch(error){ztoolkit.log('Batch journal migration failed',error);new ztoolkit.ProgressWindow(getString('cards-batch-storage-error')).createLine({text:getString('cards-batch-storage-preserved'),type:'fail'}).show();}
+      try{await BatchImporter.migrateLegacy(parent);this.migratedParents.add(parent.id);}catch(error){ztoolkit.log('Batch journal migration failed',error);new ztoolkit.ProgressWindow(getString('cards-batch-storage-error')).createLine({text:getString('cards-batch-storage-preserved'),type:'fail'}).show();}
       if(this.disposed||!current())return;
     }
     const query=this.search.value;
@@ -212,7 +214,7 @@ export default class ReferenceCards {
             if(active())this.label().textContent=importSummaryText(result);
           }
           if(active()&&ref._item){this.actionIcon(action,'open',getString("cards-show-library"));dot.style.backgroundColor="var(--color-accent, #3678b5)";dot.title=getString("cards-in-library");row.style.opacity="1";this.invalidateLibraryMatches();}
-        }catch(error){if(active()){const message=importErrorText(error);this.label().textContent=message;this.actionIcon(action,'error',message);}ztoolkit.log(error);}finally{row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);action.disabled=false;action.removeAttribute('aria-busy');}
+        }catch(error){if(error instanceof JournalCommitPendingError||error instanceof JournalUnavailableError)void this.journalStatus.show();if(active()){const message=importErrorText(error);this.label().textContent=message;this.actionIcon(action,'error',message);}ztoolkit.log(error);}finally{row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);action.disabled=false;action.removeAttribute('aria-busy');}
       });
       action.setAttribute("aria-label",action.title);
       row.style.opacity=ref._item?"1":String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`)||"1");
@@ -276,7 +278,7 @@ export default class ReferenceCards {
     const collectionsAtOpen=this.views.utils.importCollections(parentAtOpen,this.body.ownerDocument.defaultView!);
     const samePanel=()=>!this.disposed&&this.body.isConnected&&Number(this.body.getAttribute("data-refflow-item-id"))===parentAtOpen.id;
     const doc:any=this.body.ownerDocument,popup=doc.createXULElement("menupopup") as any;popup.setAttribute("data-refflow-menu","references");
-    const add=(key:string,action:()=>any,checked?:boolean)=>{const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(checked!==undefined){item.setAttribute("type","checkbox");item.checked=checked;}item.addEventListener("command",()=>Promise.resolve().then(()=>{if(samePanel())return action();}).catch(error=>{if(samePanel())this.label().textContent=importErrorText(error);ztoolkit.log(error);}));popup.append(item);};
+    const add=(key:string,action:()=>any,checked?:boolean)=>{const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(checked!==undefined){item.setAttribute("type","checkbox");item.checked=checked;}item.addEventListener("command",()=>Promise.resolve().then(()=>{if(samePanel())return action();}).catch(error=>{if(samePanel()){this.label().textContent=importErrorText(error);if(error instanceof JournalCommitPendingError||error instanceof JournalUnavailableError)void this.journalStatus.show();}ztoolkit.log(error);}));popup.append(item);};
     const separator=()=>popup.append(doc.createXULElement("menuseparator"));
     add("cards-copy-text",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.text||ref.title).join("\n"),false));
     add("cards-copy-doi",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.identifiers?.DOI).filter(Boolean).join("\n"),false));
@@ -285,11 +287,12 @@ export default class ReferenceCards {
     separator();
     const importRefs=async(all:boolean)=>{const parent=parentAtOpen;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.batchResults.run(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true},refs.map(ref=>allAtOpen.indexOf(ref)+1));if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}};
     add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
-    add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const id=await BatchImporter.latestBatchID(parent).catch(error=>{ztoolkit.log('Failed to read rollback journal',error);throw new Error(getString('cards-rollback-failed'));});if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}});
+    add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const id=await BatchImporter.latestBatchID(parent).catch(error=>{ztoolkit.log('Failed to read rollback journal',error);throw new Error(getString('cards-rollback-failed'));});if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.batchResults.clear();this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}});
     separator();
     for(const source of ["Auto","PDF","Web","API"])add(source==="Auto"?"cards-source-auto":source==="Web"?"cards-source-web":source==="PDF"?"cards-source-pdf":"cards-source-online",()=>{if(!samePanel())return;this.body.querySelector<HTMLSelectElement>("select")!.value=source;this.body.querySelector("select")!.dispatchEvent(new (this.body.ownerDocument.defaultView as any).Event("change"));},this.body.getAttribute("source")===source);
     for(const sort of ["Original","Recency","Cited Count"])add(sort==="Original"?"cards-sort-original":sort==="Recency"?"cards-sort-recency":"cards-sort-cited",async()=>{if(!samePanel())return;Zotero.Prefs.set(`${config.addonRef}.sortBy`,sort);await this.views.sortReferences(this.body);},Zotero.Prefs.get(`${config.addonRef}.sortBy`)===sort);
     add("relatedbox-download-oa",()=>Zotero.Prefs.set(`${config.addonRef}.downloadOA`,!Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)));
+    separator();add('cards-journal-inspect',()=>this.journalStatus.show());
     this.menus.add(popup);
     popup.addEventListener("popuphidden",()=>{this.menus.delete(popup);popup.remove();},{once:true});doc.documentElement.append(popup);
     if(event)popup.openPopupAtScreen(event.screenX,event.screenY,true);else popup.openPopup(this.body.closest("item-pane-custom-section"),"after_end",0,0,false,false);

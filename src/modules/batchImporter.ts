@@ -1,4 +1,4 @@
-import batchJournal from "./batchJournal";
+import batchJournal,{JournalCommitPendingError} from "./batchJournal";
 import CitationVerifier from "./verifier";
 import Utils from "./utils";
 import {workIdentity} from './workIdentity';
@@ -52,7 +52,7 @@ export class BatchImporter {
     return task;
   }
 
-  private static transaction<T>(job:()=>Promise<T>):Promise<T> {return batchJournal.transaction(job);}
+  private static transaction<T>(libraryID:number,job:()=>Promise<T>):Promise<T> {return batchJournal.transaction(job,libraryID);}
   private static escape(value:any):string {return String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]!));}
   private static marker(batchID:string):string {return `import_batch: ${batchID}`;}
   private static recordPrefix(batchID:string):string {return `refnexus_record_${batchID}: `;}
@@ -83,10 +83,10 @@ export class BatchImporter {
   }
   public static async migrateLegacy(parent:Zotero.Item){
     if(!(Zotero as any).Libraries.get(parent.libraryID)?.editable)return;
-    return this.serial(parent.libraryID,()=>this.transaction(()=>this.migrateRecords(parent.libraryID,parent)));
+    return this.serial(parent.libraryID,()=>this.transaction(parent.libraryID,()=>this.migrateRecords(parent.libraryID,parent)));
   }
   public static async latestBatchID(parent:Zotero.Item):Promise<string|undefined>{
-    return this.serial(parent.libraryID,()=>this.transaction(async()=>{
+    return this.serial(parent.libraryID,()=>this.transaction(parent.libraryID,async()=>{
       await this.migrateRecords(parent.libraryID,parent);
       const rows=batchJournal.all(parent.libraryID).filter(row=>row.parentID===parent.id);
       if(rows.length)return rows[rows.length-1].batchID;
@@ -166,7 +166,7 @@ export class BatchImporter {
       throw new ImportError('destination',"Graph origins must be saved regular items in one editable library");
     }
     if(!refs.length)throw new Error("No references to import");
-    await this.transaction(()=>this.migrateRecords(parent.libraryID,parent));
+    await this.transaction(parent.libraryID,()=>this.migrateRecords(parent.libraryID,parent));
     const batchID=this.generateBatchId();
     const record:BatchRecord={version:2,parentID:parent.id,libraryID:parent.libraryID,createdIDs:[],relations:[],memberships:[],attachments:[],uses:[],states:{}};
     const result:BatchImportResult={batchId:batchID,total:refs.length,importedCount:0,existingCount:0,failedCount:0,downloadCount:0,downloadFailedCount:0,failures:[]};
@@ -225,7 +225,7 @@ export class BatchImporter {
           let target=item;
           const before=JSON.parse(JSON.stringify(record)) as BatchRecord,wasInitialized=initialized;
           try {
-            await this.transaction(async()=>{
+            await this.transaction(parent.libraryID,async()=>{
               await validateDestination();
               // Recheck under the write transaction: another importer may have
               // saved the work during translation or while this transaction queued.
@@ -255,6 +255,7 @@ export class BatchImporter {
               await this.storeRecord(parent,batchID,record);await parent.save({skipSelect:true});
             });
           } catch(error) {
+            if(error instanceof JournalCommitPendingError)throw error;
             Object.assign(record,before);if(before.collectionID===undefined){delete record.collectionID;delete record.collectionState;}
             if(!wasInitialized){initialized=false;collections.length=0;delete result.subCollection;}
             await Promise.allSettled([...relatedParents,...(target.id?[target]:[])].map(origin=>Promise.resolve().then(()=>(origin as any).reload(null,true))));throw error;
@@ -262,11 +263,11 @@ export class BatchImporter {
           if(isNew)result.importedCount++;else result.existingCount++;
           seen.set(identity,target);ref._item=target;
           if(options.downloadOA && ref.oaUrl && library.filesEditable && /^https?:\/\//i.test(ref.oaUrl) && !target.getAttachments().length)downloads.set(target.id,{url:ref.oaUrl,item:target});
-        } catch(error:any) {if(error?.name==='AbortError')throw error;result.failedCount++;const failure={reason:String(error?.message||error),code:error instanceof ImportError?error.code:undefined};failed.set(identity,failure);result.failures.push({index,doi:doi||"",title:ref.title||ref.text||"",...failure});ztoolkit.log("Reference import failed",error);}
+        } catch(error:any) {if(error?.name==='AbortError'||error instanceof JournalCommitPendingError)throw error;result.failedCount++;const failure={reason:String(error?.message||error),code:error instanceof ImportError?error.code:undefined};failed.set(identity,failure);result.failures.push({index,doi:doi||"",title:ref.title||ref.text||"",...failure});ztoolkit.log("Reference import failed",error);}
       }
       if(options.createManifestNote && result.importedCount+result.existingCount>0) {
         this.checkStopped(options.signal);
-        await this.transaction(async()=>{
+        await this.transaction(parent.libraryID,async()=>{
           const note=new Zotero.Item("note");note.libraryID=parent.libraryID;note.parentID=parent.id;
           note.setNote(this.manifestHTML(parent,refs,batchID));note.addTag(`refnexus:batch:${batchID}`);await note.save({skipSelect:true});
           record.noteID=note.id;record.noteState=metadataFingerprint(note);await this.storeRecord(parent,batchID,record);await parent.save();
@@ -274,19 +275,19 @@ export class BatchImporter {
       }
       // Await downloads under the same library queue. Rollback cannot race a
       // background download that creates a new attachment after the batch ends.
-      const queue=[...downloads.values()];
+      const queue=[...downloads.values()];let downloadStopped=false;
       const worker=async()=>{
         while(queue.length) {
-          if(options.signal?.aborted)return;
+          if(options.signal?.aborted||downloadStopped)return;
           const task=queue.shift()!;
           try {
             const attachment=await Zotero.Attachments.importFromURL({url:task.url,parentItemID:task.item.id,libraryID:parent.libraryID,title:"Full Text PDF (Open Access)"});
             if(!attachment)throw new Error('The OA download returned no attachment');
-            record.attachments.push({id:attachment.id,parentID:task.item.id,metadata:metadataFingerprint(attachment)});await this.transaction(async()=>{await this.storeRecord(parent,batchID,record);await parent.save();});result.downloadCount++;
-          } catch(error) {result.downloadFailedCount++;ztoolkit.log("OA download failed",error);}
+            record.attachments.push({id:attachment.id,parentID:task.item.id,metadata:metadataFingerprint(attachment)});await this.transaction(parent.libraryID,async()=>{await this.storeRecord(parent,batchID,record);await parent.save();});result.downloadCount++;
+          } catch(error) {if(error instanceof JournalCommitPendingError){downloadStopped=true;throw error;}result.downloadFailedCount++;ztoolkit.log("OA download failed",error);}
         }
       };
-      if(queue.length){progress.changeLine({text:importText('cards-import-downloading','Downloading open-access PDFs…')});await Promise.all([worker(),worker()]);await this.transaction(async()=>{await this.storeRecord(parent,batchID,record);await parent.save();});}
+      if(queue.length){progress.changeLine({text:importText('cards-import-downloading','Downloading open-access PDFs…')});const completed=await Promise.allSettled([worker(),worker()]);const failure=completed.find(result=>result.status==='rejected');if(failure?.status==='rejected')throw failure.reason;await this.transaction(parent.libraryID,async()=>{await this.storeRecord(parent,batchID,record);await parent.save();});}
       this.checkStopped(options.signal);
       progress.changeHeadline(importText('cards-import-complete','Import complete'));progress.changeLine({text:importSummaryText(result),type:result.failedCount||result.downloadFailedCount?"fail":"success"});
       return result;
@@ -304,7 +305,11 @@ export class BatchImporter {
   }
 
   public static rollbackBatch(parent:Zotero.Item,batchID:string):Promise<number> {
-    return this.serial(parent.libraryID,()=>this.rollback(parent,batchID));
+    return this.rollbackBatchDetailed(parent,batchID).then(result=>result.removed);
+  }
+
+  public static rollbackBatchDetailed(parent:Zotero.Item,batchID:string):Promise<{removed:number;retainedIDs:number[]}> {
+    return this.serial(parent.libraryID,async()=>{const outcome={retainedIDs:[] as number[]};const removed=await this.rollback(parent,batchID,outcome);return {removed,retainedIDs:[...outcome.retainedIDs]};});
   }
 
   private static async otherRecords(parent:Zotero.Item,batchID:string):Promise<Array<{owner:Zotero.Item;batchID:string;record:BatchRecord}>> {
@@ -318,12 +323,12 @@ export class BatchImporter {
     return records;
   }
 
-  private static async rollback(parent:Zotero.Item,batchID:string):Promise<number> {
+  private static async rollback(parent:Zotero.Item,batchID:string,outcome:{retainedIDs:number[]}):Promise<number> {
     this.lastRollback={retainedIDs:[]};
     if(!/^ref(?:nexus)?_batch_[A-Za-z0-9_]+$/.test(batchID))return 0;
     if(!(Zotero as any).Libraries.get(parent.libraryID)?.editable)throw new Error("This library is read-only");
     const touched=new Set<Zotero.Item>([parent]);
-    try{return await this.transaction(async()=>{await this.migrateRecords(parent.libraryID,parent);if(!await batchJournal.get(parent,batchID))return this.rollbackLegacy(parent,batchID);return this.rollbackRecord(parent,batchID,touched);});}
+    try{return await this.transaction(parent.libraryID,async()=>{await this.migrateRecords(parent.libraryID,parent);if(!await batchJournal.get(parent,batchID))return this.rollbackLegacy(parent,batchID,outcome);return this.rollbackRecord(parent,batchID,touched,outcome);});}
     catch(error){
       await Promise.allSettled([...touched].map(item=>Promise.resolve().then(()=>(item as any).reload(null,true))));
       this.utils.clearLibraryItemCache();throw error;
@@ -331,7 +336,7 @@ export class BatchImporter {
   }
 
   /** Read all protection evidence after admission to the write transaction. */
-  private static async rollbackRecord(parent:Zotero.Item,batchID:string,touched:Set<Zotero.Item>):Promise<number> {
+  private static async rollbackRecord(parent:Zotero.Item,batchID:string,touched:Set<Zotero.Item>,outcome:{retainedIDs:number[]}):Promise<number> {
     if(parent.deleted||!parent.isRegularItem()||!(Zotero as any).Libraries.get(parent.libraryID)?.editable)throw new Error('The rollback parent or library is no longer editable');
     const record=await batchJournal.get(parent,batchID);
     if(!record)return 0;
@@ -392,19 +397,19 @@ export class BatchImporter {
         const col=await Zotero.Collections.getAsync(record.collectionID) as Zotero.Collection;
         if(col && col.libraryID===parent.libraryID && sameCollectionState(col,record.collectionState)&&!record.createdIDs.some(id=>retained.has(id))&&!col.getChildItems(true,false).length&&!col.hasChildCollections(true))await col.erase();
       }
-    this.lastRollback={retainedIDs:[...retained]};
+    outcome.retainedIDs=[...retained];this.lastRollback={retainedIDs:[...retained]};
     this.utils.clearLibraryItemCache();return ids.length;
   }
 
   /** Old journals identify created items but cannot prove which old relations were added. */
-  private static async rollbackLegacy(parent:Zotero.Item,batchID:string):Promise<number> {
+  private static async rollbackLegacy(parent:Zotero.Item,batchID:string,outcome:{retainedIDs:number[]}):Promise<number> {
     if(!String(parent.getField("extra")||"").split(/\r?\n/).some(line=>line===`ref_batch_parent: ${batchID}`||line===`refnexus_batch_parent: ${batchID}`))return 0;
     const search:any=new Zotero.Search();search.libraryID=parent.libraryID;search.addCondition("extra","contains",this.marker(batchID));
     const items=await (Zotero.Items as any).getAsync(await search.search()) as Zotero.Item[];
     const ids=items.filter(item=>item && item.id!==parent.id && item.libraryID===parent.libraryID && !item.deleted && item.isRegularItem() && String(item.getField("extra")||"").split(/\r?\n/).includes(this.marker(batchID))).map(item=>item.id);
     // A legacy marker proves creation but carries no baseline for later user
     // edits or reuse. Keep these objects rather than guessing exclusive ownership.
-    this.lastRollback={retainedIDs:ids};
+    outcome.retainedIDs=[...ids];this.lastRollback={retainedIDs:ids};
     parent.setField("extra",String(parent.getField('extra')||'').split(/\r?\n/).filter(line=>line!==`refnexus_batch_parent: ${batchID}`&&line!==`ref_batch_parent: ${batchID}` && !line.startsWith(`import_collection_${batchID}:`) && !line.startsWith(`import_related_existing_${batchID}:`)).join("\n"));await parent.save({skipSelect:true});
     this.utils.clearLibraryItemCache();return 0;
   }

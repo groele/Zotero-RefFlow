@@ -74,3 +74,12 @@ cards-batch-more = Mostra altri errori ({ $remaining } rimanenti)
 
 cards-batch-storage-error = Impossibile migrare la cronologia delle importazioni
 cards-batch-storage-preserved = Il contenuto originale di Extra è stato conservato. Verificare che la cartella dati di Zotero sia scrivibile e riprovare dopo il riavvio.
+
+cards-journal-inspect = Controlla registro locale
+cards-journal-committed = Gli elementi sono salvati, ma il registro locale deve essere finalizzato. Riprova il salvataggio del registro senza importare di nuovo.
+cards-journal-unknown = Il registro richiede un controllo. Conserva il file e il backup; le prove del commit non bastano per il recupero automatico.
+cards-journal-ready = Il registro locale è disponibile.
+cards-journal-backup = È conservata una copia precedente del registro. Abbinala al backup della stessa libreria.
+cards-journal-copy = Copia diagnostica anonima
+cards-journal-retry = Completa salvataggio registro
+cards-batch-attempt = Tentativo { $number }
