@@ -17,6 +17,7 @@ await test('real arXiv metadata uses the native XML parser',async()=>{
  const info=await views.utils.API.getArXivInfo('1706.03762');check(info?.title==='Attention Is All You Need','Wrong arXiv metadata');check(info.authors.length>=8 && info.year==='2017','Authors/year missing');return {title:info.title,authors:info.authors.length,year:info.year};
 });
 await test('real public paper PDF is extracted by native Zotero Reader',async()=>{
+ check(await IOUtils.exists(cfg.fixtures+'\\real-arxiv-1706.03762.pdf'),'Missing public PDF fixture; run python scripts/prepare-online-fixture.py');
  const parent=new Zotero.Item('journalArticle');parent.setField('title','Public arXiv PDF regression');await parent.saveTx();const attachment=await Zotero.Attachments.importFromFile({file:cfg.fixtures+'\\real-arxiv-1706.03762.pdf',parentItemID:parent.id});const reader=await Zotero.Reader.open(attachment.id,undefined,{openInBackground:true});
  const refs=await views.utils.PDF.getReferences(reader,false,{notify:false});const diagnostics=views.utils.PDF.getDiagnostics(reader);check(refs.length>=20,'Too few references in real paper: '+refs.length);check(diagnostics.headingFound,'Real reference heading not found');return {source:'https://arxiv.org/pdf/1706.03762',references:refs.length,diagnostics};
 });

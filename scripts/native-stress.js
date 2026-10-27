@@ -110,7 +110,7 @@ await test('real SQLite batch import deduplicates and rollback preserves existin
   parent.addRelatedItem(existing);existing.addRelatedItem(parent);await parent.saveTx();await existing.saveTx();
   const title='Distributed network cancellation invariants '+stamp;
   const refs=[{title:existing.getField('title'),identifiers:{}},{title,authors:['A <B>'],identifiers:{}},{title,identifiers:{}}];
-  const result=await views.importReferences(parent,refs,{downloadOA:false});
+  const result=await views.importReferences(parent,refs,{downloadOA:false,allowMetadataWithoutDOI:true});
   check(result.importedCount===1 && result.existingCount===2 && !result.failedCount,JSON.stringify(result));
   const colID=result.subCollection.id;const added=refs[1]._item;
   check(existing.getCollections().includes(colID),'Existing item missing in batch collection');check(parent.relatedItems.includes(added.key),'New item relation missing');
@@ -137,10 +137,10 @@ await test('late translator results and concurrent imports cannot create duplica
   Zotero.Translate.Search=class{setIdentifier(){} async getTranslators(){return [{}]}setTranslator(){}async translate(options){metadataOnly=metadataOnly && options.libraryID===false && options.saveAttachments===false;await delay(180);return [{itemType:'journalArticle',title:'Late translator metadata'}];}};
   const doi='10.1234/fault-'+stamp;
   try{const refs1=[{title:'Native bounded translation fixture '+stamp,identifiers:{DOI:doi}}],refs2=[{title:refs1[0].title,identifiers:{DOI:doi}}];
-    const results=await Promise.all([views.importReferences(parent,refs1,{downloadOA:false,createSubCollection:false,createManifestNote:false,translatorTimeoutMs:30}),views.importReferences(parent,refs2,{downloadOA:false,createSubCollection:false,createManifestNote:false,translatorTimeoutMs:30})]);await delay(220);
+    const results=await Promise.all([views.importReferences(parent,refs1,{downloadOA:false,createSubCollection:false,createManifestNote:false,translatorTimeoutMs:30,signal:new window.AbortController().signal}),views.importReferences(parent,refs2,{downloadOA:false,createSubCollection:false,createManifestNote:false,translatorTimeoutMs:30,signal:new window.AbortController().signal})]);await delay(220);
     const search=new Zotero.Search();search.libraryID=parent.libraryID;search.addCondition('DOI','is',doi);const ids=await search.search();
-    check(metadataOnly,'Translator was allowed to save to the library');check(ids.length===1,`Late translator produced ${ids.length} items`);check(results[0].batchId!==results[1].batchId,'Batch IDs collided');check(results.reduce((n,r)=>n+r.importedCount,0)===1,'Concurrent imports created twice');
-    await views.rollbackReferences(parent,results[1].batchId);await views.rollbackReferences(parent,results[0].batchId);return {databaseItemsBeforeRollback:ids.length,metadataOnly,batches:2};
+    check(metadataOnly,'Translator was allowed to save to the library');check(ids.length===0,`Timed-out translator produced ${ids.length} items`);check(results[0].batchId!==results[1].batchId,'Batch IDs collided');check(results.every(r=>r.importedCount===0&&r.failedCount===1&&r.failures[0].code==='timeout'),'Timed-out imports did not fail explicitly');
+    await views.rollbackReferences(parent,results[1].batchId);await views.rollbackReferences(parent,results[0].batchId);return {databaseItemsBeforeRollback:ids.length,metadataOnly,batches:2,timeoutFailures:2};
   }finally{Zotero.Translate.Search=original;}
 });
 
@@ -167,7 +167,7 @@ await test('actual network requests never exceed concurrency two',async()=>{
 });
 await test('real open-access PDF download is awaited and recorded for rollback',async()=>{
   const ref={title:'Local open access attachment fixture '+stamp,identifiers:{},oaUrl:base+'/pdf?test='+stamp};
-  const result=await views.importReferences(parent,[ref],{downloadOA:true});check(result.downloadCount===1 && !result.downloadFailedCount,JSON.stringify(result));
+  const result=await views.importReferences(parent,[ref],{downloadOA:true,allowMetadataWithoutDOI:true});check(result.downloadCount===1 && !result.downloadFailedCount,JSON.stringify(result));
   const ids=ref._item.getAttachments();check(ids.length===1,'Downloaded attachment missing');const file=await Zotero.Items.getAsync(ids[0]);check(await file.fileExists(),'PDF file missing');
   await views.rollbackReferences(parent,result.batchId);check(file.deleted,'Downloaded attachment remained active after rollback');return {downloadCount:1};
 });

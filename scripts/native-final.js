@@ -43,12 +43,13 @@ await test('same-item native rerender preserves in-flight retrieval and literatu
  api.getDOIInfoByCrossref=async()=>{await delay(150);return {references:[{text:'SAME ITEM RERENDER RESULT',identifiers:{}}]};};
  try{const pending=views.refreshReferences(body,false,false,false,item);await delay(20);const pane=body.closest('item-pane-custom-section');const props=pane._assembleProps(pane._getHookProps());pane._hooks.itemChange(props);pane._hooks.render(props);await pending;check(body._cards===cards,'Same-item rerender rebuilt card controller');check(body.references?.[0]?.text==='SAME ITEM RERENDER RESULT','Same-item rerender discarded result');check(body.querySelectorAll('.reference-item').length===1,'Result not rendered');return {preserved:true};}finally{api.getDOIInfoByCrossref=original;}
 });
-await test('native single-row import saves one item and one relation',async()=>{
+await test('native single-row action reuses a local DOI match',async()=>{
   const item=window.ZoteroPane.getSelectedItems()[0];const body=window.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');
-  const ref={title:'Single row layout import '+Date.now(),text:'Single row independent native layout fixture',identifiers:{}};
+  const local=new Zotero.Item('journalArticle');local.setField('title','Single row layout import '+Date.now());local.setField('DOI','10.1234/layout-import-'+Date.now());await local.saveTx();
+  const ref={title:local.getField('title'),text:'Single row independent native layout fixture',identifiers:{DOI:local.getField('DOI')}};
   await body._cards.render([ref],()=>true);body.querySelector('.reference-action').click();
   for(let i=0;i<100&&!ref._item;i++)await delay(50);
-  check(ref._item && item.relatedItems.includes(ref._item.key),'Single-row import did not link to the bound item');return {saved:true};
+  check(ref._item?.id===local.id && !local.deleted,'Single-row action did not reuse the local DOI match');return {reused:true,localID:local.id};
 });
 await test('local library status and metadata hover require no enrichment requests',async()=>{
   // IntersectionObserver is throttled in hidden/minimized native windows.

@@ -53,7 +53,8 @@ export default class ReferenceCards {
     this.cleanup.push(()=>search.removeEventListener("input",onInput),()=>search.removeEventListener("keydown",onKeyDown),()=>grid.removeEventListener("contextmenu",onContextMenu));
   }
   dispose(){if(this.disposed)return;this.disposed=true;this.cleanup.forEach(cleanupSync);this.cleanup=[];for(const menu of this.menus)cleanupSync(()=>menu.remove());this.menus.clear();globalThis.clearTimeout(this.searchTimer);this.clear();}
-  clear(){this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.listCurrent=undefined;this.windowStart=0;this.virtualCount=0;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.tip?.clear();this.tip=undefined;this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
+  clear(){this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.listCurrent=undefined;this.windowStart=0;this.virtualCount=0;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.clearTip();this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
+  private clearTip(){const tip=this.tip;this.tip=undefined;if(tip){globalThis.clearTimeout(tip.tipTimer);tip.clear();}}
   private drainMatches(){while(this.matchActive<4&&this.matchQueue.length){const match=this.matchQueue.shift()!;this.matchActive++;void match().catch(error=>ztoolkit.log(error)).finally(()=>{this.matchActive--;if(!this.disposed)this.drainMatches();});}}
   private actionIcon(action:HTMLButtonElement,state:'add'|'open'|'busy'|'error',label:string){
     const doc=action.ownerDocument,ns='http://www.w3.org/2000/svg';
@@ -205,8 +206,8 @@ export default class ReferenceCards {
       });
       action.setAttribute("aria-label",action.title);
       row.style.opacity=ref._item?"1":String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`)||"1");
-      title.addEventListener("mouseenter",()=>{if(!Zotero.Prefs.get(`${config.addonRef}.isShowTip`))return;globalThis.clearTimeout(this.hoverTimer);this.hoverTimer=globalThis.setTimeout(()=>{if(!current()||!row.isConnected)return;this.tip=this.views.showTipUI(title.getBoundingClientRect() as any,{...ref,primaryVenue:ref.publicationVenue,identifiers:ref.identifiers||{}} as any,"left",ref.identifiers?.DOI,true,this.body.ownerDocument.defaultView!);},Math.max(100,Math.min(2000,Number(Zotero.Prefs.get(`${config.addonRef}.showTipAfterMillisecond`))||233)));});
-      title.addEventListener("mouseleave",()=>{globalThis.clearTimeout(this.hoverTimer);if(this.tip){globalThis.clearTimeout(this.tip.tipTimer);this.tip.tipTimer=globalThis.setTimeout(()=>this.tip?.clear(),this.tip.removeTipAfterMillisecond);}});
+      title.addEventListener("mouseenter",()=>{if(!Zotero.Prefs.get(`${config.addonRef}.isShowTip`))return;globalThis.clearTimeout(this.hoverTimer);this.hoverTimer=globalThis.setTimeout(()=>{if(!current()||!row.isConnected)return;this.clearTip();this.tip=this.views.showTipUI(title.getBoundingClientRect() as any,{...ref,primaryVenue:ref.publicationVenue,identifiers:ref.identifiers||{}} as any,"left",ref.identifiers?.DOI,true,this.body.ownerDocument.defaultView!);},Math.max(100,Math.min(2000,Number(Zotero.Prefs.get(`${config.addonRef}.showTipAfterMillisecond`))||233)));});
+      title.addEventListener("mouseleave",()=>{globalThis.clearTimeout(this.hoverTimer);if(this.tip){const tip=this.tip;globalThis.clearTimeout(tip.tipTimer);tip.tipTimer=globalThis.setTimeout(()=>{if(this.tip===tip)this.clearTip();},tip.removeTipAfterMillisecond);}});
       marker.append(number);citation.append(marker,text);heading.append(dot,title,action);content.append(heading,metadata);row.append(citation,content);
       row.addEventListener("click",event=>this.select(index,event));
       row.addEventListener("dblclick",()=>this.open(ref));
@@ -218,10 +219,16 @@ export default class ReferenceCards {
         else if(event.key==="Enter"){event.preventDefault();this.open(ref);}
         else if(event.key==="Escape"){event.preventDefault();this.selected.clear();this.updateSelection();}
         else if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="c"){event.preventDefault();this.views.utils.copyText(this.subset().map(ref=>ref.text||ref.title).join("\n"),false);}
-        else if(["ArrowUp","ArrowDown"].includes(event.key)){
+        else if(event.key===" "){event.preventDefault();this.select(index,event);}
+        else if(["ArrowUp","ArrowDown","Home","End","PageUp","PageDown"].includes(event.key)){
           event.preventDefault();const visible=this.virtual?this.filtered():this.visible().map(node=>(node as any).reference);
-          const refNext=visible[Math.max(0,Math.min(visible.length-1,visible.indexOf(ref)+(event.key==='ArrowDown'?1:-1)))];
-          const focus=()=>{const next=this.rows.find(node=>(node as any).reference===refNext);if(next){next.focus();this.select(this.refs.indexOf(refNext),event);}};
+          const viewport=Math.min(this.grid.clientHeight,(this.grid.ownerDocument.defaultView?.innerHeight||this.grid.clientHeight)*0.65);
+          const height=this.virtual?this.rowHeight:Math.max(1,row.getBoundingClientRect().height);
+          const position=visible.indexOf(ref),page=Math.max(1,Math.floor(viewport/height));
+          const target=event.key==='Home'?0:event.key==='End'?visible.length-1:position+(event.key==='PageDown'?page:event.key==='PageUp'?-page:event.key==='ArrowDown'?1:-1);
+          const refNext=visible[Math.max(0,Math.min(visible.length-1,target))];
+          if(!refNext)return;
+          const focus=()=>{const next=this.rows.find(node=>(node as any).reference===refNext);if(next){next.focus({preventScroll:true});next.scrollIntoView({block:"nearest"});this.select(this.refs.indexOf(refNext),event);}};
           if(this.virtual&&!this.rows.some(node=>(node as any).reference===refNext)&&this.listCurrent){this.windowStart=Math.max(0,visible.indexOf(refNext)-8);this.grid.scrollTop=this.windowStart*this.rowHeight;void this.render(this.refs,this.listCurrent).then(focus);}else focus();
         }
       });
