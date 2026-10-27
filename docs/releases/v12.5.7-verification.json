@@ -1,0 +1,24 @@
+{
+  "version": "12.5.7",
+  "sha256": "dfdf026ebd06286f9439d92a9872aa5721996f01a345d89b928defbc5b1daa08",
+  "bytes": 194453,
+  "zipMembers": 34,
+  "unitTests": 321,
+  "nativeLeafCounts": {
+    "journal": 11,
+    "results": 17,
+    "keyboard": 12,
+    "alignment": 19,
+    "lifecycle": 8,
+    "protection": 31,
+    "ui": 17,
+    "details": 8,
+    "doi": 57
+  },
+  "nativeLeafTotal": 180,
+  "nativeUpgrade": 4,
+  "actualRestart": 4,
+  "host": "Windows Zotero 10.0.6",
+  "mainProfileInstalled": false,
+  "automaticUpdateEndToEnd": false
+}

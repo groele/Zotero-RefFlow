@@ -4,6 +4,8 @@ Applies to Zotero RefFlow. Established: 2026-10-22.
 
 ## Version and tag identity
 
+- User policy (2026-10-27): every change session increments the add-on version, including changes to source, tests, documentation or build configuration. Use at least a patch and apply SemVer for features or incompatible changes; read-only audits do not bump. One target version covers the implementation and validation iterations of a session. Keep version preparation, publication and installation distinct.
+
 - Stable tags use exactly `vMAJOR.MINOR.PATCH`, for example `v12.6.0`. Use a lowercase `v`, three decimal components, and no leading zeroes, project prefixes, spaces or build metadata.
 - Prereleases use `vMAJOR.MINOR.PATCH-alpha.N`, `-beta.N` or `-rc.N`, where N is a positive integer. Mark their GitHub Releases as prereleases.
 - Package and manifest version fields omit the `v`. Their version must match the release tag. Preserve each plugin's independent version history.

@@ -13,3 +13,7 @@
 - Use an isolated Zotero profile and independent library for write tests. Never substitute a build or mock response for native runtime verification.
 - Preserve existing changes. This checkout contains work predating the current task and may track the upstream repository rather than the derivative release repository.
 - Use `REFFLOW_NO_PROMOTE=1` (the legacy `REFNEXUS_NO_PROMOTE=1` alias also works) for evaluation builds. Do not promote packages or update online release metadata without a release task.
+
+## Version changes
+
+- User policy (2026-10-27): every work session that changes source, tests, documentation or build configuration must increment the add-on version, at least a patch; apply SemVer for feature or incompatible changes. Read-only audits do not require a bump. Use one target version for the fixes and validation iterations of the same session. Synchronize authoritative metadata before committing; distinguish version preparation from publication and installation.

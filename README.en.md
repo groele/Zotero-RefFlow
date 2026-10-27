@@ -1,4 +1,4 @@
-> **12.5.6**: Store batch history in local JSON while preserving journal metrics and manual Extra text. Includes failure details, targeted retries and rollback safeguards. [Release notes](docs/releases/v12.5.6.md).
+> **12.5.7** hardens batch-journal identity, committed-write recovery, library isolation and retry history. [Release notes](docs/releases/v12.5.7.md).
 
 # Zotero RefFlow
 
@@ -11,7 +11,7 @@ Discover references, citing works, and related research.
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![Release](https://img.shields.io/badge/version-12.5.6-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.5.6) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.6/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
+[![Release](https://img.shields.io/badge/version-12.5.7-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.5.7) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.7/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
 
 [Overview](#overview) · [Installation and updates](#installation) · [Quick start](#quick-start) · [Key features](#features) · [Settings](#settings) · [Data, sync, and services](#data) · [Compatibility and validation](#compatibility) · [Troubleshooting](#troubleshooting) · [Development and documentation](#development) · [The Flow series](#series) · [Origin and license](#license)
 
@@ -27,7 +27,7 @@ Install this add-on independently and combine it with other Flow products as nee
 
 ## Installation and updates
 
-1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.6/zotero-refflow.xpi) (add-on version **12.5.6**), not the Source code ZIP.
+1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v12.5.7/zotero-refflow.xpi) (add-on version **12.5.7**), not the Source code ZIP.
 2. In Zotero, open **Tools → Plugins/Add-ons**, then choose **Install Add-on From File** from the gear menu.
 3. Select the XPI, complete installation, and restart if requested.
 
@@ -75,9 +75,9 @@ Configure service credentials, refresh behavior, tips, and saving in Zotero sett
 
 | Item | Scope |
 |---|---|
-| Current add-on version | 12.5.6 |
+| Current add-on version | 12.5.7 |
 | Declared Zotero range | `10.0.6` through `11.*` |
-| Evidence boundary | 310 unit tests and 118 isolated Windows Zotero 10.0.6 native scenarios passed, including restart checks for the exact production XPI. Provider responses were controlled; main-profile installation, automatic-update installation, Zotero 11 and other systems were not verified. |
+| Evidence boundary | 321 unit tests and 180 isolated Windows Zotero 10.0.6 native leaf scenarios passed, plus four upgrade and four process-restart checks. Live DOI and controlled fault cases are distinguished; main-profile installation, automatic-update installation, Zotero 11 and other systems were not verified. |
 
 Add-on and Zotero versions are separate. Declared compatibility does not establish testing on every host, operating system or service. This patch validates the targeted behaviors listed above, not all plugin workflows or main-profile installation.
 
@@ -106,7 +106,7 @@ npm run build-prod
 
 - [数据源与接口规范 / Dataflow and API](docs/DATAFLOW-AND-API-SPEC.md)
 - [修复记录 / Repair record](docs/REPAIRS-2026-10-15.md)
-- [版本说明 / Release notes](docs/releases/v12.5.6.md)
+- [版本说明 / Release notes](docs/releases/v12.5.7.md)
 - [产品简介 / Product profile](docs/brand/PRODUCT.md)
 - [品牌规范 / Brand guide](docs/brand/BRAND.md)
 - [README 模板 / README template](docs/brand/README-TEMPLATE.md)

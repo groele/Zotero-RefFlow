@@ -1,3 +1,18 @@
+# Zotero RefFlow 12.5.7
+
+Released 2026-10-27. Packages the journal-hardening fixes from a722376. [Validation and checksum](releases/v12.5.7.md).
+
+- Verify stable keys for live batch objects, including uses-only identities, attachment parents and relation endpoints; reject missing, changed or cross-library evidence.
+- Preserve a previous journal snapshot. After a known database commit, retry journal finalization without repeating database writes. Offer localized status and sanitized diagnostics; unknown pending evidence after restart remains protected and is never cleared by guessing.
+- Isolate malformed records with a known library identity; retain global refusal for damaged file envelopes and unknown pending transactions.
+- Skip read-only and identical journal writes. Return rollback outcomes per call while retaining the previous numeric API.
+- Retry failed migration in the same window, retain each import attempt, and clear stale recovery controls after rollback. Await started attachment workers before leaving a journal-finalization failure.
+- Require a version increment for every change session, including source, tests, documentation and build configuration.
+
+The local journal remains paired with its library and does not sync through Zotero. Unknown pending recovery, other operating systems, Zotero 11 runtime, main-profile installation and end-to-end automatic-update scheduling are not claimed as validated.
+
+---
+
 # Zotero RefFlow 12.5.5
 
 Released 2026-10-27. Version-only re-release requested by the maintainer. Runtime functionality is unchanged from 12.5.4: DOI-native import and duplicate protection, rollback safeguards, and aligned card icons are retained. Installer version, preferences download link and automatic update metadata advance to 12.5.5.
