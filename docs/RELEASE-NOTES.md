@@ -1,3 +1,11 @@
+# Zotero RefFlow 12.5.5
+
+Released 2026-10-27. Version-only re-release requested by the maintainer. Runtime functionality is unchanged from 12.5.4: DOI-native import and duplicate protection, rollback safeguards, and aligned card icons are retained. Installer version, preferences download link and automatic update metadata advance to 12.5.5.
+
+The 301 unit tests and production build are rerun for this package. The 140 native functional scenarios belong to the unchanged 12.5.4 implementation; they are historical coverage, not a new 12.5.5 full-suite result. This package receives an isolated Windows Zotero 10.0.6 upgrade and restart smoke check. Main-profile installation, Zotero 11 and end-to-end automatic-update scheduling are not validated.
+
+---
+
 # Zotero RefFlow 12.5.4
 
 Released 2026-10-26. [Full release notes and checksum](releases/v12.5.4.md).
