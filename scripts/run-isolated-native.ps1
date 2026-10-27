@@ -70,8 +70,13 @@ user_pref("extensions.zotero.refflow.sortBy", "Original");
 Set-Content -LiteralPath (Join-Path $profile 'user.js') -Value $prefs -Encoding utf8NoBOM
 $ownedFaultServer=$null
 $process=$null
+$faultServerMutex=$null
+$ownsFaultServerMutex=$false
 try {
   if ($WithFaultServer) {
+    $faultServerMutex=[Threading.Mutex]::new($false,'RefFlowNativeFaultServer18796')
+    try { $ownsFaultServerMutex=$faultServerMutex.WaitOne(0) } catch [Threading.AbandonedMutexException] { $ownsFaultServerMutex=$true }
+    if (-not $ownsFaultServerMutex) { throw 'RefFlow fault-server suite is already running. Run -WithFaultServer suites sequentially to preserve server ownership.' }
     $faultServerReady=$false
     try { $health=Invoke-RestMethod -Uri 'http://127.0.0.1:18796/health' -TimeoutSec 1; if ($health.service -ne 'refflow-native-fault-server') { throw 'Port 18796 is occupied by another service' }; $faultServerReady=$true } catch {
       if ($_.Exception.Message -like '*occupied by another service*') { throw }
@@ -126,4 +131,5 @@ try {
         }
     } catch { Write-Warning "Unable to inspect remaining isolated-profile processes: $($_.Exception.Message)" }
   }
+  if ($faultServerMutex) { if ($ownsFaultServerMutex) { $faultServerMutex.ReleaseMutex() }; $faultServerMutex.Dispose() }
 }

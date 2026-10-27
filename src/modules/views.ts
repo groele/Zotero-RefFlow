@@ -70,6 +70,14 @@ export default class Views {
           .refflow-card-search {box-sizing:border-box;width:100%;margin:4px 0 6px;padding:5px 8px;border:1px solid var(--material-border,#ccc);border-radius:4px;background:var(--material-background,#fff);color:inherit;}
           .refflow-status {font-size:.85em;opacity:.75;border:0!important;padding:0!important;min-height:18px;}
           .zotero-editpane-related[data-refflow-item-id] .reference-item {display:flex;flex-direction:column;gap:4px;padding:6px 4px;border-radius:4px;cursor:default;min-width:0;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-batch-results {margin-block:8px;padding:8px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:7px;background:color-mix(in srgb,currentColor 2%,transparent);font:inherit;overflow-wrap:anywhere;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-batch-results summary {cursor:pointer;font-weight:600;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-batch-results p {margin-block:6px;font-size:.95em;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-batch-failures {max-height:16em;overflow:auto;padding-inline-start:2.5em;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-batch-failures li {margin-block:8px;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-batch-actions {display:flex;flex-wrap:wrap;gap:6px;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-batch-actions button {font:inherit;max-width:100%;white-space:normal;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-batch-results :focus-visible {outline:2px solid var(--color-accent,#3678b5);outline-offset:2px;}
           .zotero-editpane-related[data-refflow-item-id] .reference-item[hidden] {display:none!important;}
           .zotero-editpane-related[data-refflow-item-id] .reference-item:hover {background:var(--material-mix-quinary,rgba(128,128,128,.08));}
           .zotero-editpane-related[data-refflow-item-id] .reference-item.selected {background:var(--color-accent-10,rgba(60,120,200,.16));}

@@ -2,6 +2,7 @@ import {config} from "../../package.json";
 import {getString} from "../utils/locale";
 import type Views from "./views";
 import type TipUI from "./tip";
+import BatchResults from "./batchResults";
 import {referenceIdentity} from "./referenceIdentity";
 import { cleanupSync } from "../utils/lifecycle";
 import {importFailureText,importErrorText,importSummaryText} from './importErrors';
@@ -9,6 +10,7 @@ import {importFailureText,importErrorText,importSummaryText} from './importError
 /** Compact reference cards and selection behavior aligned with the supplied XPI. */
 export default class ReferenceCards {
   private refs:ItemBaseInfo[]=[];
+  private batchResults:BatchResults;
   private selected=new Set<ItemBaseInfo>();
   private anchor=0;
   private disposed=false;
@@ -35,6 +37,7 @@ export default class ReferenceCards {
   private searchIndex=new WeakMap<ItemBaseInfo,string>();
 
   constructor(private views:Views,private body:HTMLElement,private grid:HTMLElement,private search:HTMLInputElement,listLabel='Reference list') {
+    this.batchResults=new BatchResults(views,body,grid);
     const onInput=()=>{globalThis.clearTimeout(this.searchTimer);this.searchTimer=globalThis.setTimeout(()=>this.filter(),80);};
     const onKeyDown=(event:KeyboardEvent)=>{if(event.key==="Escape"){event.preventDefault();globalThis.clearTimeout(this.searchTimer);search.value="";this.filter();}};
     const onContextMenu=(event:MouseEvent)=>{event.preventDefault();this.menu(event);};
@@ -53,7 +56,7 @@ export default class ReferenceCards {
     this.cleanup.push(()=>search.removeEventListener("input",onInput),()=>search.removeEventListener("keydown",onKeyDown),()=>grid.removeEventListener("contextmenu",onContextMenu));
   }
   dispose(){if(this.disposed)return;this.disposed=true;this.cleanup.forEach(cleanupSync);this.cleanup=[];for(const menu of this.menus)cleanupSync(()=>menu.remove());this.menus.clear();globalThis.clearTimeout(this.searchTimer);this.clear();}
-  clear(){this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.listCurrent=undefined;this.windowStart=0;this.virtualCount=0;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.clearTip();this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
+  clear(preserveResults=false){if(!preserveResults)this.batchResults.clear();this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.listCurrent=undefined;this.windowStart=0;this.virtualCount=0;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.clearTip();this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
   private clearTip(){const tip=this.tip;this.tip=undefined;if(tip){globalThis.clearTimeout(tip.tipTimer);tip.clear();}}
   private drainMatches(){while(this.matchActive<4&&this.matchQueue.length){const match=this.matchQueue.shift()!;this.matchActive++;void match().catch(error=>ztoolkit.log(error)).finally(()=>{this.matchActive--;if(!this.disposed)this.drainMatches();});}}
   private actionIcon(action:HTMLButtonElement,state:'add'|'open'|'busy'|'error',label:string){
@@ -142,7 +145,7 @@ export default class ReferenceCards {
     const indices=refs.map((ref,index)=>index).filter(index=>!this.virtual||this.matches(refs[index]));
     const start=this.virtual?Math.min(this.windowStart,Math.max(0,indices.length-60)):0;
     const displayIndices=this.virtual?indices.slice(start,start+60):indices;
-    this.clear();this.search.value=query;this.refs=refs;
+    this.clear(true);this.search.value=query;this.refs=refs;
     this.listCurrent=current;this.windowStart=start;this.virtualCount=indices.length;
     const externalCurrent=current,generation=this.generation;
     current=()=>externalCurrent()&&this.generation===generation&&!this.disposed;
@@ -196,7 +199,7 @@ export default class ReferenceCards {
           const found=await this.views.utils.searchLibraryItem({...ref,_item:undefined},parent.libraryID);
           if(!active())return;
           if(found){ref._item=found;await this.views.utils.selectItemInLibrary(found, this.body.ownerDocument.defaultView!);}
-          else {const result=await this.views.importReferences(parent,[ref],{owner:this.body,collections,downloadOA:false,createSubCollection:false,createManifestNote:false});
+          else {const result=await this.batchResults.run(parent,[ref],{owner:this.body,collections,downloadOA:false,createSubCollection:false,createManifestNote:false},[index+1]);
             if(result.cancelled)throw new Error(getString('cards-import-cancelled'));
             if(result.failedCount)throw new Error(importFailureText(result.failures[0]));
             if(active())this.label().textContent=importSummaryText(result);
@@ -273,7 +276,7 @@ export default class ReferenceCards {
     add("cards-copy-url",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean).join("\n"),false));
     add("cards-open",()=>refsAtOpen.slice(0,20).forEach(ref=>this.open(ref)));
     separator();
-    const importRefs=async(all:boolean)=>{const parent=parentAtOpen;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.views.importReferences(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true});if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}};
+    const importRefs=async(all:boolean)=>{const parent=parentAtOpen;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.batchResults.run(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true},refs.map(ref=>allAtOpen.indexOf(ref)+1));if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}};
     add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
     add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const matches=[...String(parent.getField("extra")||"").matchAll(/^refnexus_batch_parent: (refnexus_batch_\w+)$/gm)];const id=matches[matches.length-1]?.[1];if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}});
     separator();

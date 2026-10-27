@@ -126,3 +126,12 @@ cards-import-error-metadata = DOI 返回的题名为空，未创建条目。请�
 cards-import-error-timeout = DOI 查询超时，未创建条目。请检查网络后重试。
 cards-import-error-destination = 目标文库、分类或起始文献已不可用，请重新选择后重试。
 cards-import-error-lookup = Zotero DOI 查询失败，未创建条目。请检查网络及翻译器后重试。
+
+cards-batch-results = 导入结果
+cards-batch-copy-doi = 复制失败 DOI
+cards-batch-retry = 仅重试失败文献
+cards-batch-no-doi = 无可用 DOI
+cards-batch-copied = 已复制失败 DOI
+cards-batch-retry-hint = 仅重试文献导入失败项；已保存文献保留，停止后未尝试的文献不在本次重试范围内。
+cards-batch-pdf-hint = PDF 下载失败单独统计；本操作不会重试已保存文献的 PDF 下载。
+cards-batch-more = 显示更多失败项（剩余 { $remaining } 项）

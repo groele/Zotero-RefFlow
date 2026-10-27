@@ -126,3 +126,12 @@ cards-import-error-metadata = The DOI lookup returned an empty title; no item wa
 cards-import-error-timeout = The DOI lookup timed out; no item was created. Check the connection and retry.
 cards-import-error-destination = The target library, collection or origin item is unavailable. Select an available destination and retry.
 cards-import-error-lookup = Zotero DOI lookup failed; no item was created. Check the connection and translators, then retry.
+
+cards-batch-results = Import results
+cards-batch-copy-doi = Copy failed DOIs
+cards-batch-retry = Retry failed references
+cards-batch-no-doi = No DOI available
+cards-batch-copied = Failed DOIs copied
+cards-batch-retry-hint = Only failed reference imports are retried. Saved references are kept; stopped, unattempted references are not included.
+cards-batch-pdf-hint = PDF download failures are separate. This action does not retry PDFs for references already saved.
+cards-batch-more = Show more failures ({ $remaining } remaining)

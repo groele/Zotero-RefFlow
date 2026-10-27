@@ -62,3 +62,12 @@ cards-import-error-metadata = Titolo vuoto nella risposta DOI; nessun elemento c
 cards-import-error-timeout = Ricerca DOI scaduta; nessun elemento creato. Controlla la connessione e riprova.
 cards-import-error-destination = Biblioteca, raccolta o elemento di origine non disponibile. Seleziona una destinazione valida e riprova.
 cards-import-error-lookup = Ricerca DOI di Zotero non riuscita; nessun elemento creato. Controlla connessione e traduttori, poi riprova.
+
+cards-batch-results = Risultati importazione
+cards-batch-copy-doi = Copia DOI non riusciti
+cards-batch-retry = Riprova riferimenti non riusciti
+cards-batch-no-doi = DOI non disponibile
+cards-batch-copied = DOI non riusciti copiati
+cards-batch-retry-hint = Vengono riprovate solo le importazioni non riuscite. I riferimenti salvati restano; quelli non tentati dopo lo stop sono esclusi.
+cards-batch-pdf-hint = Gli errori PDF sono separati. Questa azione non riprova i PDF dei riferimenti già salvati.
+cards-batch-more = Mostra altri errori ({ $remaining } rimanenti)
