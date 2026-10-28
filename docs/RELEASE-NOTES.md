@@ -1,3 +1,9 @@
+# Zotero RefFlow 12.8.1
+
+Released 2026-10-28. Slightly enlarge the feather artwork within the existing 48×48 and 96×96 transparent icon canvases; canvas dimensions, colors, and design remain unchanged. See [release verification](releases/v12.8.1.md).
+
+---
+
 # Zotero RefFlow 12.5.7
 
 Released 2026-10-27. Packages the journal-hardening fixes from a722376. [Validation and checksum](releases/v12.5.7.md).

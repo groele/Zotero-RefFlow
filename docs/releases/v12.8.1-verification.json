@@ -1,0 +1,8 @@
+{
+  "version": "12.8.1",
+  "addonID": "refflow@groele.github.io",
+  "bytes": 206360,
+  "sha256": "5c4146694891cff8535511e795016169008658ea3fbe6bb23db53765195be934",
+  "updateURL": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json",
+  "downloadURL": "https://github.com/groele/Zotero-RefFlow/releases/download/v12.8.1/zotero-refflow.xpi"
+}
