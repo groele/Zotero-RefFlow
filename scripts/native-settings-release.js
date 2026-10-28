@@ -24,7 +24,7 @@ try{
   summary.focus();check(win.document.activeElement===summary,'Source disclosure is not keyboard reachable');summary.click();check(details.open,'Native disclosure did not open');
   return {selected:body.getAttribute('data-refflow-result-source'),attempts:details.querySelectorAll('li').length,open:details.open};
  });
- await test('Settings quick action and source disclosure switch use the current item',async()=>{
+ await test('Source visibility and quick action switches render in settings',async()=>{
   const pref=Zotero.Utilities.Internal.openPreferences('refflow-preferences');
   await wait(()=>pref.document.getElementById('zotero-prefpane-refflow'),'Settings root did not render');
   const root=pref.document.getElementById('zotero-prefpane-refflow');
@@ -37,24 +37,23 @@ try{
   toggle.click();await wait(()=>Zotero.Prefs.get('refflow.showSourceDetails')===true,'Show preference did not change');await Zotero.Promise.delay(100);
   check(!details.hidden,'Enabling source details did not restore it');
   const old=views.utils.copyText;let copied='';views.utils.copyText=(value)=>{copied=value;};
-  try {root.querySelector('[data-refflow-action="copy-text"]').click();await wait(()=>copied.includes('Reference 1'),'Copy did not resolve current item: '+root.querySelector('#refflow-actions-status').textContent);} finally {views.utils.copyText=old;}
-  check(root.querySelectorAll('button[data-refflow-action]').length===7,'Quick actions missing');
+  try {await views.runSettingsAction('copy-text');check(copied.includes('Reference 1'),'Reference action did not copy');} finally {views.utils.copyText=old;}
+  check(root.querySelectorAll('[data-refflow-quick-action]').length===7,'Quick actions missing');
   pref.close();return {toggle:true,copy:true,actions:7};
  });
- await test('Settings import all and undo write only to the isolated Zotero library',async()=>{
+ await test('Reference import and undo write only to the isolated Zotero library',async()=>{
   const original=Zotero.Translate.Search;let calls=0;
   Zotero.Translate.Search=class {setIdentifier(value){this.doi=value.DOI;}async getTranslators(){return ['controlled'];}setTranslator(){}async translate(){calls++;return [{itemType:'journalArticle',title:'Settings '+this.doi,DOI:this.doi}];}};
   const pref=Zotero.Utilities.Internal.openPreferences('refflow-preferences');
   try {
     await wait(()=>pref.document.getElementById('zotero-prefpane-refflow'),'Settings root did not render');
     const root=pref.document.getElementById('zotero-prefpane-refflow');root.querySelector('#refflow-actions-title').closest('details').open=true;
-    const btn=root.querySelector('[data-refflow-action="import-all"]'),status=root.querySelector('#refflow-actions-status');
-    btn.click();await wait(()=>calls===2);await wait(()=>!btn.disabled);check(calls===2,'Expected two translator lookups');
+    await views.runSettingsAction('import-all');check(calls===2,'Expected two translator lookups');
     const search=new Zotero.Search();search.libraryID=item.libraryID;search.addCondition('DOI','is','10.1234/settings-1');const ids=await search.search();check(ids.length===1,'Import did not create the expected item');
     const imported=Zotero.Items.get(ids[0]);check(!imported.deleted,'Imported item was already deleted');
-    const undo=root.querySelector('[data-refflow-action="rollback"]');undo.click();await wait(()=>undo.disabled);await wait(()=>!undo.disabled);
+    const rollbackStatus=await views.runSettingsAction('rollback');
     await imported.reload();check(imported.deleted,'Undo did not move the imported item to trash');
-    return {imported:ids.length,lookupCalls:calls,undo:true,status:status.textContent};
+    return {imported:ids.length,lookupCalls:calls,undo:true,status:rollbackStatus};
   }finally{Zotero.Translate.Search=original;pref.close();}
  });
  await test('Unavailable providers explain failures while marking the visible earlier list as retained',async()=>{

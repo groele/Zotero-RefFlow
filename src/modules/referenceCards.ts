@@ -302,15 +302,18 @@ export default class ReferenceCards {
     } else throw new Error('Unknown RefFlow action');
     return getString('cards-settings-done');
   }
+  public closeQuickMenu(){for(const menu of this.menus){(menu as any).hidePopup?.();menu.remove();}this.menus.clear();}
   menu(event?:MouseEvent){
     if(this.disposed)return;
     const parentAtOpen=this.parent(),refsAtOpen=this.subset(),allAtOpen=[...this.refs],hasSelectionAtOpen=this.selected.size>0;
     const collectionsAtOpen=this.views.utils.importCollections(parentAtOpen,this.body.ownerDocument.defaultView!);
     const samePanel=()=>!this.disposed&&this.body.isConnected&&Number(this.body.getAttribute("data-refflow-item-id"))===parentAtOpen.id;
     const doc:any=this.body.ownerDocument,popup=doc.createXULElement("menupopup") as any;popup.setAttribute("data-refflow-menu","references");
+    const actionKeys:Record<string,string>={"cards-copy-text":"copy-text","cards-copy-doi":"copy-doi","cards-copy-url":"copy-url","cards-open":"open","cards-import-selected":"import-selected","cards-import-all":"import-all","relatedbox-rollback":"rollback"};
+    const enabled=(key:string)=>!actionKeys[key] || Zotero.Prefs.get(`${config.addonRef}.quickAction.${actionKeys[key]}`)!==false;
     let target=popup;
-    const add=(key:string,action:()=>any,checked?:boolean)=>{const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(checked!==undefined){item.setAttribute("type","checkbox");item.checked=checked;}item.addEventListener("command",()=>Promise.resolve().then(()=>{if(samePanel())return action();}).catch(error=>{if(samePanel()){this.label().textContent=importErrorText(error);if(error instanceof JournalCommitPendingError||error instanceof JournalUnavailableError)void this.journalStatus.show();}ztoolkit.log(error);}));target.append(item);};
-    const submenu=(key:string)=>{const menu=doc.createXULElement("menu");menu.setAttribute("label",getString(key));const child=doc.createXULElement("menupopup");menu.append(child);popup.append(menu);return child;};
+    const add=(key:string,action:()=>any,checked?:boolean)=>{if(!enabled(key))return;const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(actionKeys[key])item.setAttribute("data-refflow-quick-action",actionKeys[key]);if(checked!==undefined){item.setAttribute("type","checkbox");item.checked=checked;}item.addEventListener("command",()=>Promise.resolve().then(()=>{if(samePanel()&&enabled(key))return action();}).catch(error=>{if(samePanel()){this.label().textContent=importErrorText(error);if(error instanceof JournalCommitPendingError||error instanceof JournalUnavailableError)void this.journalStatus.show();}ztoolkit.log(error);}));target.append(item);};
+    const submenu=(key:string)=>{const menu=doc.createXULElement("menu");menu.setAttribute("label",getString(key));menu.setAttribute("data-refflow-group",key);const child=doc.createXULElement("menupopup");menu.append(child);popup.append(menu);return child;};
     target=submenu('cards-menu-copy');
     add("cards-copy-text",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.text||ref.title).join("\n"),false));
     add("cards-copy-doi",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.identifiers?.DOI).filter(Boolean).join("\n"),false));
@@ -329,6 +332,7 @@ export default class ReferenceCards {
     target=submenu('cards-menu-more');
     add("relatedbox-download-oa",()=>Zotero.Prefs.set(`${config.addonRef}.downloadOA`,!Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)));
     add('cards-journal-inspect',()=>this.journalStatus.show());
+    for(const menu of Array.from(popup.children as HTMLCollectionOf<Element>))if(menu.localName==="menu" && !menu.querySelector("menuitem"))menu.remove();
     this.menus.add(popup);
     popup.addEventListener("popuphidden",(event:Event)=>{if(event.target!==popup)return;this.menus.delete(popup);popup.remove();});doc.documentElement.append(popup);
     if(event)popup.openPopupAtScreen(event.screenX,event.screenY,true);else popup.openPopup(this.body.closest("item-pane-custom-section"),"after_end",0,0,false,false);

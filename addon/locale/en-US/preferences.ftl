@@ -77,16 +77,27 @@ semanticScholarKey-label = Semantic Scholar API Key (optional)
 semanticScholarKey-description = Uses the official Graph API. Leave empty for anonymous access; a configured key is sent using x-api-key.
 semanticScholarKey-get = Get / view a free Semantic Scholar API key
 
-caption-actions = Quick actions
+caption-actions = Sidebar quick actions
 showSourceDetails =
     .label = Show source and completeness
-actions-description = Select an item in Zotero or open its PDF. Actions try to load references if needed; copy and open use the sidebar selection or filtered results.
-action-copy-text = Copy reference text
-action-copy-doi = Copy DOI
-action-copy-url = Copy URL
-action-open = Open in Zotero or browser
-action-import-selected = Add selected by DOI
-action-import-all = Add all by DOI
-action-rollback = Undo last import
+actions-description = Choose which actions appear in the sidebar More menu. Turning an action off hides its entry; turning it on restores it. Existing data and imports are not changed.
 
-actions-working = Preparing the current item and running the action…
+
+quick-copy-text =
+    .label = Copy reference text
+quick-copy-doi =
+    .label = Copy DOI
+quick-copy-url =
+    .label = Copy URL
+quick-open =
+    .label = Open in Zotero or browser
+quick-import-selected =
+    .label = Add selected by DOI
+quick-import-all =
+    .label = Add all by DOI
+quick-rollback =
+    .label = Undo last import
+
+about-caption = About Zotero RefFlow
+about-build-date = Build date:
+about-download = Download the published XPI

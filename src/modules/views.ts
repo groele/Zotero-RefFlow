@@ -72,6 +72,7 @@ export default class Views {
     const result=await (body as any)._cards.runSettingsAction(action);
     return getString('cards-settings-target-result',{args:{title:String(item.getField("title")||""),result}});
   }
+  public closeQuickMenus():void {for(const body of this.panes)(body as any)._cards?.closeQuickMenu();}
   public updateSourceDetailsVisibility():void {
     for(const body of this.panes){const details=body.querySelector<HTMLDetailsElement>('#refflow-source-details');if(details)details.hidden=Zotero.Prefs.get(`${config.addonRef}.showSourceDetails`)===false || !details.childElementCount;}
   }

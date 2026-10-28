@@ -113,39 +113,33 @@
     <html:div class="refflow-setting-group-body">
       <checkbox native="true" id="__addonRef__-show-source-details" data-l10n-id="showSourceDetails" preference="extensions.zotero.__addonRef__.showSourceDetails" />
       <html:p data-l10n-id="actions-description"></html:p>
-      <html:span id="__addonRef__-actions-working" data-l10n-id="actions-working" hidden="hidden"></html:span>
-      <html:div class="refflow-setting-input-row refflow-action-buttons">
-        <html:button type="button" data-refflow-action="copy-text" data-l10n-id="action-copy-text"></html:button>
-        <html:button type="button" data-refflow-action="copy-doi" data-l10n-id="action-copy-doi"></html:button>
-        <html:button type="button" data-refflow-action="copy-url" data-l10n-id="action-copy-url"></html:button>
-        <html:button type="button" data-refflow-action="open" data-l10n-id="action-open"></html:button>
-        <html:button type="button" data-refflow-action="import-selected" data-l10n-id="action-import-selected"></html:button>
-        <html:button type="button" data-refflow-action="import-all" data-l10n-id="action-import-all"></html:button>
-        <html:button type="button" data-refflow-action="rollback" data-l10n-id="action-rollback"></html:button>
-      </html:div><html:p id="__addonRef__-actions-status" role="status" aria-live="polite"></html:p>
+      <checkbox native="true" id="__addonRef__-quick-copy-text" data-refflow-quick-action="copy-text" data-l10n-id="quick-copy-text" preference="extensions.zotero.__addonRef__.quickAction.copy-text" />
+      <checkbox native="true" id="__addonRef__-quick-copy-doi" data-refflow-quick-action="copy-doi" data-l10n-id="quick-copy-doi" preference="extensions.zotero.__addonRef__.quickAction.copy-doi" />
+      <checkbox native="true" id="__addonRef__-quick-copy-url" data-refflow-quick-action="copy-url" data-l10n-id="quick-copy-url" preference="extensions.zotero.__addonRef__.quickAction.copy-url" />
+      <checkbox native="true" id="__addonRef__-quick-open" data-refflow-quick-action="open" data-l10n-id="quick-open" preference="extensions.zotero.__addonRef__.quickAction.open" />
+      <checkbox native="true" id="__addonRef__-quick-import-selected" data-refflow-quick-action="import-selected" data-l10n-id="quick-import-selected" preference="extensions.zotero.__addonRef__.quickAction.import-selected" />
+      <checkbox native="true" id="__addonRef__-quick-import-all" data-refflow-quick-action="import-all" data-l10n-id="quick-import-all" preference="extensions.zotero.__addonRef__.quickAction.import-all" />
+      <checkbox native="true" id="__addonRef__-quick-rollback" data-refflow-quick-action="rollback" data-l10n-id="quick-rollback" preference="extensions.zotero.__addonRef__.quickAction.rollback" />
+
     </html:div>
   </html:details>
   <html:details class="refflow-setting-group" aria-labelledby="refflow-about-title">
-    <html:summary><html:span id="refflow-about-title">关于 RefFlow</html:span></html:summary>
+    <html:summary><html:span id="refflow-about-title" data-l10n-id="about-caption"></html:span></html:summary>
     <html:div class="refflow-setting-group-body">
     <html:div class="refflow-setting-subgroup" id="__addonRef__-about">
     <html:p data-l10n-id="about-maintainer"></html:p>
     <html:p data-l10n-id="about-origin"></html:p>
     <html:p data-l10n-id="about-updates"></html:p>
+    <html:p class="refflow-about-build"><html:span data-l10n-id="about-build-date"></html:span> <html:span>__buildTime__</html:span></html:p>
     <html:div class="refflow-about-links">
       <html:a id="__addonRef__-project-link" href="__homepage__" data-l10n-id="about-project"></html:a>
       <html:a id="__addonRef__-issues-link" href="__issuesURL__" data-l10n-id="about-issues"></html:a>
       <html:a href="__upstreamURL__" data-l10n-id="about-upstream"></html:a>
       <html:a id="__addonRef__-release-notes-link" href="__releaseNotesURL__" data-l10n-id="about-release-notes"></html:a>
+      <html:a id="__addonRef__-download-link" href="__downloadURL__" data-l10n-id="about-download"></html:a>
     </html:div>
     </html:div>
     </html:div>
   </html:details>
-  <html:footer class="refflow-pref-footer" aria-label="版本信息">
-    <html:div class="refflow-footer-title">版本信息</html:div>
-    <html:div><html:span class="refflow-footer-label">版本说明</html:span><html:span>设置面板风格统一；一级分组可折叠；版本信息独立列示</html:span></html:div>
-    <html:div><html:span class="refflow-footer-label">构建日期</html:span><html:span>__buildTime__</html:span></html:div>
-    <html:div><html:span class="refflow-footer-label">安装包</html:span><html:a href="https://github.com/groele/Zotero-RefFlow/releases/download/v__buildVersion__/zotero-refflow.xpi">下载 Zotero RefFlow v__buildVersion__ (.xpi)</html:a></html:div>
-    <html:div><html:span class="refflow-footer-label">项目仓库</html:span><html:a href="https://github.com/groele/Zotero-RefFlow">groele/Zotero-RefFlow</html:a></html:div>
-  </html:footer>
+
 </vbox>

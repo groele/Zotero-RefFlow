@@ -41,3 +41,11 @@ pref("extensions.zotero.__addonRef__.downloadOA", false);
 pref("extensions.zotero.__addonRef__.openAlexKey", "");
 
 pref("extensions.zotero.__addonRef__.showSourceDetails", true);
+
+pref("extensions.zotero.__addonRef__.quickAction.copy-text", true);
+pref("extensions.zotero.__addonRef__.quickAction.copy-doi", true);
+pref("extensions.zotero.__addonRef__.quickAction.copy-url", true);
+pref("extensions.zotero.__addonRef__.quickAction.open", true);
+pref("extensions.zotero.__addonRef__.quickAction.import-selected", true);
+pref("extensions.zotero.__addonRef__.quickAction.import-all", true);
+pref("extensions.zotero.__addonRef__.quickAction.rollback", true);

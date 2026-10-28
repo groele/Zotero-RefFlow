@@ -83,16 +83,27 @@ semanticScholarKey-label = Semantic Scholar API Key（可选）
 semanticScholarKey-description = 保留官方 Graph API。未填写时使用匿名访问；填写后用于官方 x-api-key 请求头。
 semanticScholarKey-get = 申请 / 查看免费的 Semantic Scholar API Key
 
-caption-actions = 快捷操作
+caption-actions = 侧栏快捷操作
 showSourceDetails =
     .label = 显示来源与完整性
-actions-description = 请在 Zotero 选中一篇文献或打开其 PDF；如尚未加载，操作会尝试获取参考文献。复制与打开使用侧栏选中或筛选结果。
-action-copy-text = 复制参考文献文本
-action-copy-doi = 复制 DOI
-action-copy-url = 复制 URL
-action-open = 在 Zotero 或浏览器中打开
-action-import-selected = 通过 DOI 添加选中的文献
-action-import-all = 通过 DOI 添加全部文献
-action-rollback = 撤回最近导入
+actions-description = 勾选需要显示在侧栏“更多操作”菜单中的功能。取消勾选后隐藏对应入口，重新开启即可恢复；不会删除数据或撤回已有导入。
 
-actions-working = 正在准备当前文献并执行操作…
+
+quick-copy-text =
+    .label = 复制参考文献文本
+quick-copy-doi =
+    .label = 复制 DOI
+quick-copy-url =
+    .label = 复制 URL
+quick-open =
+    .label = 在 Zotero 或浏览器中打开
+quick-import-selected =
+    .label = 通过 DOI 添加选中的文献
+quick-import-all =
+    .label = 通过 DOI 添加全部文献
+quick-rollback =
+    .label = 撤回最近导入
+
+about-caption = 关于 Zotero RefFlow
+about-build-date = 构建日期：
+about-download = 下载已发布安装包

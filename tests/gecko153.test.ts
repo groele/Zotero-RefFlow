@@ -216,9 +216,9 @@ test("menu command catches a synchronous action failure instead of leaking an ev
   z.Items = { get: () => ({ id: 1 }) };(ztoolkit as any).log = (error: unknown) => logged.push(error);
   (globalThis as any).addon = { data: { locale: { current: { formatMessagesSync: ([{ id }]: any) => [{ value: id }] } } } };
   const created:any[]=[];
-  const doc: any = { createXULElement: () => {
-    const node: any = new Target();created.push(node);node.remove=()=>{node.removed=true;};node.setAttribute = (name: string, value: any) => { node[name] = value; };
-    node.append = (entry: any) => entries.push(entry);node.openPopup = () => {};return node;
+  const doc: any = { createXULElement: (tag:string) => {
+    const node: any = new Target();node.children=[];node.localName=tag;node.querySelector=(selector:string)=>node.children.find((child:any)=>child.localName===selector||child.querySelector?.(selector));created.push(node);node.remove=()=>{node.removed=true;};node.setAttribute = (name: string, value: any) => { node[name] = value; };
+    node.append = (entry: any) => {entries.push(entry);node.children.push(entry);};node.openPopup = () => {};return node;
   }, documentElement: { append: () => {} } };
   const cards: any = Object.create(ReferenceCards.prototype);
   Object.assign(cards, { refs: [], selected: new Set(), menus: new Set(), parent: () => ({ id: 1 }), subset: () => [], label: () => label,
