@@ -14,12 +14,12 @@ export type SourceDetailString = (key: string, args?: Record<string, string | nu
 /** Provider errors may contain request URLs or credentials; keep diagnostics useful without exposing either. */
 export function safeProviderAttempt(value: string): string {
   return value
-    .replace(/(["']?(?:api[-_ ]?key|authorization|access[-_ ]?token|secret)["']?\s*[:=]\s*)(["'])(.*?)\2/gi, "$1$2[redacted]$2")
+    .replace(/(["']?(?:api[-_ ]?key|authorization|access[-_ ]?token|token|secret|password)["']?\s*[:=]\s*)(["'])(.*?)\2/gi, "$1$2[redacted]$2")
     .replace(/\bBearer\s+[^\s,;"']+/gi, "Bearer [redacted]")
     .replace(/(?:[A-Z]:\\|\\\\)[^\r\n"'<>]+/gi, "[path hidden]")
     .replace(/https?:\/\/[^\s,)]+/gi, "[URL hidden]")
     .replace(/(authorization\s*[:=]\s*)(?:bearer\s+)?[^\s,;]+/gi, "$1[redacted]")
-    .replace(/((?:api[-_ ]?key|authorization|access[-_ ]?token|secret)\s*[:=]\s*)[^\s,;]+/gi, "$1[redacted]")
+    .replace(/((?:api[-_ ]?key|authorization|access[-_ ]?token|token|secret|password)\s*[:=]\s*)[^\s,;]+/gi, "$1[redacted]")
     .slice(0, 240);
 }
 

@@ -13,7 +13,7 @@
     if (button?.dataset?.refflowAction && root?.contains(button)) {
       const status=root.querySelector("#__addonRef__-actions-status");
       root.querySelectorAll("button[data-refflow-action]").forEach(node=>node.disabled=true);
-      Promise.resolve().then(()=>owner.views.runSettingsAction(button.dataset.refflowAction)).then(message=>{if(status)status.textContent=message;}).catch(error=>{if(status)status.textContent=String(error?.message||error);}).finally(()=>root?.querySelectorAll("button[data-refflow-action]").forEach(node=>node.disabled=false));
+      Promise.resolve().then(()=>owner.views.runSettingsAction(button.dataset.refflowAction)).then(message=>{if(status)status.textContent=message;}).catch(error=>{if(status)status.textContent=owner.views?.settingsError(error)||String(error?.message||error);}).finally(()=>root?.querySelectorAll("button[data-refflow-action]").forEach(node=>node.disabled=false));
       return;
     }
     const link = event.target?.closest?.("a[href]");

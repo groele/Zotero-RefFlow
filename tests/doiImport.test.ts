@@ -127,3 +127,11 @@ test('import destinations use same-window same-library collection snapshots',()=
  const win:any={ZoteroPane:{getSelectedCollections:()=>[{id:3,libraryID:1},{id:4,libraryID:2},{id:4,libraryID:2},{id:5,libraryID:2,deleted:true}]}};
  assert.deepEqual(utils.importCollections(parent,win),[4]);win.ZoteroPane.getSelectedCollections=()=>[{id:3,libraryID:1}];assert.deepEqual(utils.importCollections(parent,win),[8,9]);
 });
+
+
+test('already cancelled queued import never starts legacy migration',async()=>fixture(async c=>{
+ const importer:any=BatchImporter,original=importer.migrateRecords;let migrations=0;
+ importer.migrateRecords=async()=>{migrations++;};
+ try{const controller=new AbortController();controller.abort();const result=await BatchImporter.importAll(c.parent,[row('10.1234/one')],{...opts,signal:controller.signal});assert.equal(result.cancelled,true);assert.equal(migrations,0);assert.equal(c.counts().writes,0);}
+ finally{importer.migrateRecords=original;}
+}));

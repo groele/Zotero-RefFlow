@@ -12,6 +12,7 @@ import CitationVerifier from "./verifier";
 import {workIdentity} from "./workIdentity";
 import {referenceData} from "./referenceData";
 import {renderReferenceSourceDetails, ReferenceSourceEvidence, safeProviderAttempt} from "./referenceSourceDetails";
+import {importErrorText} from "./importErrors";
 import { cleanupSync, cleanupAsync } from "../utils/lifecycle";
 
 
@@ -44,6 +45,15 @@ export default class Views {
   private importJobs=new Map<string,{job:ReturnType<typeof BatchImporter.importAll>;refs:ItemBaseInfo[]}>();
   private importOwnerIDs=new WeakMap<object,number>();
   private importOwnerSequence=0;
+  private pendingImports=new WeakMap<Element,Map<number,number>>();
+  private syncCancelButton(body:Element):void {
+    const cancel=body.querySelector<HTMLElement>('#refflow-cancel');
+    if(!cancel)return;
+    const itemID=Number(body.getAttribute('data-refflow-item-id'));
+    this.pendingImports ??= new WeakMap();
+    cancel.hidden=!body.hasAttribute('aria-busy') && !(this.pendingImports.get(body)?.get(itemID));
+  }
+  public settingsError(error:unknown):string {return safeProviderAttempt(importErrorText(error));}
   constructor() {
     initLocale();
     this.utils = new Utils()
@@ -302,6 +312,7 @@ export default class Views {
         if(body.getAttribute("data-refflow-item-id")===identity)return;
         this.resetReferencePane(body);
         body.setAttribute("data-refflow-item-id", String(item?.parentItem?.id || item?.id || ""));
+        this.syncCancelButton(body);
       },
       onDestroy: ({ body }) => {BatchImporter.cancelImports(undefined,body);this.panes.delete(body as HTMLElement);this.referenceTasks.invalidate(body);(body as any)._cards?.dispose();}
     });
@@ -324,7 +335,7 @@ export default class Views {
     if (count) count.textContent=`0 ${getString("relatedbox-number-label")}`;
     body.querySelectorAll("button").forEach(button=>{ (button as HTMLButtonElement).disabled=false; });
     const cancel=body.querySelector("#refflow-cancel") as HTMLElement;
-    if (cancel) cancel.hidden=true;
+    if (cancel) this.syncCancelButton(body);
   }
 
   private cancelReferencePane(body:Element):void {
@@ -386,12 +397,13 @@ export default class Views {
     // Independently cancellable callers must not inherit another caller's signal.
     if(pending&&!options.signal){const result=await pending.job;refs.forEach((ref,index)=>{ref._item=pending.refs[index]._item;});return result;}
     const panels=[...this.panes].filter(body=>(!options.owner||options.owner===body)&&Number(body.getAttribute('data-refflow-item-id'))===parent.id);
-    for(const body of panels){(body as any)._importsPending=((body as any)._importsPending||0)+1;const cancel=body.querySelector<HTMLElement>('#refflow-cancel');if(cancel)cancel.hidden=false;}
+    this.pendingImports ??= new WeakMap();
+    for(const body of panels){let pending=this.pendingImports.get(body);if(!pending){pending=new Map();this.pendingImports.set(body,pending);}pending.set(parent.id,(pending.get(parent.id)||0)+1);this.syncCancelButton(body);}
     let job:ReturnType<typeof BatchImporter.importAll>;
     try{job=BatchImporter.importAll(parent,refs,options);}catch(error){job=Promise.reject(error);}
     if(!options.signal)this.importJobs.set(key,{job,refs});
     try{return await job;}
-    finally{if(this.importJobs.get(key)?.job===job)this.importJobs.delete(key);for(const body of panels){(body as any)._importsPending=Math.max(0,((body as any)._importsPending||1)-1);const cancel=body.querySelector<HTMLElement>('#refflow-cancel');if(cancel&&!body.hasAttribute('aria-busy')&&!(body as any)._importsPending)cancel.hidden=true;}}
+    finally{if(this.importJobs.get(key)?.job===job)this.importJobs.delete(key);for(const body of panels){const pending=this.pendingImports.get(body);const count=(pending?.get(parent.id)||1)-1;if(count>0)pending?.set(parent.id,count);else pending?.delete(parent.id);this.syncCancelButton(body);}}
   }
   public async rollbackReferences(parent: Zotero.Item, batchID: string) {
     try{
@@ -476,13 +488,13 @@ export default class Views {
         await this.performReferences(panel,local,fromCurrentPage,item,activeReader,{...context,pageIndex,isCurrent:current});
       } catch (error: any) {
         if (current() && label) {label.textContent=(error?.name==="TimeoutError"?getString("relatedbox-timeout"):getString("relatedbox-fetch-error"))+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");(label as HTMLElement).title=safeProviderAttempt(String(error?.message||error));}
-        if (error?.name!=="AbortError") ztoolkit.log("Reference fetch failed",error);
+        if (error?.name!=="AbortError") ztoolkit.log("Reference fetch failed",safeProviderAttempt(String(error?.message||error)));
       } finally {
         if (ownsPanel()) {
           if(!sameInput()&&label)label.textContent=getString("cards-context-changed")+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");
           panel.removeAttribute("aria-busy");
           panel.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
-          if (cancel) cancel.hidden=true;
+          if (cancel) this.syncCancelButton(panel);
         }
       }
     },{onTimeout:()=>{
@@ -490,7 +502,7 @@ export default class Views {
       if(label)label.textContent=getString(sameInput()?"relatedbox-timeout":"cards-context-changed")+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");
       panel.removeAttribute("aria-busy");
       panel.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
-      const cancel=panel.querySelector("#refflow-cancel") as HTMLElement;if(cancel)cancel.hidden=true;
+      const cancel=panel.querySelector("#refflow-cancel") as HTMLElement;if(cancel)this.syncCancelButton(panel);
     }});
   }
 
@@ -508,7 +520,7 @@ export default class Views {
         if(!fileName){const matched=await api.getTitleInfoByCNKI(title,task.signal);fileName=this.utils.parseCNKIURL(matched?.identifiers?.CNKI||'')?.fileName;}
         if(!task.isCurrent())return;
         if(fileName){const info=await api.getCNKIFileInfo(fileName,0,task.signal);if(info?.references?.length)return {references:info.references,source:'CNKI',partial:info.referencePartial};}
-      }catch(error:any){if(task.signal.aborted||error?.name==='AbortError')throw error;ztoolkit.log('CNKI unavailable; continuing DOI resolution',error);}
+      }catch(error:any){if(task.signal.aborted||error?.name==='AbortError')throw error;ztoolkit.log('CNKI unavailable; continuing DOI resolution',safeProviderAttempt(String(error?.message||error)));}
       if(!task.isCurrent())return;
       label.textContent=getString('cards-resolving-doi');
       const creator=item.getCreators()[0] as any;
@@ -684,7 +696,7 @@ export default class Views {
           references = [];
         } else {
           try{references = await this.utils.PDF.getReferences(attachment, fromCurrentPage,{signal:task.signal,pageIndex:task.pageIndex,notify:false,onProgress:scanned=>{if(task.isCurrent()) label.textContent=`${getString("relatedbox-loading")} PDF · ${scanned} ${getString("relatedbox-pages-label")}`;}});}
-          catch(error:any){if(error?.name==="AbortError"||fromCurrentPage)throw error;references=[];ztoolkit.log("PDF failed; trying structured sources",error);}
+          catch(error:any){if(error?.name==="AbortError"||fromCurrentPage)throw error;references=[];ztoolkit.log("PDF failed; trying structured sources",safeProviderAttempt(String(error?.message||error)));}
         }
         if (!task.isCurrent()) return;
         const result=preferCachedReferences(normalizeReferenceResult({references,source:'PDF',partial:Boolean(attachment&&this.utils.PDF.getDiagnostics(attachment)?.scanLimited)}),fromCurrentPage?undefined:readCachedReferenceResult(cached,signature),getString('cards-cached-offline'));

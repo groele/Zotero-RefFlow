@@ -10,7 +10,7 @@ await test('production XPI cold startup with native sidebar and no debug bridge'
   const errors=Zotero.getErrors(true);check(!errors.some(error=>/refflow.js|refflow@groele.github.io/.test(error)),'Plugin startup errors');return {addonVersion:addon.version,env:Zotero.ZoteroRefFlow.data.env,errors};
 });
 for(const name of ['native-regression','native-stress','native-online','native-publishers','native-numbering','native-usability','native-major']) {
-  if(name==='native-online' && cfg.skipOnline){report.skippedOnline=true;continue;}
+  if(cfg.skipOnline && (name==='native-online'||name==='native-publishers')){report.skippedOnline=true;continue;}
   await test(name,async()=>{
     const output=cfg.output.replace(/\.json$/,`-${name}.json`);
     const code=await Zotero.File.getContentsAsync(cfg.workspace+'\\scripts\\'+name+'.js');

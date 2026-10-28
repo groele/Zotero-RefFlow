@@ -275,6 +275,7 @@ export default class ReferenceCards {
   public async runSettingsAction(action:string) {
     if(this.disposed || !this.body.isConnected) throw new Error(getString('cards-settings-no-context'));
     const parent=this.parent(), all=[...this.refs], refs=this.subset();
+    if(action==='import-selected' && !this.selected.size) throw new Error(getString('cards-select-before-import'));
     if(!parent || (action!=="rollback" && !(action==="import-all" ? all.length : refs.length))) throw new Error(getString('cards-settings-no-context'));
     const same=()=>!this.disposed && this.body.isConnected && Number(this.body.getAttribute("data-refflow-item-id"))===parent.id;
     if(action==="copy-text") this.views.utils.copyText(refs.map(ref=>ref.text||ref.title).join("\n"),false);
@@ -298,7 +299,7 @@ export default class ReferenceCards {
   }
   menu(event?:MouseEvent){
     if(this.disposed)return;
-    const parentAtOpen=this.parent(),refsAtOpen=this.subset(),allAtOpen=[...this.refs];
+    const parentAtOpen=this.parent(),refsAtOpen=this.subset(),allAtOpen=[...this.refs],hasSelectionAtOpen=this.selected.size>0;
     const collectionsAtOpen=this.views.utils.importCollections(parentAtOpen,this.body.ownerDocument.defaultView!);
     const samePanel=()=>!this.disposed&&this.body.isConnected&&Number(this.body.getAttribute("data-refflow-item-id"))===parentAtOpen.id;
     const doc:any=this.body.ownerDocument,popup=doc.createXULElement("menupopup") as any;popup.setAttribute("data-refflow-menu","references");
@@ -309,7 +310,7 @@ export default class ReferenceCards {
     add("cards-copy-url",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean).join("\n"),false));
     add("cards-open",()=>refsAtOpen.slice(0,20).forEach(ref=>this.open(ref)));
     separator();
-    const importRefs=async(all:boolean)=>{const parent=parentAtOpen;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.batchResults.run(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true},refs.map(ref=>allAtOpen.indexOf(ref)+1));if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}};
+    const importRefs=async(all:boolean)=>{if(!all&&!hasSelectionAtOpen)throw new Error(getString('cards-select-before-import'));const parent=parentAtOpen;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.batchResults.run(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true},refs.map(ref=>allAtOpen.indexOf(ref)+1));if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}};
     add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
     add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const id=await BatchImporter.latestBatchID(parent).catch(error=>{ztoolkit.log('Failed to read rollback journal',error);throw new Error(getString('cards-rollback-failed'));});if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.batchResults.clear();this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}});
     separator();

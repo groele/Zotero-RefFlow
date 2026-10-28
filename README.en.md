@@ -1,4 +1,4 @@
-> **12.6.0** adds source completeness details, settings quick actions, and a visibility switch. [Release notes](docs/releases/v12.6.0.md).
+> **12.6.1** adds source completeness details, settings quick actions, and a visibility switch. [Release notes](docs/releases/v12.6.1.md).
 
 
 
@@ -13,7 +13,7 @@ Discover references, citing works, and related research.
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![Release](https://img.shields.io/badge/version-12.6.0-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.6.0) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.6.0/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
+[![Release](https://img.shields.io/badge/version-12.6.1-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.6.1) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v12.6.1/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
 
 [Overview](#overview) · [Installation and updates](#installation) · [Quick start](#quick-start) · [Key features](#features) · [Settings](#settings) · [Data, sync, and services](#data) · [Compatibility and validation](#compatibility) · [Troubleshooting](#troubleshooting) · [Development and documentation](#development) · [The Flow series](#series) · [Origin and license](#license)
 
@@ -29,7 +29,7 @@ Install this add-on independently and combine it with other Flow products as nee
 
 ## Installation and updates
 
-1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v12.6.0/zotero-refflow.xpi) (add-on version **12.6.0**), not the Source code ZIP.
+1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v12.6.1/zotero-refflow.xpi) (add-on version **12.6.1**), not the Source code ZIP.
 2. In Zotero, open **Tools → Plugins/Add-ons**, then choose **Install Add-on From File** from the gear menu.
 3. Select the XPI, complete installation, and restart if requested.
 
@@ -78,9 +78,9 @@ Configure service credentials, refresh behavior, tips, and saving in Zotero sett
 
 | Item | Scope |
 |---|---|
-| Current add-on version | 12.6.0 |
+| Current add-on version | 12.6.1 |
 | Declared Zotero range | `10.0.6` through `11.*` |
-| Evidence boundary | 326 unit tests and 7 targeted isolated Windows Zotero 10.0.6 native scenarios passed, including import and rollback with controlled DOI metadata. Actual dark-theme visuals, main-profile installation, automatic-update installation, Zotero 11 and other systems were not verified. |
+| Evidence boundary | 330 unit tests and targeted isolated Windows Zotero 10.0.6 native scenarios passed, including import and rollback with controlled DOI metadata. Actual dark-theme visuals, main-profile installation, automatic-update installation, Zotero 11 and other systems were not verified. |
 
 Add-on and Zotero versions are separate. Declared compatibility does not establish testing on every host, operating system or service. This patch validates the targeted behaviors listed above, not all plugin workflows or main-profile installation.
 
@@ -109,7 +109,7 @@ npm run build-prod
 
 - [数据源与接口规范 / Dataflow and API](docs/DATAFLOW-AND-API-SPEC.md)
 - [修复记录 / Repair record](docs/REPAIRS-2026-10-15.md)
-- [版本说明 / Release notes](docs/releases/v12.6.0.md)
+- [版本说明 / Release notes](docs/releases/v12.6.1.md)
 - [产品简介 / Product profile](docs/brand/PRODUCT.md)
 - [品牌规范 / Brand guide](docs/brand/BRAND.md)
 - [README 模板 / README template](docs/brand/README-TEMPLATE.md)

@@ -165,3 +165,5 @@ cards-source-latest-complete = This source reported a complete result
 
 cards-settings-no-context = Select one item and load its references in the RefFlow sidebar.
 cards-settings-done = Action completed.
+
+cards-select-before-import = Select references in the list before importing selected items.

@@ -101,3 +101,5 @@ cards-source-latest-complete = La fonte ha indicato un risultato completo
 
 cards-settings-no-context = Seleziona un elemento e carica i riferimenti nel pannello RefFlow.
 cards-settings-done = Operazione completata.
+
+cards-select-before-import = Seleziona i riferimenti nella lista prima di importarli.

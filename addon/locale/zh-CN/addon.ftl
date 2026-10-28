@@ -165,3 +165,5 @@ cards-source-latest-complete = 本次来源报告完整
 
 cards-settings-no-context = 请先选择一篇文献并在 RefFlow 侧栏加载参考文献。
 cards-settings-done = 操作已完成。
+
+cards-select-before-import = 请先在参考文献列表中选择要导入的文献。
