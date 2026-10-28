@@ -25,7 +25,7 @@ export function createReleaseArtifacts(details,xpi,template,manifest) {
   const releaseDownloadURL=`https://github.com/groele/Zotero-RefFlow/releases/download/${details.config.releaseTag}/${details.name}.xpi`;
   entries[0].update_link=releaseDownloadURL;
   entries[0].update_hash=`sha256:${sha256}`;
-  entries[0].update_info_url=details.config.releaseNotesURL;
+  entries[0].update_info_url=`https://github.com/groele/Zotero-RefFlow/releases/tag/${details.config.releaseTag}`;
   if(JSON.stringify(entries[0].applications.zotero)!==JSON.stringify({strict_min_version:manifest.applications.zotero.strict_min_version,strict_max_version:manifest.applications.zotero.strict_max_version}))throw new Error('Update compatibility mismatch');
   return {update,verification:{version:details.version,addonID:details.config.addonID,bytes:xpi.length,sha256,updateURL:details.config.updateURL,downloadURL:releaseDownloadURL}};
 }

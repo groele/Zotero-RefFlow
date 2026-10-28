@@ -11,6 +11,21 @@ const original=Zotero.Translate.Search;let fail=true,calls=0,release,hold=false;
 Zotero.Translate.Search=class{setIdentifier(v){this.doi=v.DOI;}async getTranslators(){return ['controlled'];}setTranslator(){}async translate(){calls++;if(hold)await new Promise(r=>release=r);await delay(60);if(fail&&this.doi.includes('fail'))throw new Error('Controlled offline failure');return [{itemType:'journalArticle',title:'Resolved '+this.doi,DOI:this.doi}];}};
 let refs,subID;
 try{
+await test('Native sidebar exposes source completeness and provider attempts without hover',async()=>{
+ const api=views.utils.API,originalGetList=api.getReferenceList,oldSource=body.getAttribute('source'),oldDOI=parent.getField('DOI');
+ try{
+  parent.setField('DOI','10.1234/source-details');await parent.saveTx({skipSelect:true});body.setAttribute('source','Auto');
+  api.getReferenceList=async()=>({references:[ref('10.1234/source-a','Controlled source A'),ref('10.1234/source-b','Controlled source B')],source:'Crossref',expected:4,partial:true});
+  await views.refreshReferences(body,false,false,false,parent);
+  const disclosure=body.querySelector('#refflow-source-details'),summary=disclosure?.querySelector('summary');
+  check(disclosure&&!disclosure.hidden&&summary,'Source details are not discoverable in the native panel');
+  check(summary.tabIndex>=0,'Source details summary is not keyboard focusable');
+  check(disclosure.textContent.includes('Crossref')&&disclosure.textContent.includes('2')&&disclosure.textContent.includes('4'),'Selected source or completeness counts are missing');
+  check(disclosure.textContent.includes('partial')||disclosure.textContent.includes('部分'),'Partial result is not identified');
+  check(disclosure.textContent.includes('PDF:')&&disclosure.textContent.includes('Online:'),'Provider attempts are not explained');
+  summary.click();check(disclosure.open,'Native disclosure did not expand');
+ }finally{api.getReferenceList=originalGetList;body.setAttribute('source',oldSource||'PDF');parent.setField('DOI',oldDOI||'');await parent.saveTx({skipSelect:true});}
+});
 await test('Menu mixed batch exposes every failure with original position and safe text',async()=>{
  refs=[ref('10.1234/batch-ok'),ref('10.1234/batch-fail','<img src=x onerror=alert(1)>'),ref(undefined,'No identifier')];body.references=refs;await cards.render(refs,()=>true);cards.menu();const menu=window.document.querySelector('[data-refflow-menu="references"]');menu.querySelectorAll('menuitem')[5].dispatchEvent(new window.Event('command'));menu.hidePopup();await wait(()=>panel()?.querySelectorAll('.refflow-batch-failures li').length===2);
  check(refs[0]._item&&!refs[1]._item,'Mixed result did not preserve success/failure');subID=refs[0]._item.getCollections()[0];check(panel().open,'Failure details not open');check(panel().querySelectorAll('.refflow-batch-failures li')[0].value===2,'Source position lost');check(!panel().querySelector('img')&&panel().textContent.includes('<img'),'Failure title was interpreted as HTML');check(panel().querySelector('[role=status]'),'No accessible status');

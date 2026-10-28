@@ -11,6 +11,7 @@ import { retrieveReferenceList, normalizeReferenceResult, ReferenceProvider, Ref
 import CitationVerifier from "./verifier";
 import {workIdentity} from "./workIdentity";
 import {referenceData} from "./referenceData";
+import {renderReferenceSourceDetails, ReferenceSourceEvidence, safeProviderAttempt} from "./referenceSourceDetails";
 import { cleanupSync, cleanupAsync } from "../utils/lifecycle";
 
 
@@ -22,6 +23,18 @@ export default class Views {
   private notifierID?: string;
   private disposed = false;
   private panes=new Set<HTMLElement>();
+  public async runSettingsAction(action:string):Promise<string> {
+    const win=Zotero.getMainWindow();
+    const selected=win?.ZoteroPane?.getSelectedItems?.() || [];
+    if(selected.length!==1) throw new Error(getString('cards-settings-no-context'));
+    const item=selected[0].parentItem || selected[0];
+    const body=[...this.panes].find(node=>node.isConnected && node.ownerDocument.defaultView===(win as unknown as Window) && Number(node.getAttribute('data-refflow-item-id'))===item.id);
+    if(!body || !(body as any)._cards) throw new Error(getString('cards-settings-no-context'));
+    return (body as any)._cards.runSettingsAction(action);
+  }
+  public updateSourceDetailsVisibility():void {
+    for(const body of this.panes){const details=body.querySelector<HTMLDetailsElement>('#refflow-source-details');if(details)details.hidden=Zotero.Prefs.get(`${config.addonRef}.showSourceDetails`)===false || !details.childElementCount;}
+  }
   private libraryTimer?:ReturnType<typeof globalThis.setTimeout>;
   private changedLibraries=new Set<number>();
   private unknownLibraryChange=false;
@@ -71,6 +84,12 @@ export default class Views {
           .refflow-status {font-size:.85em;opacity:.75;border:0!important;padding:0!important;min-height:18px;}
           .zotero-editpane-related[data-refflow-item-id] .reference-item {display:flex;flex-direction:column;gap:4px;padding:6px 4px;border-radius:4px;cursor:default;min-width:0;}
           .zotero-editpane-related[data-refflow-item-id] .refflow-journal-status {padding:8px;margin-block:8px;border:1px solid currentColor;border-radius:7px;overflow-wrap:anywhere;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-source-details {box-sizing:border-box;width:100%;margin-block:4px;padding:6px 8px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:6px;background:color-mix(in srgb,currentColor 2%,transparent);color:inherit;overflow-wrap:anywhere;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-source-details summary {cursor:pointer;font-weight:600;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-source-details p {margin-block:5px;font-size:.95em;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-source-details ul {margin-block:4px;padding-inline-start:2em;max-height:12em;overflow:auto;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-source-details li {margin-block:3px;}
+          .zotero-editpane-related[data-refflow-item-id] .refflow-source-details :focus-visible {outline:2px solid var(--color-accent,#3678b5);outline-offset:2px;}
           .zotero-editpane-related[data-refflow-item-id] .refflow-journal-status button {font:inherit;margin:3px;max-width:100%;white-space:normal;}
           .zotero-editpane-related[data-refflow-item-id] .refflow-batch-results {margin-block:8px;padding:8px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:7px;background:color-mix(in srgb,currentColor 2%,transparent);font:inherit;overflow-wrap:anywhere;}
           .zotero-editpane-related[data-refflow-item-id] .refflow-batch-results summary {cursor:pointer;font-weight:600;}
@@ -253,6 +272,9 @@ export default class Views {
         // The original XPI keeps operations in the collapsible-section header.
         source.hidden=true;refresh.hidden=true;force.hidden=true;
         controls.append(count, source, refresh, force, cancel);
+        const sourceDetails=body.ownerDocument.createElement("details");
+        sourceDetails.id="refflow-source-details";
+        sourceDetails.hidden=true;
         const search=body.ownerDocument.createElement("input");search.type="search";search.className="refflow-card-search";
         search.placeholder=getString("relatedbox-search-placeholder");search.setAttribute("aria-label",search.placeholder);
 
@@ -261,7 +283,7 @@ export default class Views {
         grid.className = "grid";
         grid.style.overflowY = "auto";
         grid.style.display="flex";grid.style.flexDirection="column";
-        body.append(search,controls,grid);
+        body.append(search,controls,sourceDetails,grid);
         (body as any)._cards?.dispose();
         (body as any)._cards=new ReferenceCards(this,body,grid,search,getString('cards-list-name'));
         (body as any)._setL10nArgs=setL10nArgs;
@@ -295,6 +317,8 @@ export default class Views {
     (body as any)._cards?.clear();
     (body as any)._setL10nArgs?.(JSON.stringify({count:0}));
     body.querySelector("#related-grid")?.replaceChildren();
+    const sourceDetails=body.querySelector("#refflow-source-details") as HTMLDetailsElement|undefined;
+    if(sourceDetails){sourceDetails.replaceChildren();sourceDetails.hidden=true;sourceDetails.open=false;}
     body.removeAttribute("aria-busy");
     const count=body.querySelector("#reference-num");
     if (count) count.textContent=`0 ${getString("relatedbox-number-label")}`;
@@ -451,7 +475,7 @@ export default class Views {
       try {
         await this.performReferences(panel,local,fromCurrentPage,item,activeReader,{...context,pageIndex,isCurrent:current});
       } catch (error: any) {
-        if (current() && label) {label.textContent=(error?.name==="TimeoutError"?getString("relatedbox-timeout"):getString("relatedbox-fetch-error"))+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");(label as HTMLElement).title=String(error?.message||error);}
+        if (current() && label) {label.textContent=(error?.name==="TimeoutError"?getString("relatedbox-timeout"):getString("relatedbox-fetch-error"))+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");(label as HTMLElement).title=safeProviderAttempt(String(error?.message||error));}
         if (error?.name!=="AbortError") ztoolkit.log("Reference fetch failed",error);
       } finally {
         if (ownsPanel()) {
@@ -570,12 +594,35 @@ export default class Views {
     if(!local&&["API","Auto","Web"].includes(source))this.utils.API.publisherReferences.clearCache();
 
     let resultSource=source;
+    let sourceEvidence:ReferenceSourceEvidence|undefined;
+    const setSourceEvidence=(evidence:ReferenceSourceEvidence)=>{
+      sourceEvidence=evidence;
+      const details=panel.querySelector("#refflow-source-details") as HTMLDetailsElement|undefined;
+      if(details){renderReferenceSourceDetails(details,evidence,(key,args)=>args?getString(key,{args}):getString(key));details.hidden=Zotero.Prefs.get(`${config.addonRef}.showSourceDetails`)===false;}
+    };
+    const showUnavailable=(result:ReferenceResult)=>{
+      const previous=panel.querySelector("#refflow-source-details") as HTMLDetailsElement|undefined;
+      const displayed=(panel as any).references as ItemBaseInfo[]|undefined;
+      const hasDisplayed=Boolean(displayed?.length);
+      const count=hasDisplayed?displayed!.length:result.references.length;
+      const expected=hasDisplayed&&previous?.dataset.expected?Number(previous.dataset.expected):result.expected;
+      setSourceEvidence({
+        source:hasDisplayed?(panel.getAttribute("data-refflow-result-source")||result.source):result.source,
+        count,
+        expected:Number.isSafeInteger(expected)?expected:undefined,
+        partial:hasDisplayed?previous?.dataset.partial==="true":Boolean(result.partial),
+        retained:hasDisplayed,
+        attempts:result.attempts,
+        status:hasDisplayed ? (previous?.dataset.status === "partial" ? "partial" : "success") : "unavailable",
+        latestAttempt:hasDisplayed ? {source:result.source,count:0,partial:true} : undefined,
+      });
+    };
     if(literatureType!=="References") {
       const key=`References-API-${literatureType}`;
       const cached=await this.storage.getAsync(item,key);
       const previous=readCachedReferences(cached,signature,cached?.snapshot?.truncated?15*60*1000:24*60*60*1000);
       const describe=(source:string,total:number,truncated:boolean)=>`${source} ${literatureType}${truncated?(Number.isFinite(total)&&total>references.length?` (${references.length}/${total})`:` (${references.length}+ · ${getString("cards-partial")})`):""}`;
-      if(local && previous){references=previous;resultSource=describe(cached?.snapshot?.source||"OpenAlex",Number(cached?.snapshot?.total||references.length),Boolean(cached?.snapshot?.truncated));}
+      if(local && previous){references=previous;resultSource=describe(cached?.snapshot?.source||"OpenAlex",Number(cached?.snapshot?.total||references.length),Boolean(cached?.snapshot?.truncated));sourceEvidence={source:cached?.snapshot?.source||"OpenAlex",count:references.length,expected:cached?.snapshot?.total,partial:Boolean(cached?.snapshot?.truncated)};}
       else {
         let doi=String(item.getField("DOI")||"");
         if(!doi)doi=(await this.utils.API.resolveWork(String(item.getField("title")),(item.getCreators()[0] as any)?.lastName,String(item.getField("date")),task.signal))?.doi||"";
@@ -585,7 +632,7 @@ export default class Views {
         try {result=await this.utils.API.openAlex.getNeighborhood(doi,literatureType as any,task.signal);}
         catch(error) {
           if(!task.isCurrent())return;
-          if(previous){references=previous;resultSource=describe(cached?.snapshot?.source||provider,Number(cached?.snapshot?.total||references.length),Boolean(cached?.snapshot?.truncated))+` · ${getString("cards-cached-offline")}`;label.title=String(error);}
+          if(previous){references=previous;resultSource=describe(cached?.snapshot?.source||provider,Number(cached?.snapshot?.total||references.length),Boolean(cached?.snapshot?.truncated))+` · ${getString("cards-cached-offline")}`;label.title=safeProviderAttempt(String(error));}
           else if(literatureType==="Citations") {
             const fallback=await this.utils.API.semanticScholar.neighborhood(doi,"Citations",task.signal);
             if(!task.isCurrent())return;
@@ -599,6 +646,7 @@ export default class Views {
           const prior=previous?{references:previous,source:cached?.snapshot?.source||provider,expected:cached?.snapshot?.total,partial:cached?.snapshot?.truncated}:undefined;
           const selected=preferCachedReferences(candidate,prior,getString('cards-cached-offline'));
           references=selected.references;resultSource=describe(selected.source,selected.expected!,Boolean(selected.partial))+(selected.retained?` · ${getString('cards-kept-results')}`:'');
+          sourceEvidence={source:selected.source,count:selected.references.length,expected:selected.expected,partial:Boolean(selected.partial),retained:selected.retained,attempts:[`${provider}: ${result.references.length}${result.truncated?' (partial)':''}`],status:selected.status};
           if(!selected.retained&&this.mayPersist(selected))await this.storage.set(item,key,{...cacheReferences(references,signature),snapshot:{source:provider,total:result.total,truncated:result.truncated}});
         }
       }
@@ -614,9 +662,10 @@ export default class Views {
         result=preferCachedReferences(result,previous,getString("cards-cached-offline"));
         if(result.references.length&&!result.retained&&!fromCurrentPage&&this.mayPersist(result))await this.storage.set(item,key,cacheReferenceResult(result,signature));
       }
-      if(result.status==="unavailable"&&!result.references.length)throw new Error(result.attempts?.join("; ")||"Reference providers unavailable");
+      if(result.status==="unavailable"&&!result.references.length){showUnavailable(result);throw new Error(result.attempts?.join("; ")||"Reference providers unavailable");}
       references=result.references;resultSource=this.referenceDescription(result);
-      label.title=result.attempts?.join("\n")||"";
+      sourceEvidence={source:result.source,count:result.references.length,expected:result.expected,partial:Boolean(result.partial),retained:result.retained,attempts:result.attempts,status:result.status,latestAttempt:result.latestAttempt};
+      label.title=(result.attempts||[]).map(safeProviderAttempt).join("\n");
     } else if (source == "PDF") {
       // 优先本地读取
       const key = "References-PDF";
@@ -627,6 +676,7 @@ export default class Views {
       if (references) {
         resultSource="PDF";
         if(partial)resultSource+=` · ${getString("relatedbox-scan-limited")}`;
+        sourceEvidence={source:"PDF",count:references.length,partial};
       } else {
         const attachment=await this.pdfAttachment(item,reader);
         if (!task.isCurrent()) return;
@@ -639,15 +689,17 @@ export default class Views {
         if (!task.isCurrent()) return;
         const result=preferCachedReferences(normalizeReferenceResult({references,source:'PDF',partial:Boolean(attachment&&this.utils.PDF.getDiagnostics(attachment)?.scanLimited)}),fromCurrentPage?undefined:readCachedReferenceResult(cached,signature),getString('cards-cached-offline'));
         references=result.references;partial=Boolean(result.partial);resultSource=this.referenceDescription(result);
+        sourceEvidence={source:result.source,count:result.references.length,expected:result.expected,partial:Boolean(result.partial),retained:result.retained,attempts:result.attempts,status:result.status,latestAttempt:result.latestAttempt};
         if(references.length&&!result.retained&&signature&&!fromCurrentPage&&this.mayPersist(result))await this.storage.set(item,key,cacheReferenceResult(result,signature));
       }
       // An empty/scanned/missing PDF should not require a manual source switch.
       if(!references?.length&&!fromCurrentPage){
         const result=await this.smartReferences(item,undefined,task,false,false,label);
         if(!task.isCurrent())return;
-        if(result.status==="unavailable"&&!result.references.length)throw new Error(result.attempts?.join("; ")||"Reference providers unavailable");
+        if(result.status==="unavailable"&&!result.references.length){showUnavailable(result);throw new Error(result.attempts?.join("; ")||"Reference providers unavailable");}
         references=result.references;resultSource=this.referenceDescription(result);
-        label.title=result.attempts?.join("\n")||"";
+        sourceEvidence={source:result.source,count:result.references.length,expected:result.expected,partial:Boolean(result.partial),retained:result.retained,attempts:result.attempts,status:result.status,latestAttempt:result.latestAttempt};
+        label.title=(result.attempts||[]).map(safeProviderAttempt).join("\n");
       }
     } else {
       const key = "References-API";
@@ -671,9 +723,10 @@ export default class Views {
         result=preferCachedReferences(result,previous,getString("cards-cached-offline"));
         if(result.references.length&&!result.retained&&!fromCurrentPage&&this.mayPersist(result))await this.storage.set(item,key,cacheReferenceResult(result,signature));
       }
-      if(result.status==="unavailable"&&!result.references.length)throw new Error(result.attempts?.join("; ")||"Reference providers unavailable");
+      if(result.status==="unavailable"&&!result.references.length){showUnavailable(result);throw new Error(result.attempts?.join("; ")||"Reference providers unavailable");}
       references=result.references;resultSource=this.referenceDescription(result);
-      label.title=result.attempts?.join("\n")||"";
+      sourceEvidence={source:result.source,count:result.references.length,expected:result.expected,partial:Boolean(result.partial),retained:result.retained,attempts:result.attempts,status:result.status,latestAttempt:result.latestAttempt};
+      label.title=(result.attempts||[]).map(safeProviderAttempt).join("\n");
     }
 
     if (!task.isCurrent()) return;
@@ -686,6 +739,7 @@ export default class Views {
       return;
     }
     const referenceNum = references.length;
+    if(sourceEvidence)setSourceEvidence(sourceEvidence);
     panel.setAttribute("data-refflow-result-type",literatureType);
     // @ts-ignore
     panel.references = references;

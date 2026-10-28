@@ -39,3 +39,5 @@ pref("extensions.zotero.__addonRef__.type", "References");
 pref("extensions.zotero.__addonRef__.downloadOA", false);
 
 pref("extensions.zotero.__addonRef__.openAlexKey", "");
+
+pref("extensions.zotero.__addonRef__.showSourceDetails", true);

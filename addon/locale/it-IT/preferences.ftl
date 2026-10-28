@@ -76,3 +76,15 @@ about-release-notes = Note di rilascio
 semanticScholarKey-label = Semantic Scholar API Key (optional)
 semanticScholarKey-description = Uses the official Graph API. Leave empty for anonymous access; a configured key is sent using x-api-key.
 semanticScholarKey-get = Ottieni / visualizza una chiave API Semantic Scholar gratuita
+
+caption-actions = Azioni rapide
+showSourceDetails =
+    .label = Mostra fonte e completezza
+actions-description = Seleziona un elemento nella libreria Zotero e carica i riferimenti. Le azioni usano la selezione o i risultati filtrati.
+action-copy-text = Copia riferimenti
+action-copy-doi = Copia DOI
+action-copy-url = Copia URL
+action-open = Apri in Zotero o nel browser
+action-import-selected = Aggiungi selezionati tramite DOI
+action-import-all = Aggiungi tutti tramite DOI
+action-rollback = Annulla ultima importazione

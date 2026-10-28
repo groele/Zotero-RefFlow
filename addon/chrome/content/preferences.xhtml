@@ -108,6 +108,22 @@
     </html:div>
     </html:div>
   </html:details>
+  <html:details class="refflow-setting-group" aria-labelledby="refflow-actions-title">
+    <html:summary><html:span id="refflow-actions-title" data-l10n-id="caption-actions"></html:span></html:summary>
+    <html:div class="refflow-setting-group-body">
+      <checkbox native="true" id="__addonRef__-show-source-details" data-l10n-id="showSourceDetails" preference="extensions.zotero.__addonRef__.showSourceDetails" />
+      <html:p data-l10n-id="actions-description"></html:p>
+      <html:div class="refflow-setting-input-row refflow-action-buttons">
+        <html:button type="button" data-refflow-action="copy-text" data-l10n-id="action-copy-text"></html:button>
+        <html:button type="button" data-refflow-action="copy-doi" data-l10n-id="action-copy-doi"></html:button>
+        <html:button type="button" data-refflow-action="copy-url" data-l10n-id="action-copy-url"></html:button>
+        <html:button type="button" data-refflow-action="open" data-l10n-id="action-open"></html:button>
+        <html:button type="button" data-refflow-action="import-selected" data-l10n-id="action-import-selected"></html:button>
+        <html:button type="button" data-refflow-action="import-all" data-l10n-id="action-import-all"></html:button>
+        <html:button type="button" data-refflow-action="rollback" data-l10n-id="action-rollback"></html:button>
+      </html:div><html:p id="__addonRef__-actions-status" role="status" aria-live="polite"></html:p>
+    </html:div>
+  </html:details>
   <html:details class="refflow-setting-group" aria-labelledby="refflow-about-title">
     <html:summary><html:span id="refflow-about-title">关于 RefFlow</html:span></html:summary>
     <html:div class="refflow-setting-group-body">

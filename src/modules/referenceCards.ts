@@ -272,6 +272,30 @@ export default class ReferenceCards {
   }
   updateStatus(){if(this.search.value.trim()&&!this.virtual)this.filter();}
   private open(ref:ItemBaseInfo){if(ref._item)this.views.utils.selectItemInLibrary(ref._item, this.body.ownerDocument.defaultView!);else{const url=ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:undefined);if(url&&/^https?:\/\//i.test(url))Zotero.launchURL(url);}}
+  public async runSettingsAction(action:string) {
+    if(this.disposed || !this.body.isConnected) throw new Error(getString('cards-settings-no-context'));
+    const parent=this.parent(), all=[...this.refs], refs=this.subset();
+    if(!parent || (action!=="rollback" && !(action==="import-all" ? all.length : refs.length))) throw new Error(getString('cards-settings-no-context'));
+    const same=()=>!this.disposed && this.body.isConnected && Number(this.body.getAttribute("data-refflow-item-id"))===parent.id;
+    if(action==="copy-text") this.views.utils.copyText(refs.map(ref=>ref.text||ref.title).join("\n"),false);
+    else if(action==="copy-doi") this.views.utils.copyText(refs.map(ref=>ref.identifiers?.DOI).filter(Boolean).join("\n"),false);
+    else if(action==="copy-url") this.views.utils.copyText(refs.map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean).join("\n"),false);
+    else if(action==="open") refs.slice(0,20).forEach(ref=>this.open(ref));
+    else if(action==="import-selected" || action==="import-all") {
+      const chosen=action==="import-all"?all:refs;
+      const collections=this.views.utils.importCollections(parent,this.body.ownerDocument.defaultView!);
+      const result=await this.batchResults.run(parent,chosen,{owner:this.body,collections,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true},chosen.map(ref=>all.indexOf(ref)+1));
+      if(same()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}
+      return result.cancelled?getString('cards-import-cancelled'):importSummaryText(result);
+    } else if(action==="rollback") {
+      const id=await BatchImporter.latestBatchID(parent);
+      if(!id)return getString('relatedbox-no-rollback-batch');
+      const count=await this.views.rollbackReferences(parent,id);
+      if(same()){this.batchResults.clear();this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}
+      return getString('cards-rollback-summary',{args:{count}});
+    } else throw new Error('Unknown RefFlow action');
+    return getString('cards-settings-done');
+  }
   menu(event?:MouseEvent){
     if(this.disposed)return;
     const parentAtOpen=this.parent(),refsAtOpen=this.subset(),allAtOpen=[...this.refs];
