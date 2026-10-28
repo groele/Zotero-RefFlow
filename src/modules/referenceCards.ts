@@ -279,9 +279,14 @@ export default class ReferenceCards {
     if(!parent || (action!=="rollback" && !(action==="import-all" ? all.length : refs.length))) throw new Error(getString('cards-settings-no-context'));
     const same=()=>!this.disposed && this.body.isConnected && Number(this.body.getAttribute("data-refflow-item-id"))===parent.id;
     if(action==="copy-text") this.views.utils.copyText(refs.map(ref=>ref.text||ref.title).join("\n"),false);
-    else if(action==="copy-doi") this.views.utils.copyText(refs.map(ref=>ref.identifiers?.DOI).filter(Boolean).join("\n"),false);
-    else if(action==="copy-url") this.views.utils.copyText(refs.map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean).join("\n"),false);
-    else if(action==="open") refs.slice(0,20).forEach(ref=>this.open(ref));
+    else if(action==="copy-doi") {const values=refs.map(ref=>ref.identifiers?.DOI).filter(Boolean);if(!values.length)throw new Error(getString("cards-settings-no-doi"));this.views.utils.copyText(values.join("\n"),false);}
+    else if(action==="copy-url") {const values=refs.map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean);if(!values.length)throw new Error(getString("cards-settings-no-url"));this.views.utils.copyText(values.join("\n"),false);}
+    else if(action==="open") {
+      const available=refs.filter(ref=>Boolean(ref._item)||/^https?:\/\//i.test(ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")));
+      if(!available.length)throw new Error(getString("cards-settings-no-open"));
+      available.slice(0,20).forEach(ref=>this.open(ref));
+      return getString("cards-settings-opened",{args:{count:Math.min(20,available.length),total:available.length}});
+    }
     else if(action==="import-selected" || action==="import-all") {
       const chosen=action==="import-all"?all:refs;
       const collections=this.views.utils.importCollections(parent,this.body.ownerDocument.defaultView!);
@@ -303,23 +308,29 @@ export default class ReferenceCards {
     const collectionsAtOpen=this.views.utils.importCollections(parentAtOpen,this.body.ownerDocument.defaultView!);
     const samePanel=()=>!this.disposed&&this.body.isConnected&&Number(this.body.getAttribute("data-refflow-item-id"))===parentAtOpen.id;
     const doc:any=this.body.ownerDocument,popup=doc.createXULElement("menupopup") as any;popup.setAttribute("data-refflow-menu","references");
-    const add=(key:string,action:()=>any,checked?:boolean)=>{const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(checked!==undefined){item.setAttribute("type","checkbox");item.checked=checked;}item.addEventListener("command",()=>Promise.resolve().then(()=>{if(samePanel())return action();}).catch(error=>{if(samePanel()){this.label().textContent=importErrorText(error);if(error instanceof JournalCommitPendingError||error instanceof JournalUnavailableError)void this.journalStatus.show();}ztoolkit.log(error);}));popup.append(item);};
-    const separator=()=>popup.append(doc.createXULElement("menuseparator"));
+    let target=popup;
+    const add=(key:string,action:()=>any,checked?:boolean)=>{const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(checked!==undefined){item.setAttribute("type","checkbox");item.checked=checked;}item.addEventListener("command",()=>Promise.resolve().then(()=>{if(samePanel())return action();}).catch(error=>{if(samePanel()){this.label().textContent=importErrorText(error);if(error instanceof JournalCommitPendingError||error instanceof JournalUnavailableError)void this.journalStatus.show();}ztoolkit.log(error);}));target.append(item);};
+    const submenu=(key:string)=>{const menu=doc.createXULElement("menu");menu.setAttribute("label",getString(key));const child=doc.createXULElement("menupopup");menu.append(child);popup.append(menu);return child;};
+    target=submenu('cards-menu-copy');
     add("cards-copy-text",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.text||ref.title).join("\n"),false));
     add("cards-copy-doi",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.identifiers?.DOI).filter(Boolean).join("\n"),false));
     add("cards-copy-url",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.url||(ref.identifiers?.DOI?`https://doi.org/${ref.identifiers.DOI}`:"")).filter(Boolean).join("\n"),false));
+    target=popup;
     add("cards-open",()=>refsAtOpen.slice(0,20).forEach(ref=>this.open(ref)));
-    separator();
+    target=submenu('cards-menu-import');
     const importRefs=async(all:boolean)=>{if(!all&&!hasSelectionAtOpen)throw new Error(getString('cards-select-before-import'));const parent=parentAtOpen;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.batchResults.run(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true},refs.map(ref=>allAtOpen.indexOf(ref)+1));if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}};
     add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
+    target=popup;
     add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const id=await BatchImporter.latestBatchID(parent).catch(error=>{ztoolkit.log('Failed to read rollback journal',error);throw new Error(getString('cards-rollback-failed'));});if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.batchResults.clear();this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}});
-    separator();
+    target=submenu('cards-menu-source');
     for(const source of ["Auto","PDF","Web","API"])add(source==="Auto"?"cards-source-auto":source==="Web"?"cards-source-web":source==="PDF"?"cards-source-pdf":"cards-source-online",()=>{if(!samePanel())return;this.body.querySelector<HTMLSelectElement>("select")!.value=source;this.body.querySelector("select")!.dispatchEvent(new (this.body.ownerDocument.defaultView as any).Event("change"));},this.body.getAttribute("source")===source);
+    target=submenu('cards-menu-sort');
     for(const sort of ["Original","Recency","Cited Count"])add(sort==="Original"?"cards-sort-original":sort==="Recency"?"cards-sort-recency":"cards-sort-cited",async()=>{if(!samePanel())return;Zotero.Prefs.set(`${config.addonRef}.sortBy`,sort);await this.views.sortReferences(this.body);},Zotero.Prefs.get(`${config.addonRef}.sortBy`)===sort);
+    target=submenu('cards-menu-more');
     add("relatedbox-download-oa",()=>Zotero.Prefs.set(`${config.addonRef}.downloadOA`,!Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)));
-    separator();add('cards-journal-inspect',()=>this.journalStatus.show());
+    add('cards-journal-inspect',()=>this.journalStatus.show());
     this.menus.add(popup);
-    popup.addEventListener("popuphidden",()=>{this.menus.delete(popup);popup.remove();},{once:true});doc.documentElement.append(popup);
+    popup.addEventListener("popuphidden",(event:Event)=>{if(event.target!==popup)return;this.menus.delete(popup);popup.remove();});doc.documentElement.append(popup);
     if(event)popup.openPopupAtScreen(event.screenX,event.screenY,true);else popup.openPopup(this.body.closest("item-pane-custom-section"),"after_end",0,0,false,false);
   }
 }

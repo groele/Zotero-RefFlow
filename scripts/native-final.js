@@ -34,7 +34,7 @@ await test('XPI baseline layout: header icons, search, metadata cards, selection
     const search=body.querySelector('input[type=search]');search.value='layout3';search.dispatchEvent(new window.Event('input',{bubbles:true}));await delay(150);check(rows.filter(row=>!row.hidden).length===1,'Search did not filter cards');
     const section=body.closest('item-pane-custom-section');for(const type of ['type','refresh','more'])check(section.querySelector('collapsible-section .'+type),'Missing native header icon '+type);
     for(const filename of ['reference-sidenav.svg','reference.svg','type.svg','refresh.svg','more.svg']){const img=new window.Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(new Error('Icon failed: '+filename));img.src='chrome://refflow/content/icons/'+filename;});check(img.naturalWidth>0,'Empty icon '+filename);}
-    body._cards.menu();const popup=window.document.querySelector('menupopup[data-refflow-menu=references]');check(popup,'Context menu missing');check([...popup.children].some(entry=>entry.getAttribute('label')?.includes('DOI')),'Copy DOI action missing');popup.hidePopup();return {cards:4,multiSelect:true,search:true,contextMenu:true};
+    body._cards.menu();const popup=window.document.querySelector('menupopup[data-refflow-menu=references]');check(popup,'Context menu missing');check([...popup.querySelectorAll('menuitem')].some(entry=>entry.getAttribute('label')?.includes('DOI')),'Copy DOI action missing');popup.hidePopup();return {cards:4,multiSelect:true,search:true,contextMenu:true};
   }finally{api.getDOIInfoByCrossref=original;}
 });
 await test('same-item native rerender preserves in-flight retrieval and literature type',async()=>{

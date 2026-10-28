@@ -80,7 +80,7 @@ semanticScholarKey-get = Ottieni / visualizza una chiave API Semantic Scholar gr
 caption-actions = Azioni rapide
 showSourceDetails =
     .label = Mostra fonte e completezza
-actions-description = Seleziona un elemento nella libreria Zotero e carica i riferimenti. Le azioni usano la selezione o i risultati filtrati.
+actions-description = Seleziona un elemento Zotero o apri il PDF. Le azioni caricano i riferimenti se necessario; copia e apertura usano la selezione o i risultati filtrati.
 action-copy-text = Copia riferimenti
 action-copy-doi = Copia DOI
 action-copy-url = Copia URL
@@ -88,3 +88,5 @@ action-open = Apri in Zotero o nel browser
 action-import-selected = Aggiungi selezionati tramite DOI
 action-import-all = Aggiungi tutti tramite DOI
 action-rollback = Annulla ultima importazione
+
+actions-working = Preparazione dell’elemento e dell’azione…

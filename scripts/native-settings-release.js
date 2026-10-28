@@ -3,7 +3,7 @@ const views=Zotero.ZoteroRefFlow.views,report={host:Zotero.version,scope:'Window
 const check=(value,message)=>{if(!value)throw new Error(message);};
 const save=()=>Zotero.File.putContentsAsync(cfg.output,JSON.stringify(report,null,2));
 const test=async(name,run)=>{try{report.tests.push({name,ok:true,detail:await run()});}catch(error){report.tests.push({name,ok:false,error:String(error),stack:error.stack});}await save();};
-const wait=async(fn)=>{for(let i=0;i<250;i++){if(fn())return;await Zotero.Promise.delay(20);}throw new Error('Native sidebar did not settle');};
+const wait=async(fn,label="Native sidebar did not settle")=>{for(let i=0;i<250;i++){if(fn())return;await Zotero.Promise.delay(20);}throw new Error(label);};
 const win=Zotero.getMainWindow();Zotero.Prefs.set('refflow.autoRefresh',false);Zotero.Prefs.set('refflow.isShowTip',false);win.Zotero_Tabs.select('zotero-pane');
 const item=new Zotero.Item('journalArticle');item.setField('title','RefFlow source details native acceptance');item.setField('DOI','10.1234/source-details');await item.saveTx({skipSelect:true});await win.ZoteroPane.selectItem(item.id);
 let body;await wait(()=>{body=win.document.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] [data-type="body"]');return body?._cards&&Number(body.getAttribute('data-refflow-item-id'))===item.id;});body.closest('item-pane-custom-section').querySelector('collapsible-section').open=true;
@@ -26,17 +26,18 @@ try{
  });
  await test('Settings quick action and source disclosure switch use the current item',async()=>{
   const pref=Zotero.Utilities.Internal.openPreferences('refflow-preferences');
-  await wait(()=>pref.document.getElementById('zotero-prefpane-refflow'));
+  await wait(()=>pref.document.getElementById('zotero-prefpane-refflow'),'Settings root did not render');
   const root=pref.document.getElementById('zotero-prefpane-refflow');
   const group=root.querySelector('#refflow-actions-title').closest('details');group.open=true;
   const toggle=root.querySelector('#refflow-show-source-details'),details=body.querySelector('#refflow-source-details');
   check(toggle && details && !details.hidden,'Setting or source details missing');
-  toggle.click();await wait(()=>Zotero.Prefs.get('refflow.showSourceDetails')===false);await Zotero.Promise.delay(100);
+  await wait(()=>Boolean(toggle.checked)===Boolean(Zotero.Prefs.get('refflow.showSourceDetails')),'Preference binding did not initialize');
+  toggle.click();await wait(()=>Zotero.Prefs.get('refflow.showSourceDetails')===false,'Hide preference did not change');await Zotero.Promise.delay(100);
   check(details.hidden,'Disabling source details did not hide it');
-  toggle.click();await wait(()=>Zotero.Prefs.get('refflow.showSourceDetails')===true);await Zotero.Promise.delay(100);
+  toggle.click();await wait(()=>Zotero.Prefs.get('refflow.showSourceDetails')===true,'Show preference did not change');await Zotero.Promise.delay(100);
   check(!details.hidden,'Enabling source details did not restore it');
   const old=views.utils.copyText;let copied='';views.utils.copyText=(value)=>{copied=value;};
-  try {root.querySelector('[data-refflow-action="copy-text"]').click();await wait(()=>copied.includes('Reference 1'));} finally {views.utils.copyText=old;}
+  try {root.querySelector('[data-refflow-action="copy-text"]').click();await wait(()=>copied.includes('Reference 1'),'Copy did not resolve current item: '+root.querySelector('#refflow-actions-status').textContent);} finally {views.utils.copyText=old;}
   check(root.querySelectorAll('button[data-refflow-action]').length===7,'Quick actions missing');
   pref.close();return {toggle:true,copy:true,actions:7};
  });
@@ -45,7 +46,7 @@ try{
   Zotero.Translate.Search=class {setIdentifier(value){this.doi=value.DOI;}async getTranslators(){return ['controlled'];}setTranslator(){}async translate(){calls++;return [{itemType:'journalArticle',title:'Settings '+this.doi,DOI:this.doi}];}};
   const pref=Zotero.Utilities.Internal.openPreferences('refflow-preferences');
   try {
-    await wait(()=>pref.document.getElementById('zotero-prefpane-refflow'));
+    await wait(()=>pref.document.getElementById('zotero-prefpane-refflow'),'Settings root did not render');
     const root=pref.document.getElementById('zotero-prefpane-refflow');root.querySelector('#refflow-actions-title').closest('details').open=true;
     const btn=root.querySelector('[data-refflow-action="import-all"]'),status=root.querySelector('#refflow-actions-status');
     btn.click();await wait(()=>calls===2);await wait(()=>!btn.disabled);check(calls===2,'Expected two translator lookups');

@@ -167,3 +167,18 @@ cards-settings-no-context = 请先选择一篇文献并在 RefFlow 侧栏加载�
 cards-settings-done = 操作已完成。
 
 cards-select-before-import = 请先在参考文献列表中选择要导入的文献。
+
+cards-menu-copy = 复制
+cards-menu-source = 获取来源
+cards-menu-sort = 排序
+cards-settings-no-selection = 请先在 Zotero 文库中选择一篇文献，或打开其 PDF。
+cards-settings-open-pane = 请展开该文献的 RefFlow 侧栏后重试。
+cards-settings-no-results = 未能获取参考文献；请检查侧栏中的来源、网络或 PDF 后重试。
+cards-menu-import = 导入
+cards-menu-more = 更多选项
+
+cards-settings-target-result = 当前文献：{ $title }；{ $result }
+cards-settings-no-doi = 选中的参考文献没有 DOI。
+cards-settings-no-url = 选中的参考文献没有网址。
+cards-settings-no-open = 当前结果中没有可在 Zotero 或浏览器打开的文献。
+cards-settings-opened = 已尝试打开 { $count } 项（共 { $total } 项，每次最多打开 20 项）。

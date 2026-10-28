@@ -167,3 +167,18 @@ cards-settings-no-context = Select one item and load its references in the RefFl
 cards-settings-done = Action completed.
 
 cards-select-before-import = Select references in the list before importing selected items.
+
+cards-menu-copy = Copy
+cards-menu-source = Source
+cards-menu-sort = Sort
+cards-settings-no-selection = Select one Zotero item or open its PDF first.
+cards-settings-open-pane = Expand the RefFlow sidebar for this item and try again.
+cards-settings-no-results = No references could be loaded; check the sidebar source, network or PDF and try again.
+cards-menu-import = Import
+cards-menu-more = More options
+
+cards-settings-target-result = Current item: { $title }; { $result }
+cards-settings-no-doi = The selected references have no DOI.
+cards-settings-no-url = The selected references have no URL.
+cards-settings-no-open = No current references can be opened in Zotero or a browser.
+cards-settings-opened = Attempted to open { $count } of { $total } items (at most 20 at a time).

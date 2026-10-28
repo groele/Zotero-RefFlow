@@ -86,7 +86,7 @@ semanticScholarKey-get = 申请 / 查看免费的 Semantic Scholar API Key
 caption-actions = 快捷操作
 showSourceDetails =
     .label = 显示来源与完整性
-actions-description = 请先在 Zotero 文库选中一篇文献并加载参考文献；操作使用侧栏当前选中或筛选的结果。
+actions-description = 请在 Zotero 选中一篇文献或打开其 PDF；如尚未加载，操作会尝试获取参考文献。复制与打开使用侧栏选中或筛选结果。
 action-copy-text = 复制参考文献文本
 action-copy-doi = 复制 DOI
 action-copy-url = 复制 URL
@@ -94,3 +94,5 @@ action-open = 在 Zotero 或浏览器中打开
 action-import-selected = 通过 DOI 添加选中的文献
 action-import-all = 通过 DOI 添加全部文献
 action-rollback = 撤回最近导入
+
+actions-working = 正在准备当前文献并执行操作…

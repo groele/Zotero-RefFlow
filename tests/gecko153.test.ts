@@ -215,20 +215,22 @@ test("menu command catches a synchronous action failure instead of leaking an ev
   const entries: any[] = [], logged: unknown[] = [];let label = { textContent: "" };
   z.Items = { get: () => ({ id: 1 }) };(ztoolkit as any).log = (error: unknown) => logged.push(error);
   (globalThis as any).addon = { data: { locale: { current: { formatMessagesSync: ([{ id }]: any) => [{ value: id }] } } } };
+  const created:any[]=[];
   const doc: any = { createXULElement: () => {
-    const node: any = new Target();node.setAttribute = (name: string, value: any) => { node[name] = value; };
+    const node: any = new Target();created.push(node);node.remove=()=>{node.removed=true;};node.setAttribute = (name: string, value: any) => { node[name] = value; };
     node.append = (entry: any) => entries.push(entry);node.openPopup = () => {};return node;
   }, documentElement: { append: () => {} } };
   const cards: any = Object.create(ReferenceCards.prototype);
   Object.assign(cards, { refs: [], selected: new Set(), menus: new Set(), parent: () => ({ id: 1 }), subset: () => [], label: () => label,
     body: { ownerDocument: doc, isConnected:true, getAttribute: (name:string) => name==='data-refflow-item-id'?'1':'API', closest: () => null },
     views: { utils: { importCollections:()=>[], copyText: () => { throw new Error("clipboard failed synchronously"); } } } });
-  try { cards.menu();entries[0].dispatch("command");await tick();
+  try { cards.menu();const root=created.find(node=>node["data-refflow-menu"]==="references");root.dispatch("popuphidden",created.find(node=>node!==root));assert.equal(root.removed,undefined);assert.equal(cards.menus.has(root),true);const copy=entries.find(entry=>String(entry.label).endsWith("cards-copy-text"));copy.dispatch("command");await tick();
     assert.match(label.textContent, /clipboard failed synchronously/);assert.equal(logged.length, 1);
     const checks = entries.filter(entry => entry.type === "checkbox");
     assert.equal(checks.length, 8);assert.equal(checks.filter(entry => entry.checked).length, 1);
     assert.equal(checks.every(entry => typeof entry.checked === "boolean"), true);
-    entries[0].dispatch("command");cards.disposed = true;await tick();assert.equal(logged.length, 1);
+    copy.dispatch("command");cards.disposed = true;await tick();assert.equal(logged.length, 1);
+    root.dispatch("popuphidden");assert.equal(root.removed,true);assert.equal(cards.menus.has(root),false);
   } finally { z.Items = saved.Items;(ztoolkit as any).log = saved.log;(globalThis as any).addon = saved.addon; }
 });
 

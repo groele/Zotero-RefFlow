@@ -103,3 +103,18 @@ cards-settings-no-context = Seleziona un elemento e carica i riferimenti nel pan
 cards-settings-done = Operazione completata.
 
 cards-select-before-import = Seleziona i riferimenti nella lista prima di importarli.
+
+cards-menu-copy = Copia
+cards-menu-source = Fonte
+cards-menu-sort = Ordina
+cards-settings-no-selection = Seleziona un elemento Zotero o apri il suo PDF.
+cards-settings-open-pane = Espandi il pannello RefFlow per questo elemento e riprova.
+cards-settings-no-results = Impossibile caricare i riferimenti; controlla fonte, rete o PDF e riprova.
+cards-menu-import = Importa
+cards-menu-more = Altre opzioni
+
+cards-settings-target-result = Elemento corrente: { $title }; { $result }
+cards-settings-no-doi = I riferimenti selezionati non hanno DOI.
+cards-settings-no-url = I riferimenti selezionati non hanno URL.
+cards-settings-no-open = Nessun riferimento corrente può essere aperto in Zotero o nel browser.
+cards-settings-opened = Apertura avviata per { $count } di { $total } elementi (massimo 20 alla volta).

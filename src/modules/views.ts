@@ -25,13 +25,52 @@ export default class Views {
   private disposed = false;
   private panes=new Set<HTMLElement>();
   public async runSettingsAction(action:string):Promise<string> {
+    if(this.disposed)throw new Error(getString('cards-context-changed'));
     const win=Zotero.getMainWindow();
-    const selected=win?.ZoteroPane?.getSelectedItems?.() || [];
-    if(selected.length!==1) throw new Error(getString('cards-settings-no-context'));
+    if(!win)throw new Error(getString('cards-settings-no-selection'));
+    const reader=this.utils.getReader(win as unknown as Window);
+    const attachment=reader?.itemID?Zotero.Items.get(reader.itemID):undefined;
+    const selected=attachment?[attachment]:(win.ZoteroPane?.getSelectedItems?.() || []);
+    if(selected.length!==1)throw new Error(getString('cards-settings-no-selection'));
     const item=selected[0].parentItem || selected[0];
-    const body=[...this.panes].find(node=>node.isConnected && node.ownerDocument.defaultView===(win as unknown as Window) && Number(node.getAttribute('data-refflow-item-id'))===item.id);
-    if(!body || !(body as any)._cards) throw new Error(getString('cards-settings-no-context'));
-    return (body as any)._cards.runSettingsAction(action);
+    if(!item?.isRegularItem() || item.deleted)throw new Error(getString('cards-settings-no-selection'));
+    const findBody=()=>{
+      const context=(win as any).document?.getElementById('zotero-context-pane-inner');
+      return [...this.panes].find(node=>node.isConnected && node.ownerDocument.defaultView===(win as unknown as Window)
+        && Number(node.getAttribute('data-refflow-item-id'))===item.id
+        && (attachment ? Boolean(context?.contains(node)) : !context?.contains(node)));
+    };
+    let body=findBody();
+    // The item pane is lazily created. Open the selected library item only if no
+    // matching reader or library pane exists, then wait for the native render.
+    if(!body){
+      const context=(win as any).document.getElementById('zotero-context-pane-inner');
+      if(attachment){if(context)context.collapsed=false;}
+      else {(win as any).Zotero_Tabs?.select('zotero-pane');await win.ZoteroPane.selectItem(item.id);}
+      for(let i=0;i<100&&!body;i++){
+        const scope=attachment?context:(win as any).document;
+        const section=scope?.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] collapsible-section');
+        if(section) section.open=true;
+        await Zotero.Promise.delay(30);body=findBody();
+      }
+    }
+    if(!body || !(body as any)._cards)throw new Error(getString('cards-settings-open-pane'));
+    const contextStillMatches=()=>{
+      if(!body!.isConnected || Number(body!.getAttribute('data-refflow-item-id'))!==item.id || item.deleted)return false;
+      const activeReader=this.utils.getReader(win as unknown as Window);
+      if(attachment)return activeReader?.itemID===attachment.id;
+      const current=win.ZoteroPane?.getSelectedItems?.()||[];
+      return !activeReader && current.length===1 && (current[0].parentItem||current[0]).id===item.id;
+    };
+    if(!contextStillMatches())throw new Error(getString('cards-context-changed'));
+    if(action!=='rollback' && !((body as any).references?.length)){
+      await this.refreshReferences(body as any,true,false,false,item,reader);
+      if(!contextStillMatches())throw new Error(getString('cards-context-changed'));
+      if(!((body as any).references?.length))throw new Error(getString('cards-settings-no-results'));
+    }
+    if(!contextStillMatches())throw new Error(getString('cards-context-changed'));
+    const result=await (body as any)._cards.runSettingsAction(action);
+    return getString('cards-settings-target-result',{args:{title:String(item.getField("title")||""),result}});
   }
   public updateSourceDetailsVisibility():void {
     for(const body of this.panes){const details=body.querySelector<HTMLDetailsElement>('#refflow-source-details');if(details)details.hidden=Zotero.Prefs.get(`${config.addonRef}.showSourceDetails`)===false || !details.childElementCount;}
