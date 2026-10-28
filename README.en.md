@@ -1,5 +1,7 @@
 > **12.5.7** hardens batch-journal identity, committed-write recovery, library isolation and retry history. [Release notes](docs/releases/v12.5.7.md).
 
+> Local development candidate: **12.5.8** (not published). Stable download links and their existing validation statements below remain for **12.5.7**; this candidate expands product capability and development-origin documentation without updating an online XPI or update feed.
+
 # Zotero RefFlow
 
 
@@ -47,12 +49,13 @@ Update feed: [update.json](https://github.com/groele/Zotero-RefFlow/blob/main/up
 
 ## Key features
 
-| Feature | Scope |
-|---|---|
-| Multiple sources | Retrieve available references from PDFs, saved webpages, publishers, and online indexes. |
-| Relationship browsing | Browse lists and graphs while distinguishing references, citing works, and related works. |
-| Result handling | Search, sort, copy, and import results; review matches and duplicates before import. |
-| Provenance and cache | Retain source information, cache, and partial-result notices; similarity does not establish a citation. |
+| Differentiator | What it does | Boundary |
+|---|---|---|
+| Provenance-preserving multi-source discovery | Draws usable relationship leads from local PDFs, saved pages, publishers, Crossref, OpenAlex, and Semantic Scholar while retaining each provider’s role. | Coverage, ordering, rate limits, and fields are provider-dependent; scanned PDFs need a usable text layer or OCR. |
+| Direction-aware relationship browsing | Separates references, citing works, and related works in lists and graphs to extend a paper’s reading path. | Similarity or co-occurrence is not a citation fact and must not be conflated with reference/citation direction. |
+| DOI-first local import | Normalizes a candidate DOI, checks duplicates, and uses Zotero’s DOI/translator path to create a local item. | A clear fallback is used without a DOI; users should still review target library/collection, matches, and missing fields. |
+| Cancellable network and partial-result handling | Applies timeout, cancellation, considered retry, and provider-level error/partial-result signals instead of rendering a failure as an empty result. | No external service or network can guarantee a complete graph; “not retrieved” does not establish that a relation is absent. |
+| Cache, batches, and recovery clues | Reuses cached results and retains batch-import commit information to support an informed decision after interruption. | A cache never replaces the original source; recovery requires review of visible state and item matches. |
 
 <a id="settings"></a>
 
@@ -136,7 +139,7 @@ Each add-on installs and updates separately. A shared brand does not imply a sha
 
 ## Origin and license
 
-Independently maintained derivative of MuiseDestiny (Polygon)’s zotero-reference / Ethereal Reference; upstream copyright and third-party notices remain in force.
+**Derivative notice:** Zotero RefFlow is an independently maintained derivative of MuiseDestiny (Polygon)’s open-source [zotero-reference / Ethereal Reference](https://github.com/MuiseDestiny/zotero-reference). Upstream copyright, AGPL obligations, and applicable third-party notices remain in force; this project is neither an upstream nor an official Zotero release.
 
 License: [AGPL-3.0-or-later](LICENSE).
 
