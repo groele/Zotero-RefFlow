@@ -12,7 +12,7 @@
   max-width: 780px;
   min-width: 0;
   margin-inline: auto;
-  padding: 10px 14px 28px;
+  padding: 12px 16px 28px;
   color: var(--flow-pref-text);
   font-family: system-ui, "Microsoft YaHei UI", "Microsoft YaHei", sans-serif;
   font-size: 14px;
@@ -70,6 +70,7 @@
   display: block;
   min-width: 0;
   margin: 0 0 10px;
+  padding: 16px;
   border: 1px solid var(--flow-pref-border);
   border-radius: 9px;
   background: var(--flow-pref-surface);
@@ -84,11 +85,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 11px 13px;
+  margin: -16px;
+  padding: 12px 16px;
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  line-height: 1.6;
+  line-height: 1.5;
   list-style: none;
 }
 
@@ -122,13 +124,14 @@
 }
 
 .refflow-setting-group[open] > summary {
+  margin-bottom: 0;
   border-bottom: 1px solid var(--flow-pref-divider);
 }
 
 .refflow-setting-group-body {
   min-width: 0;
   margin: 0 !important;
-  padding: 4px 13px 10px;
+  padding: 16px 0 0;
 }
 
 .refflow-setting-group-body > label {
@@ -137,6 +140,7 @@
   margin: 8px 0 3px;
   color: var(--flow-pref-text);
   font-size: 14px;
+  font-weight: 600;
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
@@ -152,7 +156,7 @@
 .refflow-setting-subgroup {
   min-width: 0;
   margin: 0 0 12px;
-  padding: 3px 0 12px;
+  padding: 4px 0 12px;
   border-bottom: 1px solid var(--flow-pref-divider);
 }
 
@@ -309,11 +313,21 @@
   text-underline-offset: 2px;
 }
 
+#zotero-prefpane-refflow checkbox[data-refflow-quick-action],
+#zotero-prefpane-refflow p[data-l10n-id="actions-description"],
+#zotero-prefpane-refflow .refflow-setting-group[aria-labelledby="refflow-online-title"] .refflow-setting-group-body > input,
+#zotero-prefpane-refflow .refflow-setting-group[aria-labelledby="refflow-online-title"] .refflow-setting-group-body > p,
+#zotero-prefpane-refflow .refflow-setting-group[aria-labelledby="refflow-online-title"] .refflow-setting-group-body > a,
+#zotero-prefpane-refflow .refflow-setting-subgroup:first-child > .refflow-setting-input-row,
+#zotero-prefpane-refflow .refflow-setting-input-row-compact {
+  margin-inline-start: 24px;
+}
+
 .refflow-pref-footer {
   display: grid;
   gap: 3px;
   margin-top: 14px;
-  padding: 10px 13px;
+  padding: 16px;
   border: 1px solid var(--flow-pref-border);
   border-radius: 9px;
   color: var(--flow-pref-text);

@@ -279,6 +279,9 @@ export default class ReferenceCards {
     const parent=this.parent(), all=[...this.refs], refs=this.subset();
     if(action==='import-selected' && !this.selected.size) throw new Error(getString('cards-select-before-import'));
     if(!parent || (action!=="rollback" && !(action==="import-all" ? all.length : refs.length))) throw new Error(getString('cards-settings-no-context'));
+    if((action==="import-selected" || action==="import-all" || action==="rollback") && parent && typeof parent.isEditable === 'function' && !parent.isEditable()) {
+      throw new Error(getString('cards-library-readonly'));
+    }
     const same=()=>!this.disposed && this.body.isConnected && Number(this.body.getAttribute("data-refflow-item-id"))===parent.id;
     if(action==="copy-text") this.views.utils.copyText(refs.map(ref=>ref.text||ref.title).join("\n"),false);
     else if(action==="copy-doi") {const values=refs.map(ref=>ref.identifiers?.DOI).filter(Boolean);if(!values.length)throw new Error(getString("cards-settings-no-doi"));this.views.utils.copyText(values.join("\n"),false);}
@@ -324,10 +327,23 @@ export default class ReferenceCards {
     target=popup;
     add("cards-open",()=>refsAtOpen.slice(0,20).forEach(ref=>this.open(ref)));
     target=submenu('cards-menu-import');
-    const importRefs=async(all:boolean)=>{if(!all&&!hasSelectionAtOpen)throw new Error(getString('cards-select-before-import'));const parent=parentAtOpen;const refs=all?allAtOpen:refsAtOpen;if(!refs.length)return;const result=await this.batchResults.run(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true},refs.map(ref=>allAtOpen.indexOf(ref)+1));if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}};
+    const importRefs=async(all:boolean)=>{
+      const parent=parentAtOpen;
+      if(parent && typeof parent.isEditable === 'function' && !parent.isEditable()) throw new Error(getString('cards-library-readonly'));
+      if(!all&&!hasSelectionAtOpen)throw new Error(getString('cards-select-before-import'));
+      const refs=all?allAtOpen:refsAtOpen;
+      if(!refs.length)return;
+      const result=await this.batchResults.run(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true},refs.map(ref=>allAtOpen.indexOf(ref)+1));
+      if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}
+    };
     add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
     target=popup;
-    add("relatedbox-rollback",async()=>{const parent=parentAtOpen;const id=await BatchImporter.latestBatchID(parent).catch(error=>{ztoolkit.log('Failed to read rollback journal',error);throw new Error(getString('cards-rollback-failed'));});if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.batchResults.clear();this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}});
+    add("relatedbox-rollback",async()=>{
+      const parent=parentAtOpen;
+      if(parent && typeof parent.isEditable === 'function' && !parent.isEditable()) throw new Error(getString('cards-library-readonly'));
+      const id=await BatchImporter.latestBatchID(parent).catch(error=>{ztoolkit.log('Failed to read rollback journal',error);throw new Error(getString('cards-rollback-failed'));});
+      if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.batchResults.clear();this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}
+    });
     target=submenu('cards-menu-source');
     for(const source of ["Auto","PDF","Web","API"])add(source==="Auto"?"cards-source-auto":source==="Web"?"cards-source-web":source==="PDF"?"cards-source-pdf":"cards-source-online",()=>{if(!samePanel())return;this.body.querySelector<HTMLSelectElement>("select")!.value=source;this.body.querySelector("select")!.dispatchEvent(new (this.body.ownerDocument.defaultView as any).Event("change"));},this.body.getAttribute("source")===source);
     target=submenu('cards-menu-sort');

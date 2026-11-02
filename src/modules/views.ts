@@ -454,6 +454,9 @@ export default class Views {
 
   public async importReferences(parent: Zotero.Item, refs: ItemBaseInfo[], options: any = {}) {
     if(this.disposed)throw new Error('RefFlow is stopping');
+    if(parent && typeof parent.isEditable === 'function' && !parent.isEditable()){
+      throw new Error((globalThis as any).getString?.('cards-library-readonly') || 'Item library is read-only');
+    }
     refs=[...refs];
     options={downloadOA:true,createSubCollection:true,createManifestNote:true,...options};
     let ownerID=0;
@@ -473,6 +476,9 @@ export default class Views {
     finally{if(this.importJobs.get(key)?.job===job)this.importJobs.delete(key);for(const body of panels){const pending=this.pendingImports.get(body);const count=(pending?.get(parent.id)||1)-1;if(count>0)pending?.set(parent.id,count);else pending?.delete(parent.id);this.syncCancelButton(body);}}
   }
   public async rollbackReferences(parent: Zotero.Item, batchID: string) {
+    if(parent && typeof parent.isEditable === 'function' && !parent.isEditable()){
+      throw new Error((globalThis as any).getString?.('cards-library-readonly') || 'Item library is read-only');
+    }
     try{
     const outcome=await BatchImporter.rollbackBatchDetailed(parent,batchID),removed=outcome.removed,retained=outcome.retainedIDs.length;
     if(retained)new ztoolkit.ProgressWindow('RefFlow').createLine({text:getString('cards-rollback-retained',{args:{count:retained}}),type:'default'}).show();
