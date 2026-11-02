@@ -6,25 +6,14 @@ export { initLocale, getString };
  * Initialize locale data
  */
 function initLocale() {
-  let LocalizationClass: any;
-  if (typeof Localization !== "undefined") {
-    LocalizationClass = Localization;
-  } else if (typeof ztoolkit !== "undefined" && typeof (ztoolkit as any).getGlobal === "function") {
-    LocalizationClass = (ztoolkit as any).getGlobal("Localization");
-  } else {
-    LocalizationClass = class {
-      constructor() {}
-      formatValueSync(key: string) { return key; }
-      formatMessagesSync() { return []; }
-    };
-  }
-  const l10n = new LocalizationClass([`${config.addonRef}-addon.ftl`], true);
-  if (typeof (globalThis as any).addon !== "undefined") {
-    (globalThis as any).addon.data = (globalThis as any).addon.data || {};
-    (globalThis as any).addon.data.locale = {
-      current: l10n,
-    };
-  }
+  const l10n = new (
+    typeof Localization === "undefined"
+      ? ztoolkit.getGlobal("Localization")
+      : Localization
+  )([`${config.addonRef}-addon.ftl`], true);
+  addon.data.locale = {
+    current: l10n,
+  };
 }
 
 /**

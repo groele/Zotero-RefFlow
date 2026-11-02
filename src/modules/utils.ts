@@ -1,8 +1,8 @@
-import API from "./api";
+import API from "./api"
 import PDF from "./pdf";
+import GBT7714Parser from "./parsers/gbt7714";
 import CitationVerifier from "./verifier";
-import { workIdentity, selectLibraryMatch } from "./workIdentity";
-import ReferenceTextParser, { REF_REGEX } from "./referenceTextParser";
+import {workIdentity,selectLibraryMatch} from './workIdentity';
 
 class Utils {
   API: API;
@@ -10,85 +10,265 @@ class Utils {
   private itemCache: Map<string, Zotero.Item | null> = new Map();
   private readonly MAX_ITEM_CACHE: number = 800;
   private itemCacheGeneration = 0;
-  private libraryGenerations = new Map<number, number>();
+  private libraryGenerations=new Map<number,number>();
   private itemFlights = new Map<string, Promise<Zotero.Item | undefined>>();
 
-  public clearLibraryItemCache(libraryIDs?: Set<number>): void {
-    if (libraryIDs) {
-      for (const id of libraryIDs) this.libraryGenerations.set(id, (this.libraryGenerations.get(id) || 0) + 1);
-      for (const key of this.itemCache.keys()) if (libraryIDs.has(Number(key.split(":")[0]))) this.itemCache.delete(key);
-      for (const key of this.itemFlights.keys()) if (libraryIDs.has(Number(key.split(":")[0]))) this.itemFlights.delete(key);
-    } else {
-      this.itemCache.clear();
-      this.itemCacheGeneration++;
-      this.libraryGenerations.clear();
-      this.itemFlights.clear();
-    }
+  public clearLibraryItemCache(libraryIDs?:Set<number>): void {
+    if(libraryIDs){
+      for(const id of libraryIDs)this.libraryGenerations.set(id,(this.libraryGenerations.get(id)||0)+1);
+      for(const key of this.itemCache.keys())if(libraryIDs.has(Number(key.split(':')[0])))this.itemCache.delete(key);
+      for(const key of this.itemFlights.keys())if(libraryIDs.has(Number(key.split(':')[0])))this.itemFlights.delete(key);
+    }else{this.itemCache.clear();this.itemCacheGeneration++;this.libraryGenerations.clear();this.itemFlights.clear();}
   }
-
-  public get regex() {
-    return REF_REGEX;
+  public regex = {
+    DOI: /10\.\d{4,9}\/[-._;()/:A-Za-z0-9><]+[^\.\]]/,
+    arXiv: /(?:arXiv[\.:\s]|arxiv\.org\/abs\/)(\d{4}\.\d{4,5}(?:v\d+)?|[a-z\-]+(?:\.[A-Z]{2})?\/\d{7})/i,
+    URL: /https?:\/\/[^\s<>"'{}|\\^`]+/i
   }
-
   constructor() {
     this.API = new API(this);
     this.PDF = new PDF(this);
   }
 
-  // --- 委托至 ReferenceTextParser 的纯文本与标识符解析方法 ---
   public getIdentifiers(text: string): ItemBaseInfo["identifiers"] {
-    return ReferenceTextParser.getIdentifiers(text);
+    const identifiers: ItemBaseInfo["identifiers"] = {};
+    if (!text) return identifiers;
+
+    // 1. DOI 探测与归一化
+    // Removing every space also absorbs following journal names into the DOI.
+    // Normal PDF line reconstruction already joins wrapped DOI glyph runs.
+    const doiMatch = text.match(/10\.\d{4,9}\/[^\s"'`\\]+/);
+    if (doiMatch) {
+      const clean = CitationVerifier.normalizeDOI(doiMatch[0]);
+      if (clean && !/(cnki|issn)/i.test(clean)) {
+        identifiers.DOI = clean;
+      }
+    }
+
+    // 2. arXiv 探测 (支持新版、5位号、版本号以及旧版编号)
+    const arxivMatch = text.match(/(?:arXiv[\.:\s]|arxiv\.org\/abs\/)(\d{4}\.\d{4,5}(?:v\d+)?|[a-z\-]+(?:\.[A-Z]{2})?\/\d{7})/i);
+    if (arxivMatch) {
+      identifiers.arXiv = arxivMatch[1];
+    }
+
+    return identifiers;
   }
 
-  public extractURL(text: string): string | undefined {
-    return ReferenceTextParser.extractURL(text);
+  private extractURL(text: string): string | undefined {
+    let res = text.match(this.regex.URL);
+    if (res) {
+      return res[0].replace(/[.,;:()\[\]]+$/, "");
+    }
   }
 
-  public parseRefText(text: string): { year?: string, authors?: string[], title: string, publicationVenue?: string } {
-    return ReferenceTextParser.parseRefText(text);
+  public parseRefText(text: string): { year?: string, authors?: string[], title: string, publicationVenue?: String } {
+    try {
+      text = text.replace(/^\[\d+?\]/, "")
+      text = text.replace(/\s+/g, " ")
+      // 匹配标题 (支持中文双引号 “”、书名号 《》、以及英文直引号 "")
+      let title: string = "";
+      let titleMatch: string = "";
+      const quoteMatch = text.match(/[\u201c"《]([^\u201d"》]+)[\u201d"》]/);
+      if (quoteMatch) {
+        titleMatch = quoteMatch[0];
+        title = quoteMatch[1].trim();
+        if (title.endsWith(",")) {
+          title = title.slice(0, -1);
+        }
+      } else {
+        const segments = ((text.indexOf(". ") != -1 && text.match(/\.\s/g)!.length >= 2) && text.split(". ") || text.split("."))
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
+        if (segments.length >= 2) {
+          title = titleMatch = segments
+            .sort((a, b) => b.length - a.length)
+            .map((s: string) => {
+              let count = 0;
+              [/[A-Z]\./g, /[,\.\-\(\)\:]/g, /\d/g].forEach(regex => {
+                let res = s.match(regex);
+                count += (res ? res.length : 0);
+              });
+              return [count / s.length, s] as [number, string];
+            })
+            .filter((s: [number, string]) => ((s[1].match(/\s+/g)?.length ?? 0) >= 2))
+            .sort((a: [number, string], b: [number, string]) => a[0] - b[0])?.[0]?.[1] || segments[0];
+        } else {
+          title = titleMatch = segments[0] || text;
+        }
+
+        if (/\[[A-Z]\]$/.test(title)) {
+          title = title.replace(/\[[A-Z]\]$/, "");
+        }
+      }
+      title = title.trim();
+
+      let splitByTitle = text.split(titleMatch);
+      let authorInfo = splitByTitle[0]?.trim() || "";
+
+      let publicationVenue: string | undefined = undefined;
+      if (splitByTitle[1]) {
+        const venueMatch = splitByTitle[1].match(/[^.\s].+[^\.]/);
+        if (venueMatch) {
+          publicationVenue = venueMatch[0].split(/[,\d]/)[0].trim();
+        }
+      }
+
+      if (authorInfo.indexOf("et al.") != -1) {
+        authorInfo = authorInfo.split("et al.")[0] + "et al.";
+      }
+      const currentYear = new Date().getFullYear();
+      let res = text.match(/[^\d]\d{4}[^\d-]/g)?.map(s => s.match(/\d+/)![0]);
+      let year = res?.find(s => {
+        return Number(s) <= Number(currentYear) + 1;
+      });
+
+      if (year) {
+        authorInfo = authorInfo.replace(`${year}.`, "").replace(year, "").trim();
+      }
+
+      return {
+        year,
+        title: title || text,
+        authors: authorInfo ? [authorInfo] : [],
+        publicationVenue
+      };
+    } catch {
+      return {
+        title: text
+      };
+    }
   }
 
   public _parseRefText(text: string): { year: string, authors: string[], title: string } {
-    return ReferenceTextParser._parseRefText(text);
+    // 匹配年份
+    let year
+    let _years = text.match(/[^\d]?(\d{4})[^\d]?/g) as string[]
+    if (_years) {
+      let years = _years
+        .map(year => Number(year.match(/\d{4}/)![0]))
+        .filter(year => year > 1900 && year < (new Date()).getFullYear())
+      if (years.length > 0) { year = String(years[0]) }
+    }
+    year = year as string
+    if (this.isChinese(text)) {
+      // extract author and title
+      // [1] 张 宁, 张 雨青, 吴 坎坎. 信任的心理和神经生理机制. 2011, 1137-1143.
+      // [1] 中央环保督察视角下的城市群高质量发展研究——以成渝城市群为例[J].李毅.  环境生态学.2022(04) 
+      let parts = text
+        .replace(/\[.+?\]/g, "")
+        .replace(/\s+/g, " ")
+        .split(/[\.,\uff0c\uff0e\uff3b\[\]]/) // \uff0c: ，\uff0e: ．
+        .map(e => e.trim())
+        .filter(e => e)
+      let authors = []
+      let titles = []
+      for (let part of parts) {
+        if (part.length <= 3 && part.length >= 2) {
+          authors.push(part);
+        } else {
+          titles.push(part);
+        }
+      }
+      let title = titles.sort((a, b) => b.length - a.length)[0]
+      // ztoolkit.log(text, "\n->\n", title, authors)
+      return { title, authors, year }
+    } else {
+      let authors: string[] = []
+      text = text.replace(/[\u4e00-\u9fa5]/g, "")
+      const authorRegexs = [/[A-Za-z,\.\s]+?\.?[\.,;]/g, /[A-Z][a-z]+ et al.,/]
+      authorRegexs.forEach(regex => {
+        text.match(regex)?.forEach(author => {
+          authors.push(author.slice(0, -1))
+        })
+      })
+      let title = text
+        .split(/[,\.]\s/g)
+        .filter((e: string) => !e.includes("http"))
+        .sort((a, b) => b.length - a.length)[0]
+      return { title, authors, year }
+    }
   }
 
-  public identifiers2URL(identifiers: ItemBaseInfo["identifiers"]): string | undefined {
-    return ReferenceTextParser.identifiers2URL(identifiers);
+  public identifiers2URL(identifiers: ItemBaseInfo["identifiers"]) {
+    let url
+    if (identifiers.DOI) {
+      url = `https://doi.org/${identifiers.DOI}`
+    }
+    if (identifiers.arXiv) {
+      url = `https://arxiv.org/abs/${identifiers.arXiv}`
+    }
+    return url
   }
 
   public refText2Info(text: string): ItemBaseInfo {
-    return ReferenceTextParser.refText2Info(text);
+    let identifiers = this.getIdentifiers(text);
+
+    // 优先采用国标 GB/T 7714 确定性解析
+    if (GBT7714Parser.isGBT7714(text)) {
+      const gbt = GBT7714Parser.parse(text);
+      if (gbt) {
+        if (gbt.doi) identifiers.DOI = CitationVerifier.normalizeDOI(gbt.doi);
+        return {
+          identifiers: identifiers,
+          url: this.extractURL(text) || this.identifiers2URL(identifiers),
+          authors: gbt.authors,
+          title: gbt.title,
+          year: gbt.year,
+          type: gbt.type as any,
+          publicationVenue: gbt.source,
+          volume:gbt.volume,issue:gbt.issue,pages:gbt.pages,
+          text: text
+        };
+      }
+    }
+
+    return {
+      identifiers: identifiers,
+      url: this.extractURL(text) || this.identifiers2URL(identifiers),
+      authors: [],
+      ...this.parseRefText(text),
+      type: (identifiers.arXiv ? "preprint" : "journalArticle")
+    };
   }
 
   public parseCNKIURL(cnkiURL: string) {
-    return ReferenceTextParser.parseCNKIURL(cnkiURL);
+    try {
+      let fileName = cnkiURL.match(/fileName=(\w+)/i)![1]
+      let dbName = cnkiURL.match(/dbName=(\w+)/i)![1]
+      let dbCode = cnkiURL.match(/dbCode=(\w+)/i)![1]
+      return { fileName, dbName, dbCode }
+    } catch {}
   }
 
+  /**
+   * 将作者名称字符串拆分为符合 Zotero 规范的 firstName / lastName
+   */
   public splitCreator(authorStr: string): any {
-    return ReferenceTextParser.splitCreator(authorStr);
+    const trimmed = authorStr.trim();
+    if (!trimmed) return { creatorType: "author", name: "Unknown" };
+
+    if (trimmed.includes(",")) {
+      const parts = trimmed.split(",");
+      const lastName = parts[0].trim();
+      const firstName = parts.slice(1).join(",").trim();
+      return { creatorType: "author", lastName, firstName: firstName || undefined };
+    }
+
+    const parts = trimmed.split(/\s+/);
+    if (parts.length > 1) {
+      const lastName = parts[parts.length - 1];
+      const firstName = parts.slice(0, parts.length - 1).join(" ");
+      return { creatorType: "author", lastName, firstName };
+    }
+
+    return { creatorType: "author", lastName: trimmed };
   }
 
-  public isChinese(text: string): boolean {
-    return ReferenceTextParser.isChinese(text);
-  }
-
-  public isDOI(text: string): boolean {
-    return ReferenceTextParser.isDOI(text);
-  }
-
-  public matchArXiv(text: string) {
-    return ReferenceTextParser.matchArXiv(text);
-  }
-
-  public Html2Text(html: string): string {
-    return ReferenceTextParser.Html2Text(html);
-  }
-
-  // --- Zotero 宿主交互、文库检索与上下文解析 ---
   public searchRelatedItem(item: Zotero.Item, refItem: Zotero.Item): Zotero.Item | undefined {
     if (!item || !refItem) { return; }
     const libId = item.libraryID || 1;
-    const relatedItems = item.relatedItems.map(key => {
+    let relatedItems = item.relatedItems.map(key => {
       try {
         return Zotero.Items.getByLibraryAndKey(libId, key) as Zotero.Item;
       } catch {
@@ -100,13 +280,13 @@ class Utils {
 
   public async searchItem(info: ItemBaseInfo, libraryID?: number) {
     if (!info) { return; }
-    const s = new (Zotero as any).Search();
-    const resolvedLibrary = libraryID || this.resolveLibraryID();
-    if (!resolvedLibrary) return;
+    let s = new (Zotero as any).Search();
+    const resolvedLibrary=libraryID || this.resolveLibraryID();
+    if(!resolvedLibrary)return;
     s.libraryID = resolvedLibrary;
     // @ts-ignore
     s.addCondition("joinMode", "any");
-    s.addCondition("resultLevel", "item");
+      s.addCondition("resultLevel", "item");
 
     let hasCondition = false;
     if (info.identifiers?.DOI) {
@@ -119,8 +299,8 @@ class Utils {
     if (titleCandidate && titleCandidate.trim().length > 6) {
       const cleanTitle = CitationVerifier.cleanTitle(titleCandidate).slice(0, 60);
       s.addCondition("title", "contains", cleanTitle);
-      const literalTitle = titleCandidate.trim().slice(0, 60);
-      if (literalTitle.toLowerCase() !== cleanTitle) s.addCondition("title", "contains", literalTitle);
+      const literalTitle=titleCandidate.trim().slice(0,60);
+      if(literalTitle.toLowerCase()!==cleanTitle)s.addCondition("title","contains",literalTitle);
       hasCondition = true;
     }
     if (info.identifiers?.arXiv) {
@@ -136,27 +316,31 @@ class Utils {
       return undefined;
     }
 
-    const ids = await s.search();
-    const items = (await (Zotero as any).Items.getAsync(ids)).filter((i: any) => {
+    var ids = await s.search();
+    let items = (await (Zotero as any).Items.getAsync(ids)).filter((i: any) => {
       return Boolean(i && !i.deleted && (i.isRegularItem ? i.isRegularItem() : !i.isAttachment?.() && !i.isNote?.()));
     });
-    return selectLibraryMatch(info, items);
+    return selectLibraryMatch(info,items);
   }
 
   /**
    * 搜索本地，获取参考文献的本地item引用
+   * @param info 
+   * @param libraryID 可选文库 ID
+   * @returns 
    */
-  public async searchLibraryItem(info: ItemBaseInfo, libraryID?: number, fresh = false): Promise<Zotero.Item | undefined> {
+  public async searchLibraryItem(info: ItemBaseInfo, libraryID?: number, fresh=false): Promise<Zotero.Item | undefined> {
     await Zotero.Promise.delay(0);
-    libraryID = libraryID || this.resolveLibraryID();
-    if (!libraryID) return undefined;
-
-    if (fresh) return this.searchItem(info, libraryID);
+    libraryID=libraryID || this.resolveLibraryID();
+    if(!libraryID)return undefined;
+    // Imports query again inside their write transaction. Cache invalidation is
+    // allowed to drop display hints, but must never turn an existing item into
+    // a definitive miss immediately before an insert.
+    if(fresh)return this.searchItem(info,libraryID);
     const key = `${libraryID}:${workIdentity(info)}:library-item`;
     if (this.itemCache.has(key)) {
       const cached = this.itemCache.get(key);
-      this.itemCache.delete(key);
-      this.itemCache.set(key, cached || null);
+      this.itemCache.delete(key);this.itemCache.set(key,cached || null);
       if (cached && !cached.deleted) {
         info._item = cached;
         return cached;
@@ -164,30 +348,31 @@ class Utils {
       return undefined;
     }
 
-    const generation = `${this.itemCacheGeneration}:${this.libraryGenerations.get(libraryID) || 0}`;
+    // Share metadata-independent lookup work; an item notification invalidates
+    // its generation so a pre-change miss cannot repopulate the cache.
+    const generation = `${this.itemCacheGeneration}:${this.libraryGenerations.get(libraryID)||0}`;
     let flight = this.itemFlights.get(key);
     if (!flight) {
       flight = this.searchItem(info, libraryID);
       this.itemFlights.set(key, flight);
     }
     let item: Zotero.Item | undefined;
-    try {
-      item = await flight;
-    } finally {
-      if (this.itemFlights.get(key) === flight) this.itemFlights.delete(key);
-    }
-    if (generation !== `${this.itemCacheGeneration}:${this.libraryGenerations.get(libraryID) || 0}`) return undefined;
+    try { item = await flight; }
+    finally { if (this.itemFlights.get(key) === flight) this.itemFlights.delete(key); }
+    if (generation !== `${this.itemCacheGeneration}:${this.libraryGenerations.get(libraryID)||0}`) return undefined;
 
-    // 验证匹配条目标题与 DOI
+    // 2. 如果找到了匹配条目，进行标题验证，防止张冠李戴
     if (item) {
       const itemTitle = (item.getField("title") as string) || "";
       const searchTitle = info.title || info.text || "";
-      const requestedDOI = CitationVerifier.normalizeDOI(info.identifiers?.DOI);
-      const candidateDOI = CitationVerifier.normalizeDOI(item.getField("DOI") as string);
-      if (requestedDOI && candidateDOI && requestedDOI !== candidateDOI) item = undefined;
-      if (item && (!requestedDOI || candidateDOI !== requestedDOI) && searchTitle) {
+      const requestedDOI=CitationVerifier.normalizeDOI(info.identifiers?.DOI);
+      const candidateDOI=CitationVerifier.normalizeDOI(item.getField("DOI") as string);
+      if(requestedDOI && candidateDOI && requestedDOI!==candidateDOI) item=undefined;
+      // 若无 DOI 则进行 Token 校验
+      if (item && (!requestedDOI || candidateDOI!==requestedDOI) && searchTitle) {
         const sim = CitationVerifier.tokenJaccard(searchTitle, itemTitle);
-        if (sim < (requestedDOI ? 0.85 : 0.65)) {
+        if (sim < (requestedDOI?0.85:0.65)) {
+          // 相似度过低，拒绝误认
           item = undefined;
         }
       }
@@ -197,6 +382,7 @@ class Utils {
       info._item = item;
     }
 
+    // 写入 LRU 缓存（包括未找到结果的 null，避免重复查询）
     if (this.itemCache.size >= this.MAX_ITEM_CACHE) {
       const oldest = this.itemCache.keys().next().value;
       if (oldest !== undefined) this.itemCache.delete(oldest);
@@ -206,16 +392,18 @@ class Utils {
     return item || undefined;
   }
 
+
   public selectItemInLibrary(item: Zotero.Item, win: Window = window) {
-    (win as any).Zotero_Tabs.select("zotero-pane");
+    (win as any).Zotero_Tabs.select('zotero-pane');
     return (win as any).ZoteroPane.selectItem(item.id);
   }
 
-  public importCollections(parent: Zotero.Item, win?: Window): number[] {
-    const selected = (win as any)?.ZoteroPane?.getSelectedCollections?.() || [];
-    const ids = selected.filter((col: any) => col && !col.deleted && col.libraryID === parent?.libraryID)
-      .map((col: any) => Number(col.id)).filter((id: number) => Number.isSafeInteger(id) && id > 0);
-    return [...new Set<number>(ids.length ? ids : (parent?.getCollections?.() || []))];
+  /** Snapshot only collections in the operation's owning window and library. */
+  public importCollections(parent: Zotero.Item, win: Window): number[] {
+    const selected=(win as any).ZoteroPane?.getSelectedCollections?.() || [];
+    const ids=selected.filter((col:any)=>col&&!col.deleted&&col.libraryID===parent.libraryID)
+      .map((col:any)=>Number(col.id)).filter((id:number)=>Number.isSafeInteger(id)&&id>0);
+    return [...new Set<number>(ids.length?ids:parent.getCollections())];
   }
 
   public getItemType(item: Zotero.Item): string | undefined {
@@ -227,14 +415,60 @@ class Utils {
     return typeId !== undefined ? Zotero.ItemTypes.getName(Number(typeId)) : undefined;
   }
 
+  public isChinese(text: string) {
+    text = text.replace(/\s+/g, "")
+    return (text.match(/[\u4E00-\u9FA5]/g)?.length || 0) / text.length > .5
+  }
+
+  public isDOI(text: string): boolean {
+    if (!text) { return false; }
+    const clean = CitationVerifier.normalizeDOI(text);
+    return Boolean(clean && !/(cnki|issn)/i.test(clean));
+  }
+
+  public matchArXiv(text: string) {
+    let res = text.match(this.regex.arXiv)
+    if (res != null && res.length >= 2) {
+      return res[1]
+    } else {
+      return false
+    }
+  }
+
+  public Html2Text(html: string): string {
+    if (!html) { return ""; }
+    let text = "";
+    try {
+      let span: HTMLSpanElement | null = document.createElement("span")
+      span.innerHTML = html
+      text = span.innerText || span.textContent || ""
+      span = null
+    } catch (e) {
+      text = ""
+    }
+    if (!text) {
+      text = html
+        .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<script[\s\S]*?<\/script>/gi, "")
+        .replace(/<[^>]+>/g, "")
+        .replace(/&nbsp;/gi, " ")
+        .replace(/&amp;/gi, "&")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">")
+        .replace(/&quot;/gi, '"')
+        .replace(/&#39;/gi, "'");
+    }
+    return text.replace(/\n+/g, " ").trim();
+  }
+
   public getReader(win: Window = window) {
-    const tabID = (win as any).Zotero_Tabs?.selectedID;
-    return tabID ? Zotero.Reader.getByTabID(tabID) : undefined;
+    const tabID=(win as any).Zotero_Tabs?.selectedID;
+    return tabID?Zotero.Reader.getByTabID(tabID):undefined;
   }
 
   public resolveLibraryID(win: Window = window): number | undefined {
     try {
-      const pane = (win as any).ZoteroPane;
+      const pane=(win as any).ZoteroPane;
       const ids = pane?.getSelectedLibraryIDs();
       if (Array.isArray(ids) && ids.length === 1 && Number.isFinite(Number(ids[0]))) {
         return Number(ids[0]);
@@ -257,15 +491,15 @@ class Utils {
     if (show) {
       (new ztoolkit.ProgressWindow("Copy"))
         .createLine({ text: text, type: "success" })
-        .show();
+        .show()
     }
   }
 
   public getItem(win: Window = window): Zotero.Item | undefined {
-    const reader = this.getReader(win);
+    let reader = this.getReader(win);
     if (reader?.itemID) {
-      const item = Zotero.Items.get(reader.itemID);
-      return item ? (item.parentItem || item) : undefined;
+      const item=Zotero.Items.get(reader.itemID);
+      return item?(item.parentItem || item):undefined;
     }
     try {
       const selected = (win as any).ZoteroPane?.getSelectedItems();
@@ -276,8 +510,8 @@ class Utils {
   }
 
   public abs(v: number) {
-    return v > 0 ? v : -v;
+    return v > 0 ? v : -v
   }
 }
 
-export default Utils;
+export default Utils

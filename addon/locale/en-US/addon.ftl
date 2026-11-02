@@ -1,11 +1,8 @@
 prefs-label = Zotero RefFlow
-pane-header = Zotero RefFlow
-    .label = Zotero RefFlow
-    .tooltiptext = Zotero RefFlow References
 pane-title =
     .label = { $count ->
         [0] References
-       *[other] { $count } references
+       *[other] References ({ $count })
     }
     .tooltiptext = References
 relatedbox-download-oa = Download open-access PDFs

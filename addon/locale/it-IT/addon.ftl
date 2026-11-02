@@ -1,9 +1,9 @@
 prefs-label = Zotero RefFlow
-pane-header = Zotero RefFlow
-    .label = Zotero RefFlow
-    .tooltiptext = Zotero RefFlow Riferimenti
 pane-title =
-    .label = Riferimenti
+    .label = { $count ->
+        [0] Riferimenti
+       *[other] Riferimenti ({ $count })
+    }
     .tooltiptext = Riferimenti
 tabpanel-reader-tab-label = Citazioni RefFlow
 relatedbox-number-label = riferimenti:
