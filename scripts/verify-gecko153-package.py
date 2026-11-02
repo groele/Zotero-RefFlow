@@ -17,7 +17,7 @@ with ZipFile(xpi) as archive:
     manifest = json.loads(archive.read("manifest.json"))
     assert manifest["version"] == package["version"]
     assert manifest["applications"]["zotero"]["id"] == package["config"]["addonID"]
-    assert manifest["applications"]["zotero"]["strict_max_version"] == "11.*"
+    assert manifest["applications"]["zotero"]["strict_max_version"] == "12.*"
     preferences = archive.read("chrome/content/preferences.xhtml").decode()
     prefs_script = archive.read("chrome/content/scripts/preferences.js").decode()
     bootstrap = archive.read("bootstrap.js").decode()
@@ -39,6 +39,6 @@ if update_path.exists():
     update = json.loads(update_path.read_text(encoding="utf-8"))["addons"][package["config"]["addonID"]]["updates"][0]
     assert update["version"] == package["version"]
     assert update["update_hash"] == "sha256:" + result["sha256"]
-    assert update["applications"]["zotero"]["strict_max_version"] == "11.*"
+    assert update["applications"]["zotero"]["strict_max_version"] == "12.*"
 (root / "build" / "verification.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
 print(json.dumps(result, indent=2))

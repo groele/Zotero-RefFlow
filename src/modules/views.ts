@@ -185,9 +185,17 @@ export default class Views {
             padding: 4px 6px;
             border-bottom: 1px solid var(--material-border, #e0e0e0);
           }
+          .zotero-editpane-related[data-refflow-item-id] .refflow-source-details .header {
+            padding: 4px 0;
+            margin-block: 4px;
+            border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+          }
           .zotero-editpane-related .header label#reference-num {
             flex-grow: 1;
             font-weight: 500;
+          }
+          .zotero-editpane-related[data-refflow-item-id] .refflow-source-details .header label#reference-num {
+            font-size: 0.95em;
           }
           .zotero-editpane-related .header button {
             padding: 2px 8px;
@@ -319,12 +327,17 @@ export default class Views {
         controls.style.flexWrap = "wrap";
         controls.style.gap = "6px";
         controls.classList.add("refflow-status");
+        controls.id = "refflow-controls";
         // The original XPI keeps operations in the collapsible-section header.
         source.hidden=true;refresh.hidden=true;force.hidden=true;
         controls.append(count, source, refresh, force, cancel);
         const sourceDetails=body.ownerDocument.createElement("details");
         sourceDetails.id="refflow-source-details";
+        sourceDetails.className="refflow-source-details";
         sourceDetails.hidden=true;
+        const summary=body.ownerDocument.createElement("summary");
+        summary.textContent=getString("cards-source-details");
+        sourceDetails.append(summary,controls);
         const search=body.ownerDocument.createElement("input");search.type="search";search.className="refflow-card-search";
         search.placeholder=getString("relatedbox-search-placeholder");search.setAttribute("aria-label",search.placeholder);
 
@@ -333,7 +346,7 @@ export default class Views {
         grid.className = "grid";
         grid.style.overflowY = "auto";
         grid.style.display="flex";grid.style.flexDirection="column";
-        body.append(search,controls,sourceDetails,grid);
+        body.append(search,sourceDetails,grid);
         (body as any)._cards?.dispose();
         (body as any)._cards=new ReferenceCards(this,body,grid,search,getString('cards-list-name'));
         (body as any)._setL10nArgs=setL10nArgs;
@@ -369,7 +382,15 @@ export default class Views {
     (body as any)._setL10nArgs?.(JSON.stringify({count:0}));
     body.querySelector("#related-grid")?.replaceChildren();
     const sourceDetails=body.querySelector("#refflow-source-details") as HTMLDetailsElement|undefined;
-    if(sourceDetails){sourceDetails.replaceChildren();sourceDetails.hidden=true;sourceDetails.open=false;}
+    if(sourceDetails){
+      const controls=sourceDetails.querySelector(".refflow-status, #refflow-controls, .header");
+      const summary=sourceDetails.querySelector("summary");
+      for(const child of Array.from(sourceDetails.children)){
+        if(child!==summary && child!==controls) child.remove();
+      }
+      sourceDetails.hidden=true;
+      sourceDetails.open=false;
+    }
     body.removeAttribute("aria-busy");
     const count=body.querySelector("#reference-num");
     if (count) count.textContent=`0 ${getString("relatedbox-number-label")}`;
@@ -635,6 +656,8 @@ export default class Views {
     const literatureType=panel.getAttribute("data-refflow-type")||"References";
     const initialSource = panel.getAttribute("source") || "PDF";
     label.textContent = `${getString("relatedbox-loading")} [${initialSource}]`;
+    const details=panel.querySelector("#refflow-source-details") as HTMLDetailsElement|undefined;
+    if(details && Zotero.Prefs.get(`${config.addonRef}.showSourceDetails`)!==false) details.hidden=false;
     const source=fromCurrentPage && literatureType==="References"?"PDF":initialSource;
     let reader = readerOverride || this.utils.getReader(panel.ownerDocument.defaultView!);
     if(!this.readerMatchesItem(reader,item))reader=undefined as any;

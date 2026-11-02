@@ -14,7 +14,7 @@ Discover references, citing works, and related research.
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![Release](https://img.shields.io/badge/version-13.1.3-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v13.1.3) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.3/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
+[![Release](https://img.shields.io/badge/version-13.1.4-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v13.1.4) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.4/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
 
 [Overview](#overview) · [Installation and updates](#installation) · [Quick start](#quick-start) · [Key features](#features) · [Settings](#settings) · [Data, sync, and services](#data) · [Compatibility and validation](#compatibility) · [Troubleshooting](#troubleshooting) · [Development and documentation](#development) · [The Flow series](#series) · [Origin and license](#license)
 
@@ -30,7 +30,7 @@ Install this add-on independently and combine it with other Flow products as nee
 
 ## Installation and updates
 
-1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.3/zotero-refflow.xpi) (add-on version **13.1.3**), not the Source code ZIP.
+1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.4/zotero-refflow.xpi) (add-on version **13.1.4**), not the Source code ZIP.
 2. In Zotero, open **Tools → Plugins/Add-ons**, then choose **Install Add-on From File** from the gear menu.
 3. Select the XPI, complete installation, and restart if requested.
 

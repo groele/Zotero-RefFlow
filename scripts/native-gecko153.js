@@ -45,7 +45,7 @@ await test('RefFlow identity, update authority, compatibility and legacy prefere
     stream.init(zip.getInputStream('manifest.json'));
     try { manifest = JSON.parse(stream.read(stream.available())); } finally { stream.close(); }
   } finally { zip.close(); }
-  check(manifest.applications.zotero.strict_min_version === '10.0.6' && manifest.applications.zotero.strict_max_version === '11.*', 'Wrong compatibility range');
+  check(manifest.applications.zotero.strict_min_version === '10.0' && manifest.applications.zotero.strict_max_version === '12.*', 'Wrong compatibility range');
   check(!await AddonManager.getAddonByID('refnexus@polygon.org'), 'Legacy plugin unexpectedly installed');
   check(Zotero.Prefs.get('refflow.migratedRefNexus') === true, 'Migration did not complete');
   if (Zotero.Prefs.get('refnexus.showTipAfterMillisecond') === 345) {

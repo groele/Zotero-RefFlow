@@ -6,15 +6,28 @@ export { initLocale, getString };
  * Initialize locale data
  */
 function initLocale() {
-  const l10n = new (
-    typeof Localization === "undefined"
-      ? ztoolkit.getGlobal("Localization")
-      : Localization
-  )([`${config.addonRef}-addon.ftl`], true);
-  addon.data.locale = {
-    current: l10n,
-  };
+  try {
+    const LocalizationClass =
+      typeof Localization === "undefined"
+        ? ztoolkit.getGlobal("Localization")
+        : Localization;
+    const l10n = new LocalizationClass([`${config.addonRef}-addon.ftl`], true);
+    if (typeof (globalThis as any).addon !== "undefined") {
+      (globalThis as any).addon.data = (globalThis as any).addon.data || {};
+      (globalThis as any).addon.data.locale = {
+        current: l10n,
+      };
+    }
+    try {
+      (Zotero as any).ftl?.addResourceIds?.([`${config.addonRef}-addon.ftl`]);
+    } catch {
+      // ignore
+    }
+  } catch {
+    // ignore
+  }
 }
+
 
 /**
  * Get locale string, see https://firefox-source-docs.mozilla.org/l10n/fluent/tutorial.html#fluent-translation-list-ftl
@@ -59,22 +72,56 @@ function getString(...inputs: any[]) {
   }
 }
 
+const DEFAULT_STRINGS: Record<string, string> = {
+  "relatedbox-search-placeholder": "搜索",
+  "cards-source-details": "参考文献数据源与证据",
+  "relatedbox-number-label": "条参考文献：",
+  "relatedbox-fetch-label": "获取参考文献",
+  "relatedbox-loading": "正在获取参考文献…",
+  "relatedbox-cancelled": "已取消获取",
+  "relatedbox-empty": "未找到参考文献，请检查文本层或换用另一来源",
+  "relatedbox-timeout": "获取超时，请重试或换用另一来源",
+  "relatedbox-fetch-error": "获取失败，请重试",
+  "cards-list-name": "参考文献",
+};
+
 function _getString(
   localeString: string,
   options: { branch?: string | undefined; args?: Record<string, unknown> } = {},
 ): string {
   const localStringWithPrefix = `${config.addonRef}-${localeString}`;
   const { branch, args } = options;
-  if (typeof (globalThis as any).addon === "undefined" || !(globalThis as any).addon?.data?.locale?.current) return localStringWithPrefix;
-  const pattern = addon.data.locale?.current.formatMessagesSync([
-    { id: localStringWithPrefix, args },
-  ])[0];
-  if (!pattern) {
-    return localStringWithPrefix;
+  if (typeof (globalThis as any).addon === "undefined" || !(globalThis as any).addon?.data?.locale?.current) {
+    initLocale();
   }
-  if (branch && pattern.attributes) {
-    return pattern.attributes[branch] || localStringWithPrefix;
-  } else {
-    return pattern.value || localStringWithPrefix;
+  const l10n = (globalThis as any).addon?.data?.locale?.current;
+  if (l10n) {
+    try {
+      const pattern = l10n.formatMessagesSync([
+        { id: localStringWithPrefix, args },
+      ])?.[0];
+      if (pattern) {
+        if (branch) {
+          if (Array.isArray(pattern.attributes)) {
+            const attr = pattern.attributes.find((a: any) => a.name === branch);
+            if (attr?.value) return attr.value;
+          } else if (pattern.attributes?.[branch]) {
+            return pattern.attributes[branch];
+          }
+        }
+        if (pattern.value) return pattern.value;
+        if (Array.isArray(pattern.attributes)) {
+          const attr = pattern.attributes.find((a: any) => a.name === "label");
+          if (attr?.value) return attr.value;
+        }
+      }
+      if (typeof l10n.formatValueSync === "function") {
+        const val = l10n.formatValueSync(localStringWithPrefix, args);
+        if (val && val !== localStringWithPrefix) return val;
+      }
+    } catch {
+      // ignore
+    }
   }
+  return DEFAULT_STRINGS[localeString] || localStringWithPrefix;
 }

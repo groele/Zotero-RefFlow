@@ -4,8 +4,8 @@ import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 import {createReleaseArtifacts,validateReleaseConfig} from '../scripts/release-artifacts.mjs';
 const details=JSON.parse(fs.readFileSync('package.json','utf8'));
-const manifest={version:details.version,applications:{zotero:{id:details.config.addonID,update_url:details.config.updateURL,strict_min_version:'10.0.6',strict_max_version:'11.*'}}};
-const template=()=>({addons:{[details.config.addonID]:{updates:[{version:details.version,update_link:details.config.downloadURL,applications:{zotero:{strict_min_version:'10.0.6',strict_max_version:'11.*'}}}]}}});
+const manifest={version:details.version,applications:{zotero:{id:details.config.addonID,update_url:details.config.updateURL,strict_min_version:'10.0',strict_max_version:'12.*'}}};
+const template=()=>({addons:{[details.config.addonID]:{updates:[{version:details.version,update_link:details.config.downloadURL,applications:{zotero:{strict_min_version:'10.0',strict_max_version:'12.*'}}}]}}});
 test('release metadata pairs the exact package bytes with the update checksum',()=>{
  const bytes=Buffer.from('package fixture'),result=createReleaseArtifacts(details,bytes,template(),manifest);const hash=createHash('sha256').update(bytes).digest('hex');assert.equal(result.update.addons[details.config.addonID].updates[0].update_hash,'sha256:'+hash);assert.equal(result.verification.sha256,hash);assert.equal(result.verification.bytes,bytes.length);
 });

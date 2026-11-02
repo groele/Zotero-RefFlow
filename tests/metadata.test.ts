@@ -21,12 +21,12 @@ test("project and automatic update URLs all resolve to the derivative repository
 test("Zotero 10 and 11 manifest and update template share the same compatibility range",()=>{
   const manifest=JSON.parse(read("addon/manifest.json"));
   assert.equal(manifest.applications.zotero.update_url,"__updateURL__");
-  assert.equal(manifest.applications.zotero.strict_min_version,"10.0.6");
-  assert.equal(manifest.applications.zotero.strict_max_version,"11.*");
+  assert.equal(manifest.applications.zotero.strict_min_version,"10.0");
+  assert.equal(manifest.applications.zotero.strict_max_version,"12.*");
   const template=JSON.parse(read("update-template.json"));
   assert.equal(template.addons["__addonID__"].updates[0].update_link,"__downloadURL__");
   assert.deepEqual(template.addons["__addonID__"].updates[0].applications.zotero,
-    {strict_min_version: "10.0.6", strict_max_version: "11.*"});
+    {strict_min_version: "10.0", strict_max_version: "12.*"});
   assert.equal(details.config.addonName,"Zotero RefFlow");
   assert.equal(details.config.addonRef,"refflow");
   assert.equal(details.config.addonInstance,"ZoteroRefFlow");

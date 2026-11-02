@@ -15,7 +15,7 @@ export function validateReleaseConfig(details) {
 export function createReleaseArtifacts(details,xpi,template,manifest) {
   validateReleaseConfig(details);
   if(manifest.version!==details.version||manifest.applications.zotero.id!==details.config.addonID||manifest.applications.zotero.update_url!==details.config.updateURL)throw new Error('Built manifest and package metadata disagree');
-  if(manifest.applications.zotero.strict_min_version!=='10.0.6'||manifest.applications.zotero.strict_max_version!=='11.*')throw new Error('RefFlow compatibility must be 10.0.6 through 11.*');
+  if(manifest.applications.zotero.strict_min_version!=='10.0'||manifest.applications.zotero.strict_max_version!=='12.*')throw new Error('RefFlow compatibility must be 10.0 through 12.*');
   const sha256=createHash('sha256').update(xpi).digest('hex');
   const update=structuredClone(template);
   const entries=update.addons?.[details.config.addonID]?.updates;

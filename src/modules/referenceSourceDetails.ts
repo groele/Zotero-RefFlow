@@ -29,16 +29,21 @@ export function renderReferenceSourceDetails(
   getString: SourceDetailString,
 ) {
   const doc = details.ownerDocument;
-  // Keep the native summary node connected so refresh does not drop keyboard focus.
-  let summary = details.querySelector("summary");
+  // Keep the native summary node and controls connected so refresh does not drop keyboard focus or destroy status.
+  let summary = details.querySelector ? details.querySelector("summary") : null;
+  const controls = (details as any)._controls || (details.querySelector ? details.querySelector(".refflow-status") : null);
   if (summary) {
     for (const child of Array.from(details.children)) {
-      if (child !== summary) child.remove();
+      if (child !== summary && child !== controls) child.remove();
     }
   } else {
     details.replaceChildren();
     summary = doc.createElement("summary");
     details.append(summary);
+  }
+  summary.textContent = getString("cards-source-details");
+  if (controls && controls.parentElement === details && typeof (summary as any).after === "function") {
+    (summary as any).after(controls);
   }
   details.className = "refflow-source-details";
   details.hidden = false;
