@@ -9,6 +9,7 @@ export class PaneRenderer {
     views.referenceTasks.invalidate(body);
     (body as any).references = [];
     (body as any)._cards?.clear();
+    views.updateSectionSummary(body, "");
     (body as any)._setL10nArgs?.(JSON.stringify({ count: 0 }));
     body.querySelector("#related-grid")?.replaceChildren();
     const sourceDetails = body.querySelector("#refflow-source-details") as HTMLDetailsElement | undefined;
@@ -28,6 +29,7 @@ export class PaneRenderer {
   public static cancelReferencePane(views: Views, body: Element): void {
     BatchImporter.cancelImports(Number(body.getAttribute("data-refflow-item-id")), body);
     views.referenceTasks.invalidate(body);
+    views.updateSectionSummary(body, getString("relatedbox-cancelled") || "已取消获取");
     body.removeAttribute("aria-busy");
     body.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach(button => (button as HTMLButtonElement).disabled = false);
     const cancel = body.querySelector("#refflow-cancel") as HTMLElement;

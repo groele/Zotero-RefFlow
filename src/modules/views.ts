@@ -85,6 +85,52 @@ export default class Views {
     this.localizationDocuments.add(doc);
   }
 
+  public ensureSectionTitle(body: Element): void {
+    const section = (body.closest("collapsible-section") || body.parentElement) as (HTMLElement & { label?: string; summary?: string }) | null;
+    if (!section) return;
+    let headerTitle = getString("pane-header");
+    if (!headerTitle || headerTitle === `${config.addonRef}-pane-header` || headerTitle === "pane-header") {
+      headerTitle = "Zotero RefFlow";
+    }
+    if (!section.getAttribute("label") || !section.label) {
+      section.setAttribute("label", headerTitle);
+      section.label = headerTitle;
+    }
+    const titleEl = section.querySelector<HTMLElement>(".head .title-box .title, .title");
+    if (titleEl && (!titleEl.textContent?.trim() || titleEl.textContent?.includes("参考文献") || titleEl.textContent?.includes("references") || titleEl.textContent?.includes("Riferimenti"))) {
+      titleEl.textContent = headerTitle;
+    }
+  }
+
+  public updateSectionSummary(body: Element, summary: string = ""): void {
+    (body as any)._summary = summary;
+    if (typeof (body as any)._setSectionSummary === "function") {
+      try {
+        (body as any)._setSectionSummary(summary);
+      } catch {
+        // ignore
+      }
+    }
+    const section = (body.closest("collapsible-section") || body.parentElement) as (HTMLElement & { label?: string; summary?: string }) | null;
+    if (section) {
+      this.ensureSectionTitle(body);
+      if (summary) {
+        section.setAttribute("summary", summary);
+        section.summary = summary;
+      } else {
+        section.removeAttribute("summary");
+        delete section.summary;
+      }
+      const summaryEl = section.querySelector<HTMLElement>(".head .title-box .summary, .summary");
+      if (summaryEl) {
+        summaryEl.textContent = summary;
+        if (summaryEl.style) {
+          summaryEl.style.display = summary ? "" : "none";
+        }
+      }
+    }
+  }
+
   private addStyle(doc: Document = document) {
     const styles = ztoolkit.UI.createElement(doc, "style", {
       id: `${config.addonRef}-style`,
@@ -200,20 +246,23 @@ export default class Views {
       paneID,
       pluginID: config.addonID,
       sidenav: { l10nID: "refflow-pane-sidenav", icon },
-      header: { l10nID: "refflow-pane-title",l10nArgs:JSON.stringify({count:0}), icon: `chrome://${config.addonRef}/content/icons/reference.svg` },
+      header: { l10nID: "refflow-pane-header", icon: `chrome://${config.addonRef}/content/icons/reference.svg` },
       sectionButtons:[
         {type:"type",icon:`chrome://${config.addonRef}/content/icons/type.svg`,l10nID:"refflow-pane-type",onClick:({body,item})=>this.typeMenu(body,item)},
         {type:"refresh",icon:`chrome://${config.addonRef}/content/icons/refresh.svg`,l10nID:"refflow-pane-refresh",onClick:({body,item})=>this.refreshReferences(body as any,false,false,false,item?.parentItem||item)},
         {type:"more",icon:`chrome://${config.addonRef}/content/icons/more.svg`,l10nID:"refflow-pane-more",onClick:({body})=>(body as any)._cards?.menu()}
       ],
-      onRender: ({ body, item, setL10nArgs }) => {
+      onRender: ({ body, item, setL10nArgs, setSectionSummary }: any) => {
         this.panes.add(body as HTMLElement);
         this.attachDocument(body.ownerDocument);
         if(!body.ownerDocument.getElementById(`${config.addonRef}-style`))this.addStyle(body.ownerDocument);
+        (body as any)._setSectionSummary=setSectionSummary;
+        (body as any)._setL10nArgs=setL10nArgs;
+        this.ensureSectionTitle(body);
         const identity=String(item?.parentItem?.id || item?.id || "");
         if((body as any)._cards && body.getAttribute("data-refflow-item-id")===identity && body.querySelector(".refflow-card-search")) {
-          (body as any)._setL10nArgs=setL10nArgs;
-          setL10nArgs(JSON.stringify({count:(body as any).references?.length||0}));
+          const curCount = (body as any).references?.length || 0;
+          this.updateSectionSummary(body, curCount > 0 ? getString("pane-title", { args: { count: curCount } }) : "");
           return;
         }
         this.referenceTasks.invalidate(body);
@@ -297,7 +346,8 @@ export default class Views {
         (body as any)._cards?.dispose();
         (body as any)._cards=new ReferenceCards(this,body,grid,search,getString('cards-list-name'));
         (body as any)._setL10nArgs=setL10nArgs;
-        setL10nArgs(JSON.stringify({count:0}));
+        (body as any)._setSectionSummary=setSectionSummary;
+        this.updateSectionSummary(body, "");
       },
       onAsyncRender: async ({ body, item }) => {
         const parent = item?.parentItem || item;
@@ -313,6 +363,7 @@ export default class Views {
         this.resetReferencePane(body);
         body.setAttribute("data-refflow-item-id", String(item?.parentItem?.id || item?.id || ""));
         this.syncCancelButton(body);
+        this.ensureSectionTitle(body);
       },
       onDestroy: ({ body }) => {BatchImporter.cancelImports(undefined,body);this.panes.delete(body as HTMLElement);this.referenceTasks.invalidate(body);(body as any)._cards?.dispose();}
     });
@@ -453,13 +504,17 @@ export default class Views {
       const ownsPanel=()=>context.isCurrent() && panel.isConnected && (panel.getAttribute("data-refflow-type")||"References")===literatureType && panel.getAttribute("source")===source && panel.getAttribute("data-refflow-item-id")===boundItem;
       const current=()=>ownsPanel()&&sameInput();
       panel.setAttribute("aria-busy","true");
+      this.updateSectionSummary(panel, getString("relatedbox-loading") || "正在获取参考文献…");
       panel.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=true);
       const cancel=panel.querySelector("#refflow-cancel") as HTMLElement;
       if (cancel) cancel.hidden=false;
       try {
         await this.performReferences(panel,local,fromCurrentPage,item,activeReader,{...context,pageIndex,isCurrent:current});
       } catch (error: any) {
-        if (current() && label) {label.textContent=(error?.name==="TimeoutError"?getString("relatedbox-timeout"):getString("relatedbox-fetch-error"))+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");(label as HTMLElement).title=safeProviderAttempt(String(error?.message||error));}
+        if (current() && label) {
+          this.updateSectionSummary(panel, error?.name==="TimeoutError"?getString("relatedbox-timeout"):getString("relatedbox-fetch-error"));
+          label.textContent=(error?.name==="TimeoutError"?getString("relatedbox-timeout"):getString("relatedbox-fetch-error"))+((panel as any).references?.length?` · ${getString("cards-kept-results")}`:"");(label as HTMLElement).title=safeProviderAttempt(String(error?.message||error));
+        }
         if (error?.name!=="AbortError") ztoolkit.log("Reference fetch failed",safeProviderAttempt(String(error?.message||error)));
       } finally {
         if (ownsPanel()) {
@@ -675,11 +730,13 @@ export default class Views {
     }
 
     if (referenceNum === 0) {
+      this.updateSectionSummary(panel, "");
       label.textContent = `${getString(["Auto","Web","PDF"].includes(source)?"cards-auto-empty":"relatedbox-empty")} [${currentSource}]`;
       return;
     }
     await this.sortReferences(panel as any);
     if(!task.isCurrent())return;
+    this.updateSectionSummary(panel, getString("pane-title", { args: { count: referenceNum } }));
     (panel as any)._setL10nArgs?.(JSON.stringify({count:referenceNum}));
     label.innerText = `${referenceNum} ${getString("relatedbox-number-label")} [${currentSource}]`;
     (panel as any)._cards?.updateStatus();

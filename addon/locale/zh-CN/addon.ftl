@@ -1,4 +1,7 @@
 prefs-label = Zotero RefFlow
+pane-header = Zotero RefFlow
+    .label = Zotero RefFlow
+    .tooltiptext = Zotero RefFlow 参考文献
 pane-title =
     .label = { $count ->
         [0] 参考文献
