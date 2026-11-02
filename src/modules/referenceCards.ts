@@ -88,7 +88,9 @@ export default class ReferenceCards {
       const provider=this.providerRetractions.get(ref);
       ref.retraction=provider?.isRetracted?provider:local?.isRetracted?local:provider;
       const action=row.querySelector<HTMLButtonElement>(".reference-action")!;
-      this.actionIcon(action,found?'open':'add',getString(found?"cards-show-library":"cards-import"));
+      const editable=Boolean(parent && !parent.deleted && (Zotero as any).Libraries.get(parent.libraryID)?.editable);
+      this.actionIcon(action,found?'open':'add',getString(found?"cards-show-library":(editable?"cards-import":"cards-library-readonly")));
+      action.disabled=Boolean(!found && !editable);
       const dot=row.querySelector<HTMLElement>('.reference-state')!;
       dot.style.backgroundColor=found?"var(--color-accent, #3678b5)":"var(--color-secondary, #9ca3af)";dot.title=found?getString('cards-in-library'):String(ref.year||'');
       row.style.opacity=found?"1":String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`)||"1");
@@ -195,7 +197,7 @@ export default class ReferenceCards {
       if(this.virtual){about.style.display='-webkit-box';about.style.setProperty('-webkit-box-orient','vertical');about.style.setProperty('-webkit-line-clamp','2');about.style.overflow='hidden';}
       const metadata=doc.createElement('div');metadata.className='reference-metadata';metadata.append(about);metadata.hidden=!about.textContent;
       if(ref.retraction?.isRetracted){const warning=doc.createElement("span");warning.className="reference-retracted";warning.textContent=getString("relatedbox-retracted-badge");warning.title=ref.retraction.reason||"";content.append(warning);}
-      const action=doc.createElement("button");action.type="button";action.className="reference-action";this.actionIcon(action,ref._item?'open':'add',getString(ref._item?"cards-show-library":"cards-import"));
+      const editable=Boolean(parent && !parent.deleted && (Zotero as any).Libraries.get(parent.libraryID)?.editable);const action=doc.createElement("button");action.type="button";action.className="reference-action";this.actionIcon(action,ref._item?'open':'add',getString(ref._item?"cards-show-library":(editable?"cards-import":"cards-library-readonly")));if(!ref._item && !editable)action.disabled=true;
       action.addEventListener('dblclick',event=>event.stopPropagation());
       action.addEventListener("click",async event=>{
         event.stopPropagation();if(action.disabled||!current()||!row.isConnected)return;
@@ -289,6 +291,7 @@ export default class ReferenceCards {
     }
     else if(action==="import-selected" || action==="import-all") {
       const chosen=action==="import-all"?all:refs;
+      if(!(Zotero as any).Libraries.get(parent.libraryID)?.editable)throw new Error(getString("cards-library-readonly"));
       const collections=this.views.utils.importCollections(parent,this.body.ownerDocument.defaultView!);
       const result=await this.batchResults.run(parent,chosen,{owner:this.body,collections,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true},chosen.map(ref=>all.indexOf(ref)+1));
       if(same()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}

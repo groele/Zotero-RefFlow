@@ -182,3 +182,5 @@ cards-settings-no-doi = 选中的参考文献没有 DOI。
 cards-settings-no-url = 选中的参考文献没有网址。
 cards-settings-no-open = 当前结果中没有可在 Zotero 或浏览器打开的文献。
 cards-settings-opened = 已尝试打开 { $count } 项（共 { $total } 项，每次最多打开 20 项）。
+cards-library-readonly = 文献库为只读，无法导入
+graph-toggle-tooltip = 显示 / 隐藏文献关系图

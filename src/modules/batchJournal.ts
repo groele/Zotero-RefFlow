@@ -16,8 +16,8 @@ export class BatchJournal {
   private touched=new Set<Zotero.Item>();
   public track(item:Zotero.Item){this.touched.add(item);}
   public async flush(){await this.queue;}
-  public get filename(){return PathUtils.join(Zotero.DataDirectory.dir,"refflow-batch-journal-v1.json");}
-  private get io():any{return (Zotero.getMainWindow() as any).IOUtils;}
+  public get filename(){const join=(globalThis as any).PathUtils?.join??PathUtils.join;return join(Zotero.DataDirectory.dir,"refflow-batch-journal-v1.json");}
+  private get io():any{return (globalThis as any).IOUtils ?? (Zotero.getMainWindow() as any)?.IOUtils;}
   private assertScope(libraryID:number){if(this.scope!==undefined&&libraryID!==this.scope)throw new Error('Batch journal transaction cannot access another library');}
   private itemIDs(record:BatchRecord){return new Set([record.parentID,...record.createdIDs,...record.relations.flatMap(row=>[row.id,row.parentID||record.parentID]),...record.attachments.flatMap(row=>[row.id,row.parentID]),...record.memberships.map(row=>row.id),...(record.uses||[]).flatMap(row=>[row.id,...row.parents]),...Object.keys(record.states||{}).map(Number),...(record.noteID?[record.noteID]:[])]);}
   private async load(libraryID?:number):Promise<JournalFile>{

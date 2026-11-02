@@ -476,6 +476,10 @@ class Utils {
       const selectedItems = pane?.getSelectedItems() || [];
       const itemLibraryIDs = [...new Set(selectedItems.map((item: Zotero.Item) => Number(item.libraryID)).filter(Number.isFinite))];
       if (itemLibraryIDs.length === 1) return Number(itemLibraryIDs[0]);
+      const activeItem = this.getItem(win);
+      if (activeItem?.libraryID && Number.isFinite(Number(activeItem.libraryID))) {
+        return Number(activeItem.libraryID);
+      }
     } catch (error) {
       ztoolkit.log("Could not resolve the selected Zotero library:", error);
     }

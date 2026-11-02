@@ -147,7 +147,7 @@ export default class ConnectedPapers {
     const newNode = (this.doc as any).createXULElement("toolbarbutton") as XUL.ToolBarButton;
     newNode.setAttribute("id", `${config.addonRef}-show-hide-graph-view`);
     newNode.setAttribute("class", "zotero-tb-button");
-    newNode.setAttribute("tooltiptext", Zotero.locale.startsWith("zh") ? "显示 / 隐藏文献关系图" : "Show / hide citation graph");
+    newNode.setAttribute("tooltiptext", getString("graph-toggle-tooltip") || (Zotero.locale?.startsWith("zh") ? "显示 / 隐藏文献关系图" : "Show / hide citation graph"));
     newNode.setAttribute("aria-label", newNode.getAttribute("tooltiptext")!);
     newNode.setAttribute("tabindex", "0");
     newNode.addEventListener("click", async () => {

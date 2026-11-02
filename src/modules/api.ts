@@ -509,9 +509,9 @@ class API {
     }
   }
 
-  async getCNKIURL(keywords: string, slience: boolean = false, signal?: AbortSignal) {
-    if (!slience) {
-      (new ztoolkit.ProgressWindow("[Pending] API", {closeOtherProgressWindows: true}))
+  async getCNKIURL(keywords: string, silent: boolean = false, signal?: AbortSignal) {
+    if (!silent) {
+      (new ztoolkit.ProgressWindow("[Pending] API", ))
         .createLine({ text: `Get CNKI URL`, type: "default" })
         .show()
     }
@@ -535,8 +535,8 @@ class API {
         }
       }
     } catch { }
-    if (!slience) {
-      (new ztoolkit.ProgressWindow("[Pending] API", { closeOtherProgressWindows: true }))
+    if (!silent) {
+      (new ztoolkit.ProgressWindow("[Pending] API", ))
         .createLine({ text: `Get CNKI URL Fail`, type: "fail" })
         .show()
     }

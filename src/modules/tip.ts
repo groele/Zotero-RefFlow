@@ -495,17 +495,12 @@ export default class TipUI {
                 (tag && tag.source && according && `${tag.source} view according to ${according}`) ||
                 "reference view"
               )
-              Zotero.ProgressWindowSet.closeAll();
-              (new ztoolkit.ProgressWindow("Reference", {closeTime: -1}))
-                .createLine({ text: source, type: "default" })
-                .show()
+              optionNode.title = source;
             }
           },
           {
             type: "mouseleave",
-            listener: () => {
-              Zotero.ProgressWindowSet.closeAll();
-            }
+            listener: () => {}
           }
         ]
       }

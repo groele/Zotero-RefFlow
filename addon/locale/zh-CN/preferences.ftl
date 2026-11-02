@@ -107,3 +107,7 @@ quick-rollback =
 about-caption = 关于 Zotero RefFlow
 about-build-date = 构建日期：
 about-download = 下载已发布安装包
+
+connectedPapersKey-label = Connected Papers API 密钥（可选）
+connectedPapersKey-description = 可选的个人 API 密钥，用于 RefFlow 构建文献关联图谱。留空时将在需要时弹窗提示。
+connectedPapersKey-get = 申请 / 查看 Connected Papers API 密钥

@@ -1,3 +1,4 @@
+import { config } from "../../package.json";
 import Requests from "./requests";
 import CitationVerifier from "./verifier";
 import type { ReferenceResult } from "./referenceRetrieval";
@@ -8,7 +9,7 @@ const FIELDS="paperId,title,authors,abstract,year,journal,fieldsOfStudy,external
 export default class SemanticScholarProvider {
   constructor(private requests:Requests) {}
   private get(url:string,signal?:AbortSignal) {
-    const key=String(Zotero.Prefs.get("refflow.semanticScholarKey") || "").trim();
+    const key=String(Zotero.Prefs.get(`${config.addonRef}.semanticScholarKey`) || "").trim();
     return this.requests.get(url,"json",key?{"x-api-key":key}:{},signal);
   }
   private cancelled(signal?:AbortSignal) {

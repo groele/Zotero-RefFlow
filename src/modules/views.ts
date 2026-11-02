@@ -132,7 +132,7 @@ export default class Views {
         innerHTML: `
           .refflow-card-search {box-sizing:border-box;width:100%;margin:4px 0 6px;padding:5px 8px;border:1px solid var(--material-border,#ccc);border-radius:4px;background:var(--material-background,#fff);color:inherit;}
           .refflow-status {font-size:.85em;opacity:.75;border:0!important;padding:0!important;min-height:18px;}
-          .zotero-editpane-related[data-refflow-item-id] .reference-item {display:flex;flex-direction:column;gap:4px;padding:6px 4px;border-radius:4px;cursor:default;min-width:0;}
+          .zotero-editpane-related[data-refflow-item-id] .reference-item {box-sizing:border-box;contain:paint layout style;display:flex;flex-direction:column;gap:4px;padding:6px 4px;border-radius:4px;cursor:default;min-width:0;}
           .zotero-editpane-related[data-refflow-item-id] .refflow-journal-status {padding:8px;margin-block:8px;border:1px solid currentColor;border-radius:7px;overflow-wrap:anywhere;}
           .zotero-editpane-related[data-refflow-item-id] .refflow-source-details {box-sizing:border-box;width:100%;margin-block:4px;padding:6px 8px;border:1px solid color-mix(in srgb,currentColor 18%,transparent);border-radius:6px;background:color-mix(in srgb,currentColor 2%,transparent);color:inherit;overflow-wrap:anywhere;}
           .zotero-editpane-related[data-refflow-item-id] .refflow-source-details summary {cursor:pointer;font-weight:600;}
@@ -294,18 +294,18 @@ export default class Views {
         const refresh = body.ownerDocument.createElement("button");
         refresh.type = "button";
         refresh.id = "refresh-button";
-        refresh.textContent = getString("relatedbox-fetch-label") || "获取参考文献";
+        refresh.textContent = getString("relatedbox-fetch-label") || "Get references";
         refresh.addEventListener("click", async () => {
           const currentItem = Zotero.Items.get(Number(body.getAttribute("data-refflow-item-id"))) as Zotero.Item | undefined;
           if (!currentItem || !currentItem.isRegularItem()) {
-            count.textContent = getString("relatedbox-select-item") || "请先选择一篇文献";
+            count.textContent = getString("relatedbox-select-item") || "Select a reference item first";
             return;
           }
           try {
             await this.refreshReferences(body as any, true, false, false, currentItem);
           } catch (error) {
             ztoolkit.log("Item pane reference fetch failed:", error);
-            count.textContent = getString("relatedbox-fetch-error") || "获取失败，请重试";
+            count.textContent = getString("relatedbox-fetch-error") || "Fetch failed. Please try again.";
           } finally { if (!body.hasAttribute("aria-busy")) refresh.disabled = false; }
         });
         const force = body.ownerDocument.createElement("button");
@@ -417,7 +417,13 @@ export default class Views {
     if (notifierID) cleanupSync(() => Zotero.Notifier.unregisterObserver(notifierID));
     if (paneID) cleanupSync(() => Zotero.ItemPaneManager.unregisterSection(paneID));
     await cleanupAsync(() => this.storage.dispose());
-    for(const win of Zotero.getMainWindows()) cleanupSync(() => {
+    const enumerator = (globalThis as any).Services?.wm?.getEnumerator?.("");
+    const windows = enumerator ? {
+      *[Symbol.iterator]() {
+        while (enumerator.hasMoreElements()) yield enumerator.getNext();
+      }
+    } : Zotero.getMainWindows();
+    for(const win of windows) cleanupSync(() => {
       win.document.getElementById(`${config.addonRef}-style`)?.remove();
     });
     for (const doc of this.localizationDocuments) cleanupSync(() =>
@@ -930,14 +936,14 @@ export default class Views {
     coroutines=coroutines.map(promise=>promise.catch(error=>{if(error?.name!=="AbortError")ztoolkit.log("Tip coroutine error",error);return undefined;}));
     const sourceConfig = {
       arXiv: { color: "#b31b1b", tip: "arXiv is a free distribution service and an open-access archive for 2,186,475 scholarly articles in the fields of physics, mathematics, computer science, quantitative biology, quantitative finance, statistics, electrical engineering and systems science, and economics. Materials on this site are not peer-reviewed by arXiv." },
-      readpaper: { color: "#1f71e0", tip: "论文阅读平台ReadPaper共收录近2亿篇论文、2.7亿位作者、近3万所高校及研究机构，几乎涵盖了全人类所有学科。科研工作离不开论文的帮助，如何读懂论文，读好论文，这本身就是一个很大的命题，我们的使命是：“让天下没有难读的论文”" },
+      readpaper: { color: "#1f71e0", tip: "ReadPaper academic paper indexing and reading platform" },
       semanticscholar: { color: "#1857b6", tip: "Semantic Scholar is an artificial intelligence–powered research tool for scientific literature developed at the Allen Institute for AI and publicly released in November 2015. It uses advances in natural language processing to provide summaries for scholarly papers. The Semantic Scholar team is actively researching the use of artificial-intelligence in natural language processing, machine learning, Human-Computer interaction, and information retrieval." },
       crossref: { color: "#89bf04", tip: "Crossref is a nonprofit association of approximately 2,000 voting member publishers who represent 4,300 societies and publishers, including both commercial and nonprofit organizations. Crossref includes publishers with varied business models, including those with both open access and subscription policies." },
       connectedpapers: { color: "#35999a", tip: "Connected Papers is a visual tool to help researchers and applied scientists find academic papers relevant to their field of work."},
       openalex: { color: "#d9480f", tip: "OpenAlex is a free and open bibliographic database of global scholarly research with over 250M works, indexing citations and open-access links." },
       DOI: { color: "#fcb426" },
       Zotero: { color: "#d63b3b", tip: "Zotero is a free, easy-to-use tool to help you collect, organize, cite, and share your research sources." },
-      CNKI: { color: "#1b66e6", tip: "中国知网知识发现网络平台—面向海内外读者提供中国学术文献、外文文献、学位论文、报纸、会议、年鉴、工具书等各类资源统一检索、统一导航、在线阅读和下载服务。" }
+      CNKI: { color: "#1b66e6", tip: "China National Knowledge Infrastructure (CNKI) academic resource platform" }
     }
     for (let i = 0; i < coroutines.length; i++) {
       // 不阻塞

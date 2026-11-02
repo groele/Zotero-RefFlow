@@ -100,11 +100,19 @@ export default class PublisherReferences {
   dispose(){this.disposed=true;this.requests.dispose();this.misses.clear();}
   parseHTML(html:string,url:string,expectedDOI:string,title?:string){
     if(html.length>8*1024*1024)return [];
-    return parsePublisherHTML(ztoolkit.getDOMParser().parseFromString(html,"text/html"),url,expectedDOI,title);
+    try {
+      return parsePublisherHTML(ztoolkit.getDOMParser().parseFromString(html,"text/html"),url,expectedDOI,title);
+    } catch {
+      return [];
+    }
   }
   parseXML(xml:string,expectedDOI:string){
     if(xml.length>12*1024*1024)return [];
-    return parseJATS(ztoolkit.getDOMParser().parseFromString(xml,"application/xml"),expectedDOI);
+    try {
+      return parseJATS(ztoolkit.getDOMParser().parseFromString(xml,"application/xml"),expectedDOI);
+    } catch {
+      return [];
+    }
   }
   async getReferences(expectedDOI:string,url?:string,title?:string,signal?:AbortSignal):Promise<ItemBaseInfo[]> {
     const key=doi(expectedDOI);

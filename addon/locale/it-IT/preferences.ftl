@@ -101,3 +101,7 @@ quick-rollback =
 about-caption = Informazioni su Zotero RefFlow
 about-build-date = Data build:
 about-download = Scarica XPI pubblicato
+
+connectedPapersKey-label = Chiave API Connected Papers (facoltativa)
+connectedPapersKey-description = Chiave API personale opzionale usata da RefFlow per creare grafi di citazioni interattivi. Lasciare vuoto per richiederla all'occorrenza.
+connectedPapersKey-get = Ottieni / visualizza una chiave API Connected Papers

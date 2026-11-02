@@ -182,3 +182,5 @@ cards-settings-no-doi = The selected references have no DOI.
 cards-settings-no-url = The selected references have no URL.
 cards-settings-no-open = No current references can be opened in Zotero or a browser.
 cards-settings-opened = Attempted to open { $count } of { $total } items (at most 20 at a time).
+cards-library-readonly = Library is read-only
+graph-toggle-tooltip = Show / hide citation graph

@@ -1,3 +1,4 @@
+import { config } from "../../package.json";
 import Requests from "./requests";
 import CitationVerifier from "./verifier";
 import {OperationBudget} from "./operationBudget";
@@ -24,7 +25,7 @@ export class OpenAlexProvider {
   }
 
   private get(url:string,signal?:AbortSignal) {
-    const key=String(Zotero.Prefs.get("refflow.openAlexKey")||"").trim();
+    const key=String(Zotero.Prefs.get(`${config.addonRef}.openAlexKey`)||"").trim();
     return this.requests.get(url,"json",key?{Authorization:`Bearer ${key}`} : {},signal);
   }
 

@@ -1,3 +1,4 @@
+import { config } from "../../package.json";
 import { ProgressWindowHelper } from "zotero-plugin-toolkit";
 import { pollGraph } from "./graphTransport";
 
@@ -12,6 +13,19 @@ const GraphResponseStatuses = {
   BAD_TOKEN: "BAD_TOKEN",
   BAD_REQUEST: "BAD_REQUEST",
   OUT_OF_REQUESTS: "OUT_OF_REQUESTS"
+}
+
+
+export function getConnectedPapersToken(): string {
+  const custom = String(Zotero.Prefs.get(`${config.addonRef}.connectedPapersKey`) || "").trim();
+  if (custom) return custom;
+  return String(Zotero.Prefs.get("ConnectedPapers.accessToken") || "").trim();
+}
+
+export function setConnectedPapersToken(token: string) {
+  const clean = String(token || "").trim();
+  Zotero.Prefs.set(`${config.addonRef}.connectedPapersKey`, clean);
+  Zotero.Prefs.set("ConnectedPapers.accessToken", clean);
 }
 
 async function askUserAccessToken(update = false, signal?: AbortSignal) {
@@ -52,7 +66,7 @@ async function askUserAccessToken(update = false, signal?: AbortSignal) {
   finally { signal?.removeEventListener("abort", abort); if (addon.data.dialog === dialogHelper) addon.data.dialog = undefined; }
   if (signal?.aborted) return;
   if (dialogData.inputValue) {
-    Zotero.Prefs.set("ConnectedPapers.accessToken", dialogData.inputValue)
+    setConnectedPapersToken(dialogData.inputValue)
   }
   return dialogData.inputValue 
 }
@@ -60,7 +74,7 @@ async function askUserAccessToken(update = false, signal?: AbortSignal) {
 export default async function buildGraphData(id: string, popupWin: ProgressWindowHelper, keyRetry=0, signal?: AbortSignal): Promise<Graph |undefined> {
   if(!id || !id.split("+").every(part=>part.trim())){popupWin.changeLine({text:"Paper ID not found",type:"fail"});popupWin.startCloseTimer(3000);return;}
   // 读取密钥
-  let accessToken = Zotero.Prefs.get("ConnectedPapers.accessToken") as string
+  let accessToken = getConnectedPapersToken()
   if (!accessToken) {
     accessToken = await askUserAccessToken(false, signal) as string
     if (!accessToken) { popupWin.close();return }
