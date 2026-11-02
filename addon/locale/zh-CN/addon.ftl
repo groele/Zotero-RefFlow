@@ -1,10 +1,10 @@
 prefs-label = Zotero RefFlow
 pane-title =
     .label = { $count ->
-        [0] 参考文献
-       *[other] 参考文献（{ $count }）
+        [0] Zotero RefFlow 参考文献
+       *[other] Zotero RefFlow 参考文献（{ $count }）
     }
-    .tooltiptext = 参考文献
+    .tooltiptext = Zotero RefFlow 参考文献
 relatedbox-download-oa = 下载开放获取 PDF
 relatedbox-force-label = 重新获取
 relatedbox-copy-label = 复制列表

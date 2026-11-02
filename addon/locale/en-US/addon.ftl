@@ -1,10 +1,10 @@
 prefs-label = Zotero RefFlow
 pane-title =
     .label = { $count ->
-        [0] References
-       *[other] References ({ $count })
+        [0] Zotero RefFlow References
+       *[other] Zotero RefFlow References ({ $count })
     }
-    .tooltiptext = References
+    .tooltiptext = Zotero RefFlow References
 relatedbox-download-oa = Download open-access PDFs
 relatedbox-force-label = Fetch again
 relatedbox-copy-label = Copy list
