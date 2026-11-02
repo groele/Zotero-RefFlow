@@ -1,4 +1,4 @@
-> **12.5.7**：加固批次日志身份、提交后故障恢复、多文库隔离与重试历史。[版本说明](docs/releases/v12.5.7.md)。
+> **12.5.7**：加固批次日志身份、提交后故障恢复、多文库隔离与重试历史。[版本说明](https://github.com/groele/Zotero-RefFlow/releases/tag/v12.5.7)。
 
 [简体中文](README.md) · [English](README.en.md)
 
