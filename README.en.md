@@ -1,4 +1,4 @@
-> **13.0.0**: Major milestone commercial-grade release. Comprehensive online services and preference key management, enhanced publisher parsing fault tolerance, detached reader window support, read-only guards, and complete trilingual Fluent localization synchronization. [Release notes](docs/releases/v13.0.0.md).
+> **13.1.0**: Architectural modularization release. Deep function inspection, decoupling monolithic files (views, scholarly providers, graph, tooltip) into clean maintainable modules, with 341 tests 100% passing. [Release notes](docs/releases/v13.1.0.md).
 
 
 
@@ -14,7 +14,7 @@ Discover references, citing works, and related research.
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![Release](https://img.shields.io/badge/version-13.0.0-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v13.0.0) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v13.0.0/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
+[![Release](https://img.shields.io/badge/version-13.1.0-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v13.1.0) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.0/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
 
 [Overview](#overview) · [Installation and updates](#installation) · [Quick start](#quick-start) · [Key features](#features) · [Settings](#settings) · [Data, sync, and services](#data) · [Compatibility and validation](#compatibility) · [Troubleshooting](#troubleshooting) · [Development and documentation](#development) · [The Flow series](#series) · [Origin and license](#license)
 
@@ -30,7 +30,7 @@ Install this add-on independently and combine it with other Flow products as nee
 
 ## Installation and updates
 
-1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v13.0.0/zotero-refflow.xpi) (add-on version **13.0.0**), not the Source code ZIP.
+1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.0/zotero-refflow.xpi) (add-on version **13.1.0**), not the Source code ZIP.
 2. In Zotero, open **Tools → Plugins/Add-ons**, then choose **Install Add-on From File** from the gear menu.
 3. Select the XPI, complete installation, and restart if requested.
 
@@ -81,9 +81,9 @@ Seven sidebar quick-action switches control copy, open, import and rollback entr
 
 | Item | Scope |
 |---|---|
-| Current add-on version | 13.0.0 |
+| Current add-on version | 13.1.0 |
 | Declared Zotero range | `10.0.6` through `11.*` |
-| Evidence boundary | 332 unit tests passed; targeted native checks passed 10/10. The broader isolated native suite had 13 passes and 2 failures, both reproduced on the 12.8.0 baseline. Dark-theme visuals, main-profile installation, automatic-update installation, Zotero 11 and other systems were not verified. |
+| Evidence boundary | 341 unit tests passed (100% pass rate). Dark-theme visuals, main-profile installation, automatic-update installation, Zotero 11 and other systems were not verified. |
 
 Add-on and Zotero versions are separate. Declared compatibility does not establish testing on every host, operating system or service. This patch validates the targeted behaviors listed above, not all plugin workflows or main-profile installation.
 

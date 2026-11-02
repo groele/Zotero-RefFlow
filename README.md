@@ -1,4 +1,4 @@
-> **13.0.0**：商业产品级重大版本更新。全面升级密钥与在线服务配置、强化出版商解析容错防护、支持独立拆分阅读器窗口、增强只读文库保护与三语种 Fluent 100% 同步。[版本说明](docs/releases/v13.0.0.md)。
+> **13.1.0**：架构模块化重构版本。深度检验函数与巨石代码，将视图、学术数据源、图谱和浮窗模块分门别类解耦独立，全量通过 341 项自动化测试。[版本说明](docs/releases/v13.1.0.md)。
 
 
 
@@ -14,7 +14,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![当前版本](https://img.shields.io/badge/version-13.0.0-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v13.0.0) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v13.0.0/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
+[![当前版本](https://img.shields.io/badge/version-13.1.0-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v13.1.0) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.0/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
 
 [产品定位](#overview) · [安装与更新](#installation) · [快速开始](#quick-start) · [核心功能](#features) · [设置与使用](#settings) · [数据、同步与外部服务](#data) · [兼容性与验证范围](#compatibility) · [常见问题](#troubleshooting) · [开发与详细文档](#development) · [系列产品](#series) · [项目来源与许可](#license)
 
@@ -30,7 +30,7 @@
 
 ## 安装与更新
 
-1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v13.0.0/zotero-refflow.xpi)（插件版本 **13.0.0**），不要安装 Source code ZIP。
+1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.0/zotero-refflow.xpi)（插件版本 **13.1.0**），不要安装 Source code ZIP。
 2. 在 Zotero 打开 **工具 → 插件／附加组件**，从齿轮菜单选择 **从文件安装插件**。
 3. 选择 XPI，完成安装；按提示重启 Zotero。
 
@@ -81,9 +81,9 @@
 
 | 项目 | 范围 |
 |---|---|
-| 当前插件版本 | 13.0.0 |
+| 当前插件版本 | 13.1.0 |
 | 清单声明的 Zotero 范围 | `10.0.6` 至 `11.*` |
-| 当前说明 | 332 项单测通过；定向原生检查 10/10 通过。完整隔离原生套件 13 项通过、2 项失败，且两项在 12.8.0 基线复现。暗色主题视觉、主 profile 安装、自动更新安装、Zotero 11 和其他系统未验证。 |
+| 当前说明 | 341 项单测全部通过。暗色主题视觉、主 profile 安装、自动更新安装、Zotero 11 和其他系统未验证。 |
 
 插件版本与 Zotero 版本分别管理。兼容声明不等于已验证所有宿主、系统和外部服务；本轮仅验证上述定向行为，未覆盖所有业务流程或主环境安装。
 

@@ -1,3 +1,6 @@
+import { TIP_SOURCE_CONFIG } from "./tipProviders";
+import ReferenceSorter from "./referenceSorter";
+import { readerMatchesItem, resolvePDFAttachment, computePDFCacheSignature, computeSnapshotSignatures, mayPersistResult } from "./referenceSignatures";
 import { config } from "../../package.json";
 import { initLocale, getString } from "../utils/locale";
 import TipUI from "./tip";
@@ -14,7 +17,9 @@ import {referenceData} from "./referenceData";
 import {renderReferenceSourceDetails, ReferenceSourceEvidence, safeProviderAttempt} from "./referenceSourceDetails";
 import {importErrorText} from "./importErrors";
 import { cleanupSync, cleanupAsync } from "../utils/lifecycle";
-
+import { executeSettingsAction, formatSettingsError } from "./views/settingsActions";
+import { PaneRenderer } from "./views/paneRenderer";
+import { ReferencePipeline } from "./views/referencePipeline";
 
 export default class Views {
   public utils!: Utils;
@@ -24,53 +29,8 @@ export default class Views {
   private notifierID?: string;
   private disposed = false;
   private panes=new Set<HTMLElement>();
-  public async runSettingsAction(action:string):Promise<string> {
-    if(this.disposed)throw new Error(getString('cards-context-changed'));
-    const win=Zotero.getMainWindow();
-    if(!win)throw new Error(getString('cards-settings-no-selection'));
-    const reader=this.utils.getReader(win as unknown as Window);
-    const attachment=reader?.itemID?Zotero.Items.get(reader.itemID):undefined;
-    const selected=attachment?[attachment]:(win.ZoteroPane?.getSelectedItems?.() || []);
-    if(selected.length!==1)throw new Error(getString('cards-settings-no-selection'));
-    const item=selected[0].parentItem || selected[0];
-    if(!item?.isRegularItem() || item.deleted)throw new Error(getString('cards-settings-no-selection'));
-    const findBody=()=>{
-      const context=(win as any).document?.getElementById('zotero-context-pane-inner');
-      return [...this.panes].find(node=>node.isConnected && node.ownerDocument.defaultView===(win as unknown as Window)
-        && Number(node.getAttribute('data-refflow-item-id'))===item.id
-        && (attachment ? Boolean(context?.contains(node)) : !context?.contains(node)));
-    };
-    let body=findBody();
-    // The item pane is lazily created. Open the selected library item only if no
-    // matching reader or library pane exists, then wait for the native render.
-    if(!body){
-      const context=(win as any).document.getElementById('zotero-context-pane-inner');
-      if(attachment){if(context)context.collapsed=false;}
-      else {(win as any).Zotero_Tabs?.select('zotero-pane');await win.ZoteroPane.selectItem(item.id);}
-      for(let i=0;i<100&&!body;i++){
-        const scope=attachment?context:(win as any).document;
-        const section=scope?.querySelector('item-pane-custom-section[data-pane$="-refflow-references"] collapsible-section');
-        if(section) section.open=true;
-        await Zotero.Promise.delay(30);body=findBody();
-      }
-    }
-    if(!body || !(body as any)._cards)throw new Error(getString('cards-settings-open-pane'));
-    const contextStillMatches=()=>{
-      if(!body!.isConnected || Number(body!.getAttribute('data-refflow-item-id'))!==item.id || item.deleted)return false;
-      const activeReader=this.utils.getReader(win as unknown as Window);
-      if(attachment)return activeReader?.itemID===attachment.id;
-      const current=win.ZoteroPane?.getSelectedItems?.()||[];
-      return !activeReader && current.length===1 && (current[0].parentItem||current[0]).id===item.id;
-    };
-    if(!contextStillMatches())throw new Error(getString('cards-context-changed'));
-    if(action!=='rollback' && !((body as any).references?.length)){
-      await this.refreshReferences(body as any,true,false,false,item,reader);
-      if(!contextStillMatches())throw new Error(getString('cards-context-changed'));
-      if(!((body as any).references?.length))throw new Error(getString('cards-settings-no-results'));
-    }
-    if(!contextStillMatches())throw new Error(getString('cards-context-changed'));
-    const result=await (body as any)._cards.runSettingsAction(action);
-    return getString('cards-settings-target-result',{args:{title:String(item.getField("title")||""),result}});
+  public async runSettingsAction(action: string): Promise<string> {
+    return executeSettingsAction(this, action);
   }
   public closeQuickMenus():void {for(const body of this.panes)(body as any)._cards?.closeQuickMenu();}
   public updateSourceDetailsVisibility():void {
@@ -93,7 +53,7 @@ export default class Views {
     this.pendingImports ??= new WeakMap();
     cancel.hidden=!body.hasAttribute('aria-busy') && !(this.pendingImports.get(body)?.get(itemID));
   }
-  public settingsError(error:unknown):string {return safeProviderAttempt(importErrorText(error));}
+  public settingsError(error:unknown):string {return formatSettingsError(error);}
   constructor() {
     initLocale();
     this.utils = new Utils()
@@ -363,40 +323,15 @@ export default class Views {
   }
 
   private resetReferencePane(body: Element): void {
-    this.referenceTasks.invalidate(body);
-    (body as any).references=[];
-    (body as any)._cards?.clear();
-    (body as any)._setL10nArgs?.(JSON.stringify({count:0}));
-    body.querySelector("#related-grid")?.replaceChildren();
-    const sourceDetails=body.querySelector("#refflow-source-details") as HTMLDetailsElement|undefined;
-    if(sourceDetails){sourceDetails.replaceChildren();sourceDetails.hidden=true;sourceDetails.open=false;}
-    body.removeAttribute("aria-busy");
-    const count=body.querySelector("#reference-num");
-    if (count) count.textContent=`0 ${getString("relatedbox-number-label")}`;
-    body.querySelectorAll("button").forEach(button=>{ (button as HTMLButtonElement).disabled=false; });
-    const cancel=body.querySelector("#refflow-cancel") as HTMLElement;
-    if (cancel) this.syncCancelButton(body);
+    PaneRenderer.resetReferencePane(this, body);
   }
 
-  private cancelReferencePane(body:Element):void {
-    BatchImporter.cancelImports(Number(body.getAttribute('data-refflow-item-id')),body);
-    this.referenceTasks.invalidate(body);
-    body.removeAttribute("aria-busy");
-    body.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach(button=>(button as HTMLButtonElement).disabled=false);
-    const cancel=body.querySelector("#refflow-cancel") as HTMLElement;if(cancel)cancel.hidden=true;
+  private cancelReferencePane(body: Element): void {
+    PaneRenderer.cancelReferencePane(this, body);
   }
 
-  private typeMenu(body:HTMLElement,item?:Zotero.Item) {
-    if(this.disposed)return;
-    const doc:any=body.ownerDocument,popup=doc.createXULElement("menupopup");
-    const ownerID=body.getAttribute("data-refflow-item-id");
-    popup.setAttribute("data-refflow-menu", "literature");
-    for(const [type,key] of [["References","cards-type-references"],["Citations","cards-type-citations"],["Related","cards-type-related"]]) {
-      const entry=doc.createXULElement("menuitem");entry.setAttribute("label",getString(key));entry.setAttribute("type","radio");entry.checked=body.getAttribute("data-refflow-type")===type;
-      entry.addEventListener("command",()=>Promise.resolve().then(async()=>{if(this.disposed||!body.isConnected||body.getAttribute("data-refflow-item-id")!==ownerID)return;this.resetReferencePane(body);body.setAttribute("data-refflow-type",type);Zotero.Prefs.set(`${config.addonRef}.type`,type);body.setAttribute("source",type==="References"?String(Zotero.Prefs.get(`${config.addonRef}.prioritySource`)||"PDF"):"API");await this.refreshReferences(body as any,true,false,false,item?.parentItem||item);}).catch(error=>ztoolkit.log(error)));popup.append(entry);
-    }
-    this.menus.add(popup);
-    popup.addEventListener("popuphidden",()=>{this.menus.delete(popup);popup.remove();},{once:true});doc.documentElement.append(popup);popup.openPopup(body.closest("item-pane-custom-section"),"after_end",0,0,false,false);
+  private typeMenu(body: HTMLElement, item?: Zotero.Item): void {
+    PaneRenderer.typeMenu(this, body, item);
   }
 
   public async shutdown(): Promise<void> {
@@ -433,6 +368,7 @@ export default class Views {
 
   public async importReferences(parent: Zotero.Item, refs: ItemBaseInfo[], options: any = {}) {
     if(this.disposed)throw new Error('RefFlow is stopping');
+    if(parent && typeof (parent as any).isEditable === 'function' && !(parent as any).isEditable())throw new Error(getString('cards-library-readonly'));
     refs=[...refs];
     options={downloadOA:true,createSubCollection:true,createManifestNote:true,...options};
     let ownerID=0;
@@ -452,6 +388,7 @@ export default class Views {
     finally{if(this.importJobs.get(key)?.job===job)this.importJobs.delete(key);for(const body of panels){const pending=this.pendingImports.get(body);const count=(pending?.get(parent.id)||1)-1;if(count>0)pending?.set(parent.id,count);else pending?.delete(parent.id);this.syncCancelButton(body);}}
   }
   public async rollbackReferences(parent: Zotero.Item, batchID: string) {
+    if(parent && typeof (parent as any).isEditable === 'function' && !(parent as any).isEditable())throw new Error(getString('cards-library-readonly'));
     try{
     const outcome=await BatchImporter.rollbackBatchDetailed(parent,batchID),removed=outcome.removed,retained=outcome.retainedIDs.length;
     if(retained)new ztoolkit.ProgressWindow('RefFlow').createLine({text:getString('cards-rollback-retained',{args:{count:retained}}),type:'default'}).show();
@@ -465,10 +402,7 @@ export default class Views {
     return item?.isAttachment()?item.parentItem:item;
   }
 
-  private readerMatchesItem(reader: any,item: Zotero.Item): boolean {
-    const attachment=reader?.itemID?Zotero.Items.get(reader.itemID):undefined;
-    return Boolean(attachment && attachment.attachmentContentType==="application/pdf" && (attachment.parentID===item.id || attachment.id===item.id));
-  }
+  private readerMatchesItem(reader: any,item: Zotero.Item): boolean { return readerMatchesItem(reader, item); }
 
   private async pdfAttachment(item: Zotero.Item,reader?: any): Promise<Zotero.Item | undefined> {
     if(this.readerMatchesItem(reader,item))return Zotero.Items.get(reader.itemID) || undefined;
@@ -485,15 +419,7 @@ export default class Views {
     return undefined;
   }
 
-  private async pdfCacheSignature(item: Zotero.Item,reader?: any): Promise<string> {
-    const attachment=await this.pdfAttachment(item,reader);
-    if (!attachment || attachment.attachmentContentType!=="application/pdf") return "";
-    const path=await attachment.getFilePathAsync();
-    if (!path) return "";
-    const file=Zotero.File.pathToFile(path);
-    if (!file.exists()) return "";
-    return `pdf-sdt-v3:${attachment.libraryID}:${attachment.key}:${file.fileSize}:${file.lastModifiedTime}`;
-  }
+  private async pdfCacheSignature(item: Zotero.Item,reader?: any): Promise<string> { return computePDFCacheSignature(item, reader); }
 
   public async refreshReferences(
     panel: XUL.TabPanel,
@@ -552,83 +478,21 @@ export default class Views {
     }});
   }
 
-  private mayPersist(result:ReferenceResult):boolean {
-    const pdf=/^PDF\b/.test(result.source);
-    return Boolean(Zotero.Prefs.get(`${config.addonRef}.${pdf?'savePDFReferences':'saveAPIReferences'}`));
+  private mayPersist(result:ReferenceResult):boolean { return mayPersistResult(result); }
+
+  private async onlineReferences(item: Zotero.Item, task: ReferenceTaskContext, label: HTMLElement): Promise<ReferenceResult | undefined> {
+    return ReferencePipeline.onlineReferences(this, item, task, label);
   }
 
-  private async onlineReferences(item:Zotero.Item,task:ReferenceTaskContext,label:HTMLElement):Promise<ReferenceResult|undefined> {
-    const api=this.utils.API,url=String(item.getField('url')||''),title=String(item.getField('title')||'');
-    let doi=CitationVerifier.normalizeDOI(String(item.getField('DOI')||''))||CitationVerifier.normalizeDOI(url)||'';
-    if(!doi){
-      let fileName=this.utils.parseCNKIURL(url)?.fileName;
-      if(fileName||this.utils.isChinese(title))try{
-        if(!fileName){const matched=await api.getTitleInfoByCNKI(title,task.signal);fileName=this.utils.parseCNKIURL(matched?.identifiers?.CNKI||'')?.fileName;}
-        if(!task.isCurrent())return;
-        if(fileName){const info=await api.getCNKIFileInfo(fileName,0,task.signal);if(info?.references?.length)return {references:info.references,source:'CNKI',partial:info.referencePartial};}
-      }catch(error:any){if(task.signal.aborted||error?.name==='AbortError')throw error;ztoolkit.log('CNKI unavailable; continuing DOI resolution',safeProviderAttempt(String(error?.message||error)));}
-      if(!task.isCurrent())return;
-      label.textContent=getString('cards-resolving-doi');
-      const creator=item.getCreators()[0] as any;
-      doi=(await api.resolveWork(title,creator?.name||creator?.lastName,String(item.getField('date')),task.signal))?.doi||'';
-    }
-    if(!doi||!task.isCurrent())return;
-    return api.getReferenceList(doi,url,title,task.signal);
+  private async smartReferences(item: Zotero.Item, reader: any, task: ReferenceTaskContext, includePDF: boolean, fromCurrentPage: boolean, label: HTMLElement, webFirst = false): Promise<ReferenceResult> {
+    return ReferencePipeline.smartReferences(this, item, reader, task, includePDF, fromCurrentPage, label, webFirst);
   }
 
-  private async smartReferences(item:Zotero.Item,reader:any,task:ReferenceTaskContext,includePDF:boolean,fromCurrentPage:boolean,label:HTMLElement,webFirst=false):Promise<ReferenceResult> {
-    const api=this.utils.API,title=String(item.getField("title")),url=String(item.getField("url"));
-    let doi=String(item.getField("DOI")||"");
-    const resolveDOI=async()=>{
-      if(!this.utils.isDOI(doi))doi=CitationVerifier.normalizeDOI(url)||"";
-      if(!doi&&task.isCurrent())doi=(await api.resolveWork(title,(item.getCreators()[0] as any)?.lastName,String(item.getField("date")),task.signal))?.doi||"";
-      return doi;
-    };
-    const providers:ReferenceProvider[]=[];
-    if(includePDF)providers.push({name:"PDF",run:async()=>{
-      const attachment=await this.pdfAttachment(item,reader);
-      if(!attachment||!task.isCurrent())return;
-      const references=await this.utils.PDF.getReferences(attachment,fromCurrentPage,{signal:task.signal,pageIndex:task.pageIndex,notify:false,onProgress:pages=>{if(task.isCurrent())label.textContent=`${getString("relatedbox-loading")} PDF · ${pages} ${getString("relatedbox-pages-label")}`;}});
-      return {references,source:"PDF",partial:this.utils.PDF.getDiagnostics(attachment)?.scanLimited};
-    }});
-    providers.push({name:"Snapshot",run:async()=>{
-      for(const id of item.getAttachments().slice(0,20)) {
-        if(!task.isCurrent())return;
-        const attachment=Zotero.Items.get(id);if(!attachment||attachment.attachmentContentType!=="text/html"||attachment.deleted)continue;
-        const path=await attachment.getFilePathAsync();if(!path)continue;
-        const file=Zotero.File.pathToFile(path);if(!file.exists()||file.fileSize>8*1024*1024)continue;
-        const html=await Zotero.File.getContentsAsync(path);
-        if(typeof html!=="string")continue;
-        const references=api.publisherReferences.parseHTML(html,String(attachment.getField("url")||url),doi,title);
-        if(references.length)return {references,source:references[0].sources?.[0]+" snapshot"};
-      }
-      return;
-    }});
-    if(webFirst)providers.push({name:"Publisher / JATS",run:async()=>{
-      if(!await resolveDOI()||!task.isCurrent())return;
-      const references=await api.publisherReferences.getReferences(doi,url,title,task.signal);
-      return {references,source:references[0]?.sources?.[0]||"Publisher"};
-    }});
-    providers.push({name:"Online",run:()=>this.onlineReferences(item,task,label)});
-    return retrieveReferenceList(providers,task.signal,source=>{if(task.isCurrent())label.textContent=`${getString("relatedbox-loading")} ${source}`;});
+  private referenceDescription(result: ReferenceResult): string {
+    return ReferencePipeline.referenceDescription(result);
   }
 
-  private referenceDescription(result:ReferenceResult):string {
-    const attempt=result.latestAttempt;
-    return result.source+(result.retained?` · ${getString("cards-kept-results")}`:"")+(attempt?` · ${getString('cards-latest-attempt')} ${attempt.count}${attempt.expected?'/'+attempt.expected:attempt.partial?'+':''}`:'')+(result.partial?` (${result.references.length}${result.expected?"/"+result.expected:"+"} · ${getString("cards-partial")})`:"");
-  }
-
-  private async snapshotSignature(item:Zotero.Item):Promise<any[]> {
-    const signatures:any[]=[];
-    for(const id of item.getAttachments().slice(0,20)) {
-      const attachment=Zotero.Items.get(id);
-      if(!attachment||attachment.deleted||attachment.attachmentContentType!=="text/html")continue;
-      const path=await attachment.getFilePathAsync();
-      const file=path?Zotero.File.pathToFile(path):undefined;
-      signatures.push([attachment.key,attachment.dateModified,file?.exists()?file.fileSize:0,file?.exists()?file.lastModifiedTime:0]);
-    }
-    return signatures;
-  }
+  private async snapshotSignature(item:Zotero.Item):Promise<any[]> { return computeSnapshotSignatures(item); }
 
   private async performReferences(panel: XUL.TabPanel, local: boolean, fromCurrentPage: boolean, item: Zotero.Item, readerOverride: _ZoteroTypes.ReaderInstance | undefined, task: ReferenceTaskContext) {
     let label = panel.querySelector("label#reference-num") as HTMLLabelElement;
@@ -822,13 +686,10 @@ export default class Views {
   }
 
   public async sortReferences(panel:HTMLElement):Promise<void> {
-    const refs:ItemBaseInfo[]=(panel as any).references||[],displayed=[...refs];
-    const sort=Zotero.Prefs.get(`${config.addonRef}.sortBy`);
-    if(sort==="Recency")displayed.sort((a,b)=>Number(b.year||0)-Number(a.year||0));
-    if(sort==="Cited Count")displayed.sort((a,b)=>Number(b.citationCount||0)-Number(a.citationCount||0));
+    const refs:ItemBaseInfo[]=(panel as any).references||[];
+    const sort=String(Zotero.Prefs.get(`${config.addonRef}.sortBy`)||"Original");
+    const displayed=ReferenceSorter.sort(refs, sort);
     const identity=panel.getAttribute('data-refflow-item-id');
-    // A committed list outlives the fetching task. Lazy matching must remain
-    // valid after the task has been removed from ReferenceTasks.
     await (panel as any)._cards?.render(displayed,()=>panel.isConnected&&panel.getAttribute('data-refflow-item-id')===identity&&(panel as any).references===refs);
     (panel as any)._cards?.updateStatus();
   }
@@ -934,17 +795,7 @@ export default class Views {
     // Attach rejection handlers immediately; the UI timers may be deferred in
     // a background window while cancelled provider promises settle earlier.
     coroutines=coroutines.map(promise=>promise.catch(error=>{if(error?.name!=="AbortError")ztoolkit.log("Tip coroutine error",error);return undefined;}));
-    const sourceConfig = {
-      arXiv: { color: "#b31b1b", tip: "arXiv is a free distribution service and an open-access archive for 2,186,475 scholarly articles in the fields of physics, mathematics, computer science, quantitative biology, quantitative finance, statistics, electrical engineering and systems science, and economics. Materials on this site are not peer-reviewed by arXiv." },
-      readpaper: { color: "#1f71e0", tip: "ReadPaper academic paper indexing and reading platform" },
-      semanticscholar: { color: "#1857b6", tip: "Semantic Scholar is an artificial intelligence–powered research tool for scientific literature developed at the Allen Institute for AI and publicly released in November 2015. It uses advances in natural language processing to provide summaries for scholarly papers. The Semantic Scholar team is actively researching the use of artificial-intelligence in natural language processing, machine learning, Human-Computer interaction, and information retrieval." },
-      crossref: { color: "#89bf04", tip: "Crossref is a nonprofit association of approximately 2,000 voting member publishers who represent 4,300 societies and publishers, including both commercial and nonprofit organizations. Crossref includes publishers with varied business models, including those with both open access and subscription policies." },
-      connectedpapers: { color: "#35999a", tip: "Connected Papers is a visual tool to help researchers and applied scientists find academic papers relevant to their field of work."},
-      openalex: { color: "#d9480f", tip: "OpenAlex is a free and open bibliographic database of global scholarly research with over 250M works, indexing citations and open-access links." },
-      DOI: { color: "#fcb426" },
-      Zotero: { color: "#d63b3b", tip: "Zotero is a free, easy-to-use tool to help you collect, organize, cite, and share your research sources." },
-      CNKI: { color: "#1b66e6", tip: "China National Knowledge Infrastructure (CNKI) academic resource platform" }
-    }
+    const sourceConfig = TIP_SOURCE_CONFIG;
     for (let i = 0; i < coroutines.length; i++) {
       // 不阻塞
       globalThis.setTimeout(async () => {

@@ -15,7 +15,7 @@ async function fixture(run:(ctx:any)=>Promise<void>){
  let ids=100,lookups=0,writes=0,collectionCreates=0;const items:any[]=[];let translate:any=async()=>[{DOI:'10.1234/one',title:'Native full title',creators:[{creatorType:'author',lastName:'Native'}]}];
  class Item {id=0;key='';libraryID=1;itemTypeID=1;fields:any={};relatedItems:string[]=[];collections:number[]=[];creators:any[]=[];
  constructor(public itemType='journalArticle'){} getField(f:string){return this.fields[f]||'';}setField(f:string,v:any){this.fields[f]=v;}
- getCollections(){return [...this.collections];} addToCollection(id:number){this.collections.push(id);}isRegularItem(){return true;}
+ getCollections(){return [...this.collections];} addToCollection(id:number){this.collections.push(id);}isRegularItem(){return true;}isEditable(){return true;}
  getAttachments(){return [];}getCreators(){return this.creators;}setCreators(v:any){this.creators=v;}addRelatedItem(item:any){this.relatedItems.push(item.key);}
  async save(){writes++;if(!this.id){this.id=++ids;this.key='K'+this.id;items.push(this);}return this.id;}
  }
