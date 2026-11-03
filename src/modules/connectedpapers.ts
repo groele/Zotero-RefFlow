@@ -1,5 +1,4 @@
 import Requests from "./requests";
-import Utils from "./utils";
 import { config } from "../../package.json";
 
 import Views from "./views";
@@ -145,7 +144,7 @@ export default class ConnectedPapers {
     this.doc.querySelectorAll(`#${config.addonRef}-show-hide-graph-view`).forEach(e => e.remove());
     const toolbar = this.doc.getElementById("zotero-items-toolbar");
     if (!toolbar) return;
-    const newNode = Utils.createXULElement(this.doc, "toolbarbutton") as XUL.ToolBarButton;
+    const newNode = (this.doc as any).createXULElement("toolbarbutton") as XUL.ToolBarButton;
     newNode.setAttribute("id", `${config.addonRef}-show-hide-graph-view`);
     newNode.setAttribute("class", "zotero-tb-button");
     newNode.setAttribute("tooltiptext", getString("graph-toggle-tooltip") || (Zotero.locale?.startsWith("zh") ? "显示 / 隐藏文献关系图" : "Show / hide citation graph"));

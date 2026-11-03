@@ -394,27 +394,16 @@ class Utils {
 
 
   public selectItemInLibrary(item: Zotero.Item, win: Window = window) {
-    if (!item?.id) return;
-    const targetWin = (win as any)?.ZoteroPane ? win : (Zotero.getMainWindow?.() || window);
-    try {
-      (targetWin as any)?.focus?.();
-      (targetWin as any)?.Zotero_Tabs?.select?.('zotero-pane');
-      if ((targetWin as any)?.ZoteroPane?.selectItem) {
-        return (targetWin as any).ZoteroPane.selectItem(item.id);
-      }
-      return (Zotero.getActiveZoteroPane?.() as any)?.selectItem?.(item.id);
-    } catch (error) {
-      ztoolkit.log('Failed to select item in library:', error);
-    }
+    (win as any).Zotero_Tabs.select('zotero-pane');
+    return (win as any).ZoteroPane.selectItem(item.id);
   }
 
   /** Snapshot only collections in the operation's owning window and library. */
   public importCollections(parent: Zotero.Item, win: Window): number[] {
-    const pane = (win as any)?.ZoteroPane || Zotero.getActiveZoteroPane?.() || (Zotero.getMainWindow?.() as any)?.ZoteroPane;
-    const selected = pane?.getSelectedCollections?.() || [];
-    const ids = selected.filter((col: any) => col && !col.deleted && col.libraryID === parent.libraryID)
-      .map((col: any) => Number(col.id)).filter((id: number) => Number.isSafeInteger(id) && id > 0);
-    return [...new Set<number>(ids.length ? ids : (typeof parent.getCollections === 'function' ? parent.getCollections() : []))];
+    const selected=(win as any).ZoteroPane?.getSelectedCollections?.() || [];
+    const ids=selected.filter((col:any)=>col&&!col.deleted&&col.libraryID===parent.libraryID)
+      .map((col:any)=>Number(col.id)).filter((id:number)=>Number.isSafeInteger(id)&&id>0);
+    return [...new Set<number>(ids.length?ids:parent.getCollections())];
   }
 
   public getItemType(item: Zotero.Item): string | undefined {
@@ -472,74 +461,19 @@ class Utils {
     return text.replace(/\n+/g, " ").trim();
   }
 
-  public static createXULElement(doc: Document, tag: string): any {
-    if (typeof (doc as any)?.createXULElement === 'function') {
-      return (doc as any).createXULElement(tag);
-    }
-    if (typeof doc?.createElementNS === 'function') {
-      return doc.createElementNS('http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul', tag);
-    }
-    return doc.createElement(tag);
-  }
-
-  public getReader(win: Window = window): any {
-    if (!win) return undefined;
-
-    // 1. 若宿主窗口挂载了 Zotero_Tabs（典型为主窗口 Tabs）
-    const tabID = (win as any).Zotero_Tabs?.selectedID;
-    if (tabID && typeof Zotero?.Reader?.getByTabID === 'function') {
-      const reader = Zotero.Reader.getByTabID(tabID);
-      if (reader) return reader;
-    }
-
-    // 2. 若窗口对象直接持有了 reader 实例引用（Detached Window 常见暴露形式）
-    if ((win as any).reader) {
-      return (win as any).reader;
-    }
-    if ((win as any).ZoteroReaderView?.reader) {
-      return (win as any).ZoteroReaderView.reader;
-    }
-
-    // 3. 调用 Zotero.Reader 官方的窗口解析 API（若存在）
-    if (typeof (Zotero?.Reader as any)?.getByWindow === 'function') {
-      try {
-        const reader = (Zotero.Reader as any).getByWindow(win);
-        if (reader) return reader;
-      } catch {}
-    }
-
-    // 4. 遍历全局所有活跃的 Reader 实例，穿透匹配独立拆分窗口
-    const allReaders = (Zotero?.Reader as any)?._readers;
-    if (Array.isArray(allReaders) && allReaders.length > 0) {
-      const topWin = (win as any)?.top || win;
-      for (const r of allReaders) {
-        if (!r) continue;
-        if (
-          r.window === win ||
-          r._window === win ||
-          r.topWindow === win ||
-          r.window === topWin ||
-          r._window === topWin ||
-          r.topWindow === topWin ||
-          r._iframe?.contentWindow === win ||
-          r.dom?.ownerDocument?.defaultView === win
-        ) {
-          return r;
-        }
-      }
-    }
-
-    return undefined;
+  public getReader(win: Window = window) {
+    const tabID=(win as any).Zotero_Tabs?.selectedID;
+    return tabID?Zotero.Reader.getByTabID(tabID):undefined;
   }
 
   public resolveLibraryID(win: Window = window): number | undefined {
     try {
-      const pane = (win as any)?.ZoteroPane || Zotero.getActiveZoteroPane?.() || (Zotero.getMainWindow?.() as any)?.ZoteroPane;
-      const ids = pane?.getSelectedLibraryIDs?.();
+      const pane=(win as any).ZoteroPane;
+      const ids = pane?.getSelectedLibraryIDs();
       if (Array.isArray(ids) && ids.length === 1 && Number.isFinite(Number(ids[0]))) {
         return Number(ids[0]);
       }
-      const selectedItems = pane?.getSelectedItems?.() || [];
+      const selectedItems = pane?.getSelectedItems() || [];
       const itemLibraryIDs = [...new Set(selectedItems.map((item: Zotero.Item) => Number(item.libraryID)).filter(Number.isFinite))];
       if (itemLibraryIDs.length === 1) return Number(itemLibraryIDs[0]);
       const activeItem = this.getItem(win);
@@ -547,16 +481,16 @@ class Utils {
         return Number(activeItem.libraryID);
       }
     } catch (error) {
-      ztoolkit.log('Could not resolve the selected Zotero library:', error);
+      ztoolkit.log("Could not resolve the selected Zotero library:", error);
     }
     return undefined;
   }
 
   public copyText = (text: string, show: boolean = true) => {
-    (new ztoolkit.Clipboard()).addText(text, 'text/unicode').copy();
+    (new ztoolkit.Clipboard()).addText(text, "text/unicode").copy();
     if (show) {
-      (new ztoolkit.ProgressWindow('Copy'))
-        .createLine({ text: text, type: 'success' })
+      (new ztoolkit.ProgressWindow("Copy"))
+        .createLine({ text: text, type: "success" })
         .show()
     }
   }
@@ -564,17 +498,15 @@ class Utils {
   public getItem(win: Window = window): Zotero.Item | undefined {
     let reader = this.getReader(win);
     if (reader?.itemID) {
-      const item = Zotero.Items.get(reader.itemID);
-      return item ? (item.parentItem || item) : undefined;
+      const item=Zotero.Items.get(reader.itemID);
+      return item?(item.parentItem || item):undefined;
     }
     try {
-      const pane = (win as any)?.ZoteroPane || Zotero.getActiveZoteroPane?.() || (Zotero.getMainWindow?.() as any)?.ZoteroPane;
-      const selected = pane?.getSelectedItems?.();
+      const selected = (win as any).ZoteroPane?.getSelectedItems();
       if (selected && selected.length > 0 && selected[0]?.isRegularItem?.()) {
         return selected[0];
       }
     } catch {}
-    return undefined;
   }
 
   public abs(v: number) {
