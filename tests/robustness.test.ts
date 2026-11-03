@@ -293,3 +293,118 @@ test("Preferences Fluent files (en-US, zh-CN, it-IT) have completely synchronize
   assert.deepEqual(missingInZH, [], "No missing preferences keys in zh-CN");
   assert.deepEqual(missingInIT, [], "No missing preferences keys in it-IT");
 });
+
+test("Views.importReferences and Views.rollbackReferences use localized getString for read-only items", async () => {
+  const Views = require("../src/modules/views").default;
+  const views: any = Object.create(Views.prototype);
+  views.disposed = false;
+
+  const oldAddon = (globalThis as any).addon;
+  (globalThis as any).addon = {
+    data: {
+      locale: {
+        current: {
+          formatMessagesSync: ([{ id }]: any) => [{ value: `localized:${id}` }]
+        }
+      }
+    }
+  };
+
+  const readOnlyParent: any = {
+    id: 500,
+    libraryID: 2,
+    isEditable: () => false
+  };
+
+  try {
+    await assert.rejects(
+      views.importReferences(readOnlyParent, [{ title: "Test", identifiers: {} }]),
+      /localized:refflow-cards-library-readonly/
+    );
+    await assert.rejects(
+      views.rollbackReferences(readOnlyParent, "refnexus_batch_123"),
+      /localized:refflow-cards-library-readonly/
+    );
+  } finally {
+    (globalThis as any).addon = oldAddon;
+  }
+});
+
+test("ReferenceCards.menu disables import and rollback menu items when parent is read-only", () => {
+  const createdItems: any[] = [];
+  const doc: any = {
+    createXULElement: (tag: string) => {
+      const node: any = {
+        localName: tag,
+        children: [],
+        attributes: {},
+        setAttribute(k: string, v: any) { this.attributes[k] = v; this[k] = v; },
+        getAttribute(k: string) { return this.attributes[k] ?? this[k]; },
+        addEventListener() {},
+        append(child: any) { this.children.push(child); createdItems.push(child); },
+        querySelector(sel: string) { return this.children.find((c: any) => c.localName === sel || c.querySelector?.(sel)); },
+        openPopup() {},
+        remove() {}
+      };
+      return node;
+    },
+    documentElement: { append() {} }
+  };
+
+  const cards: any = Object.create(ReferenceCards.prototype);
+  Object.assign(cards, {
+    disposed: false,
+    refs: [{ title: "Paper A", identifiers: { DOI: "10.1000/a" } }],
+    selected: new Set(),
+    menus: new Set(),
+    parent: () => ({ id: 77, libraryID: 3, deleted: false, isEditable: () => false }),
+    subset: () => [{ title: "Paper A", identifiers: { DOI: "10.1000/a" } }],
+    label: () => ({ textContent: "" }),
+    body: {
+      ownerDocument: doc,
+      isConnected: true,
+      getAttribute: (name: string) => name === "data-refflow-item-id" ? "77" : "API",
+      closest: () => null
+    },
+    views: { utils: { importCollections: () => [] } }
+  });
+
+  cards.menu();
+  const quickActions = createdItems.filter(item => item.localName === "menuitem" && item.attributes["data-refflow-quick-action"]);
+  const byAction = Object.fromEntries(quickActions.map(item => [item.attributes["data-refflow-quick-action"], item]));
+
+  assert.equal(byAction["import-selected"]?.disabled, true, "import-selected must be disabled for read-only parent");
+  assert.equal(byAction["import-all"]?.disabled, true, "import-all must be disabled for read-only parent");
+  assert.equal(byAction["rollback"]?.disabled, true, "rollback must be disabled for read-only parent");
+  assert.equal(Boolean(byAction["copy-text"]?.disabled), false, "copy-text must remain enabled for read-only parent");
+  assert.equal(Boolean(byAction["open"]?.disabled), false, "open must remain enabled for read-only parent");
+});
+
+test("Repository version, release notes, product metadata, and READMEs are 100% synchronized", () => {
+  const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+  const product = JSON.parse(fs.readFileSync("docs/brand/product.json", "utf8"));
+  const update = JSON.parse(fs.readFileSync("update.json", "utf8"));
+  const readmeZH = fs.readFileSync("README.md", "utf8");
+  const readmeEN = fs.readFileSync("README.en.md", "utf8");
+
+  const ver = pkg.version;
+  assert.equal(pkg.config.releaseTag, `v${ver}`);
+  assert.equal(product.version, ver);
+  assert.equal(update.addons[pkg.config.addonID].updates[0].version, ver);
+
+  const releaseNoteRelPath = `docs/releases/v${ver}.md`;
+  assert.equal(pkg.config.releaseNotesURL, `https://github.com/groele/Zotero-RefFlow/blob/main/${releaseNoteRelPath}`);
+  assert.equal(fs.existsSync(releaseNoteRelPath), true, `${releaseNoteRelPath} must exist on disk`);
+
+  assert.equal(readmeZH.includes(`version-${ver}-245ac7`), true, "README.md badge must match package version");
+  assert.equal(readmeZH.includes(`releases/download/v${ver}/zotero-refflow.xpi`), true, "README.md download link must match package version");
+  assert.equal(readmeZH.includes(`| 当前插件版本 | ${ver} |`), true, "README.md compatibility table version must match");
+  assert.equal(readmeZH.includes("`10.0` 至 `12.*`"), true, "README.md Zotero range must be 10.0 to 12.*");
+  assert.equal(readmeZH.includes(releaseNoteRelPath), true, "README.md must link to current release notes");
+
+  assert.equal(readmeEN.includes(`version-${ver}-245ac7`), true, "README.en.md badge must match package version");
+  assert.equal(readmeEN.includes(`releases/download/v${ver}/zotero-refflow.xpi`), true, "README.en.md download link must match package version");
+  assert.equal(readmeEN.includes(`| Current add-on version | ${ver} |`), true, "README.en.md compatibility table version must match");
+  assert.equal(readmeEN.includes("`10.0` through `12.*`"), true, "README.en.md Zotero range must be 10.0 through 12.*");
+  assert.equal(readmeEN.includes(releaseNoteRelPath), true, "README.en.md must link to current release notes");
+});

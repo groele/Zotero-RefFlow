@@ -455,7 +455,7 @@ export default class Views {
   public async importReferences(parent: Zotero.Item, refs: ItemBaseInfo[], options: any = {}) {
     if(this.disposed)throw new Error('RefFlow is stopping');
     if(parent && typeof parent.isEditable === 'function' && !parent.isEditable()){
-      throw new Error((globalThis as any).getString?.('cards-library-readonly') || 'Item library is read-only');
+      throw new Error(getString('cards-library-readonly') || 'Item library is read-only');
     }
     refs=[...refs];
     options={downloadOA:true,createSubCollection:true,createManifestNote:true,...options};
@@ -477,7 +477,7 @@ export default class Views {
   }
   public async rollbackReferences(parent: Zotero.Item, batchID: string) {
     if(parent && typeof parent.isEditable === 'function' && !parent.isEditable()){
-      throw new Error((globalThis as any).getString?.('cards-library-readonly') || 'Item library is read-only');
+      throw new Error(getString('cards-library-readonly') || 'Item library is read-only');
     }
     try{
     const outcome=await BatchImporter.rollbackBatchDetailed(parent,batchID),removed=outcome.removed,retained=outcome.retainedIDs.length;

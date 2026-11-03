@@ -1,4 +1,4 @@
-> **13.0.0**：商业产品级重大版本更新。全面升级密钥与在线服务配置、强化出版商解析容错防护、支持独立拆分阅读器窗口、增强只读文库保护与三语种 Fluent 100% 同步。[版本说明](docs/releases/v13.0.0.md)。
+> **13.1.6**：商业产品级质量与细节完善更新。全面补齐只读文库与回收站条目的快捷菜单、卡片与图谱操作按钮禁用防护，修复只读报错多语言本地化调用，锁定 Zotero 10 ~ 12 兼容范围与三级设置界面对齐标准。[版本说明](docs/releases/v13.1.6.md)。
 
 
 
@@ -14,7 +14,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![当前版本](https://img.shields.io/badge/version-13.1.4-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v13.1.4) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.4/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
+[![当前版本](https://img.shields.io/badge/version-13.1.6-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v13.1.6) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.6/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
 
 [产品定位](#overview) · [安装与更新](#installation) · [快速开始](#quick-start) · [核心功能](#features) · [设置与使用](#settings) · [数据、同步与外部服务](#data) · [兼容性与验证范围](#compatibility) · [常见问题](#troubleshooting) · [开发与详细文档](#development) · [系列产品](#series) · [项目来源与许可](#license)
 
@@ -30,7 +30,7 @@
 
 ## 安装与更新
 
-1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.4/zotero-refflow.xpi)（插件版本 **13.1.4**），不要安装 Source code ZIP。
+1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v13.1.6/zotero-refflow.xpi)（插件版本 **13.1.6**），不要安装 Source code ZIP。
 2. 在 Zotero 打开 **工具 → 插件／附加组件**，从齿轮菜单选择 **从文件安装插件**。
 3. 选择 XPI，完成安装；按提示重启 Zotero。
 
@@ -81,9 +81,9 @@
 
 | 项目 | 范围 |
 |---|---|
-| 当前插件版本 | 13.1.3 |
-| 清单声明的 Zotero 范围 | `10.0.6` 至 `11.*` |
-| 当前说明 | 332 项单测通过；定向原生检查 10/10 通过。完整隔离原生套件 13 项通过、2 项失败，且两项在 12.8.0 基线复现。暗色主题视觉、主 profile 安装、自动更新安装、Zotero 11 和其他系统未验证。 |
+| 当前插件版本 | 13.1.6 |
+| 清单声明的 Zotero 范围 | `10.0` 至 `12.*` |
+| 当前说明 | 343 项单测通过；定向原生检查 10/10 通过。完整隔离原生套件 13 项通过、2 项失败，且两项在 12.8.0 基线复现。暗色主题视觉、主 profile 安装、自动更新安装、Zotero 11 和其他系统未验证。 |
 
 插件版本与 Zotero 版本分别管理。兼容声明不等于已验证所有宿主、系统和外部服务；本轮仅验证上述定向行为，未覆盖所有业务流程或主环境安装。
 
@@ -112,7 +112,7 @@ npm run build-prod
 
 - [数据源与接口规范 / Dataflow and API](docs/DATAFLOW-AND-API-SPEC.md)
 - [修复记录 / Repair record](docs/REPAIRS-2026-10-15.md)
-- [版本说明 / Release notes](docs/releases/v12.8.2.md)
+- [版本说明 / Release notes](docs/releases/v13.1.6.md)
 - [产品简介 / Product profile](docs/brand/PRODUCT.md)
 - [品牌规范 / Brand guide](docs/brand/BRAND.md)
 - [README 模板 / README template](docs/brand/README-TEMPLATE.md)

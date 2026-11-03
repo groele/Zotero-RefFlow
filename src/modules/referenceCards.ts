@@ -88,7 +88,7 @@ export default class ReferenceCards {
       const provider=this.providerRetractions.get(ref);
       ref.retraction=provider?.isRetracted?provider:local?.isRetracted?local:provider;
       const action=row.querySelector<HTMLButtonElement>(".reference-action")!;
-      const editable=Boolean(parent && !parent.deleted && (Zotero as any).Libraries.get(parent.libraryID)?.editable);
+      const editable=Boolean(parent && !parent.deleted && (typeof parent.isEditable !== 'function' || parent.isEditable()) && (Zotero as any).Libraries.get(parent.libraryID)?.editable !== false);
       this.actionIcon(action,found?'open':'add',getString(found?"cards-show-library":(editable?"cards-import":"cards-library-readonly")));
       action.disabled=Boolean(!found && !editable);
       const dot=row.querySelector<HTMLElement>('.reference-state')!;
@@ -197,7 +197,7 @@ export default class ReferenceCards {
       if(this.virtual){about.style.display='-webkit-box';about.style.setProperty('-webkit-box-orient','vertical');about.style.setProperty('-webkit-line-clamp','2');about.style.overflow='hidden';}
       const metadata=doc.createElement('div');metadata.className='reference-metadata';metadata.append(about);metadata.hidden=!about.textContent;
       if(ref.retraction?.isRetracted){const warning=doc.createElement("span");warning.className="reference-retracted";warning.textContent=getString("relatedbox-retracted-badge");warning.title=ref.retraction.reason||"";content.append(warning);}
-      const editable=Boolean(parent && !parent.deleted && (Zotero as any).Libraries.get(parent.libraryID)?.editable);const action=doc.createElement("button");action.type="button";action.className="reference-action";this.actionIcon(action,ref._item?'open':'add',getString(ref._item?"cards-show-library":(editable?"cards-import":"cards-library-readonly")));if(!ref._item && !editable)action.disabled=true;
+      const editable=Boolean(parent && !parent.deleted && (typeof parent.isEditable !== 'function' || parent.isEditable()) && (Zotero as any).Libraries.get(parent.libraryID)?.editable !== false);const action=doc.createElement("button");action.type="button";action.className="reference-action";this.actionIcon(action,ref._item?'open':'add',getString(ref._item?"cards-show-library":(editable?"cards-import":"cards-library-readonly")));if(!ref._item && !editable)action.disabled=true;
       action.addEventListener('dblclick',event=>event.stopPropagation());
       action.addEventListener("click",async event=>{
         event.stopPropagation();if(action.disabled||!current()||!row.isConnected)return;
@@ -318,7 +318,8 @@ export default class ReferenceCards {
     const actionKeys:Record<string,string>={"cards-copy-text":"copy-text","cards-copy-doi":"copy-doi","cards-copy-url":"copy-url","cards-open":"open","cards-import-selected":"import-selected","cards-import-all":"import-all","relatedbox-rollback":"rollback"};
     const enabled=(key:string)=>!actionKeys[key] || Zotero.Prefs.get(`${config.addonRef}.quickAction.${actionKeys[key]}`)!==false;
     let target=popup;
-    const add=(key:string,action:()=>any,checked?:boolean)=>{if(!enabled(key))return;const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(actionKeys[key])item.setAttribute("data-refflow-quick-action",actionKeys[key]);if(checked!==undefined){item.setAttribute("type","checkbox");item.checked=checked;}item.addEventListener("command",()=>Promise.resolve().then(()=>{if(samePanel()&&enabled(key))return action();}).catch(error=>{if(samePanel()){this.label().textContent=importErrorText(error);if(error instanceof JournalCommitPendingError||error instanceof JournalUnavailableError)void this.journalStatus.show();}ztoolkit.log(error);}));target.append(item);};
+    const editableAtOpen=Boolean(parentAtOpen && !parentAtOpen.deleted && (typeof parentAtOpen.isEditable !== "function" || parentAtOpen.isEditable()) && ((Zotero as any).Libraries?.get?.(parentAtOpen.libraryID)?.editable !== false));
+    const add=(key:string,action:()=>any,checked?:boolean,disabled?:boolean)=>{if(!enabled(key))return;const item=doc.createXULElement("menuitem");item.setAttribute("label",getString(key));if(actionKeys[key])item.setAttribute("data-refflow-quick-action",actionKeys[key]);if(checked!==undefined){item.setAttribute("type","checkbox");item.checked=checked;}if(disabled){item.setAttribute("disabled","true");item.disabled=true;}item.addEventListener("command",()=>Promise.resolve().then(()=>{if(samePanel()&&enabled(key)&&!disabled)return action();}).catch(error=>{if(samePanel()){this.label().textContent=importErrorText(error);if(error instanceof JournalCommitPendingError||error instanceof JournalUnavailableError)void this.journalStatus.show();}ztoolkit.log(error);}));target.append(item);};
     const submenu=(key:string)=>{const menu=doc.createXULElement("menu");menu.setAttribute("label",getString(key));menu.setAttribute("data-refflow-group",key);const child=doc.createXULElement("menupopup");menu.append(child);popup.append(menu);return child;};
     target=submenu('cards-menu-copy');
     add("cards-copy-text",()=>this.views.utils.copyText(refsAtOpen.map(ref=>ref.text||ref.title).join("\n"),false));
@@ -336,14 +337,14 @@ export default class ReferenceCards {
       const result=await this.batchResults.run(parent,refs,{owner:this.body,collections:collectionsAtOpen,downloadOA:Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)),createSubCollection:true,createManifestNote:true},refs.map(ref=>allAtOpen.indexOf(ref)+1));
       if(samePanel()){this.invalidateLibraryMatches();this.label().textContent=(result.cancelled?getString('cards-import-cancelled'):importSummaryText(result))+(result.failedCount?' · '+importFailureText(result.failures[0]):'');}
     };
-    add("cards-import-selected",()=>importRefs(false));add("cards-import-all",()=>importRefs(true));
+    add("cards-import-selected",()=>importRefs(false),undefined,!editableAtOpen);add("cards-import-all",()=>importRefs(true),undefined,!editableAtOpen);
     target=popup;
     add("relatedbox-rollback",async()=>{
       const parent=parentAtOpen;
       if(parent && typeof parent.isEditable === 'function' && !parent.isEditable()) throw new Error(getString('cards-library-readonly'));
       const id=await BatchImporter.latestBatchID(parent).catch(error=>{ztoolkit.log('Failed to read rollback journal',error);throw new Error(getString('cards-rollback-failed'));});
       if(id){const count=await this.views.rollbackReferences(parent,id);if(samePanel()){this.batchResults.clear();this.invalidateLibraryMatches();this.label().textContent=getString('cards-rollback-summary',{args:{count}});}}
-    });
+    },undefined,!editableAtOpen);
     target=submenu('cards-menu-source');
     for(const source of ["Auto","PDF","Web","API"])add(source==="Auto"?"cards-source-auto":source==="Web"?"cards-source-web":source==="PDF"?"cards-source-pdf":"cards-source-online",()=>{if(!samePanel())return;this.body.querySelector<HTMLSelectElement>("select")!.value=source;this.body.querySelector("select")!.dispatchEvent(new (this.body.ownerDocument.defaultView as any).Event("change"));},this.body.getAttribute("source")===source);
     target=submenu('cards-menu-sort');

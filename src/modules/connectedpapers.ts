@@ -848,9 +848,14 @@ export default class ConnectedPapers {
       ],
     }, parent)
 
+    const originsEditable=originsAtRender.length===0 || originsAtRender.every(id=>{
+      const origin=Zotero.Items.get(id);
+      return Boolean(origin && !origin.deleted && (typeof origin.isEditable !== 'function' || origin.isEditable()) && (Zotero as any).Libraries?.get?.(origin.libraryID)?.editable !== false);
+    });
+    const importActionLabel=getString(info?._itemID?'cards-show-library':(originsEditable?'cards-import':'cards-library-readonly'));
     const importAction:any=ztoolkit.UI.appendElement({
       tag: "button",
-      attributes:{type:'button',title:getString(info?._itemID?'cards-show-library':'cards-import'),'aria-label':getString(info?._itemID?'cards-show-library':'cards-import')},
+      attributes:{type:'button',title:importActionLabel,'aria-label':importActionLabel,...(!info?._itemID && !originsEditable ? {disabled:'true'} : {})},
       styles: {
         width: "2em",
         height: "2em",
