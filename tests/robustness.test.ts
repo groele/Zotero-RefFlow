@@ -472,6 +472,77 @@ test("Utils.createXULElement falls back safely when createXULElement is absent",
   assert.deepEqual(Utils.createXULElement(docC, "menupopup"), { type: "element", tag: "menupopup" });
 });
 
+test("Preferences panel adheres to 5+1 modular architecture and covers all core feature preferences", () => {
+  const xhtml = fs.readFileSync("addon/chrome/content/preferences.xhtml", "utf8");
+
+  // 1. 验证 6 个 details 组
+  const groups = [...xhtml.matchAll(/<html:details\s+class="refflow-setting-group"/g)];
+  assert.equal(groups.length, 6, "Preferences panel must contain exactly 6 modular groups");
+
+  // 2. 验证首组默认展开
+  assert.ok(xhtml.includes('open="open"'), "First group (Retrieval & Sources) must be open by default");
+
+  // 3. 验证关键配置项偏好映射覆盖
+  const expectedPrefs = [
+    "extensions.zotero.__addonRef__.prioritySource",
+    "extensions.zotero.__addonRef__.autoRefresh",
+    "extensions.zotero.__addonRef__.notAutoRefreshItemTypes",
+    "extensions.zotero.__addonRef__.savePDFReferences",
+    "extensions.zotero.__addonRef__.saveAPIReferences",
+    "extensions.zotero.__addonRef__.showSourceDetails",
+    "extensions.zotero.__addonRef__.notInLibarayOpacity",
+    "extensions.zotero.__addonRef__.graphView.enable",
+    "extensions.zotero.__addonRef__.graphView.height",
+    "extensions.zotero.__addonRef__.isShowTip",
+    "extensions.zotero.__addonRef__.showTipAfterMillisecond",
+    "extensions.zotero.__addonRef__.ctrlClickTranslate",
+    "extensions.zotero.__addonRef__.shadeMillisecond",
+    "extensions.zotero.__addonRef__.removeTipAfterMillisecond",
+    "extensions.zotero.__addonRef__.tipBackgroundColor",
+    "extensions.zotero.__addonRef__.tipTitleColor",
+    "extensions.zotero.__addonRef__.downloadOA",
+    "extensions.zotero.__addonRef__.quickAction.copy-text",
+    "extensions.zotero.__addonRef__.quickAction.copy-doi",
+    "extensions.zotero.__addonRef__.quickAction.copy-url",
+    "extensions.zotero.__addonRef__.quickAction.open",
+    "extensions.zotero.__addonRef__.quickAction.import-selected",
+    "extensions.zotero.__addonRef__.quickAction.import-all",
+    "extensions.zotero.__addonRef__.quickAction.rollback",
+    "extensions.zotero.__addonRef__.openAlexKey",
+    "extensions.zotero.__addonRef__.semanticScholarKey",
+    "extensions.zotero.__addonRef__.connectedPapersKey",
+    "extensions.zotero.__addonRef__.CNKI.username",
+    "extensions.zotero.__addonRef__.CNKI.password"
+  ];
+
+  for (const pref of expectedPrefs) {
+    assert.ok(xhtml.includes(`preference="${pref}"`), `Preferences panel must bind ${pref}`);
+  }
+
+  // 4. 验证三语本地化完全对称
+  const extractKeys = (relPath: string) => {
+    const raw = fs.readFileSync(relPath, "utf8");
+    const set = new Set<string>();
+    for (const line of raw.split("\n")) {
+      const m = line.match(/^([a-zA-Z0-9_\-]+)\s*=/);
+      if (m) set.add(m[1]);
+    }
+    return set;
+  };
+
+  const zhKeys = extractKeys("addon/locale/zh-CN/preferences.ftl");
+  const enKeys = extractKeys("addon/locale/en-US/preferences.ftl");
+  const itKeys = extractKeys("addon/locale/it-IT/preferences.ftl");
+
+  assert.equal(zhKeys.size, enKeys.size, "zh-CN and en-US key count must match");
+  assert.equal(zhKeys.size, itKeys.size, "zh-CN and it-IT key count must match");
+
+  for (const k of zhKeys) {
+    assert.ok(enKeys.has(k), `en-US missing key: ${k}`);
+    assert.ok(itKeys.has(k), `it-IT missing key: ${k}`);
+  }
+});
+
 test("Repository version, release notes, product metadata, and READMEs are 100% synchronized", () => {
   const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
   const product = JSON.parse(fs.readFileSync("docs/brand/product.json", "utf8"));

@@ -1,88 +1,49 @@
-caption-refresh = Aggiorna
-autoRefresh = 
-  .label = I riferimenti sono aggiornati automaticamente, ma i seguenti tipi di elemento no
-  
+caption-retrieval-source = Recupero letteratura e fonti
 caption-source = Origine
 prioritySource-start = La priorità è
 prioritySource-end = usata per accedere ai riferimenti
-
-preLoadingPageNum-start = Quando si seleziona un PDF, legge preventivamente le ultime
-preLoadingPageNum-end = pagine per rimuovere eventuali informazioni non valide
-
-
-caption-tip = Suggerimenti
-isShowTip-start = 
-  .label = La finestra fluttuante verrà visualizzata dopo che il il mouse di ferma su di un riferimento per più di
-isShowTip-end = ms
-
-ctrlClickTranslate = 
-  .label = All'interno della finestra fluttuante, premere CTRL e cliccare su Text Translate
-
-shadeMillisecond-start = La finestra fluttuante sfuma per
-shadeMillisecond-end = ms
-
-removeTipAfterMillisecond-start = Sparisce completamente dopo
-removeTipAfterMillisecond-end = ms
-
-tipBackgroundColor = Colore di sfondo
-tipTitleColor = Colore del titolo
-
-
-caption-related = Correlati
-loadingRelated = 
-  .label = Il pannello dei correlati carica elementi correlati
-
-
-
-caption-link = Link
-clickLink-start = 
-  .label = Click sul link per aprire una finestra divisa
-clickLink-splitHorizontally = 
-  .label = Orizzontalmente
-clickLink-splitVertically = 
-  .label = Verticalmente
-clickLink-end = { "" }
-hoverLink = 
-  .label = Passa il mouse sul link per mostrare una finestra fluttuante
-
-
-caption-save = Salva
-savePDFReferences = 
-  .label = Salva riferimenti da PDF
-saveAPIReferences = 
-  .label = Salva riferimenti da API
-
-
-caption-match = Abbina
-notInLibarayOpacity-start = Abbina elementi e rendi gli elementi che non sono nella biblioteca trasparenti
-notInLibarayOpacity-end = { "" }
-caption-online = Servizi online
-openAlexKey-label = Chiave API OpenAlex (facoltativa)
-openAlexKey-description = Per richieste frequenti, usa la tua chiave gratuita. La chiave viene salvata nelle preferenze locali di Zotero.
 source-auto =
     .label = Automatico (consigliato)
 source-web =
     .label = Editore HTML / XML
-
-about-maintainer = Modificato e mantenuto da groele
-about-origin = Basato su Zotero Reference / Ethereal Reference (Polygon / MuiseDestiny). Attribuzione originale e licenza AGPL-3.0-or-later conservate.
-about-project = Progetto e aggiornamenti
-about-issues = Segnala un problema
-about-upstream = Progetto originale
-openAlexKey-get = Ottieni / visualizza una chiave API OpenAlex gratuita
-
-about-updates = Aggiornamenti da groele/Zotero-RefFlow. Zotero 10.0.6–11.* supportato.
-about-release-notes = Note di rilascio
-semanticScholarKey-label = Semantic Scholar API Key (optional)
-semanticScholarKey-description = Uses the official Graph API. Leave empty for anonymous access; a configured key is sent using x-api-key.
-semanticScholarKey-get = Ottieni / visualizza una chiave API Semantic Scholar gratuita
-
-caption-actions = Azioni rapide del pannello
+autoRefresh =
+    .label = I riferimenti sono aggiornati automaticamente, ma i seguenti tipi di elemento no
+caption-save = Salva
+savePDFReferences =
+    .label = Salva riferimenti da PDF
+saveAPIReferences =
+    .label = Salva riferimenti da API
 showSourceDetails =
     .label = Mostra fonte e completezza
+
+caption-display = Visualizzazione elenco e schede
+caption-match = Abbina
+notInLibarayOpacity-start = Abbina elementi e rendi gli elementi che non sono nella biblioteca trasparenti
+notInLibarayOpacity-end = { "" }
+caption-graph = Grafico delle citazioni (Connected Papers)
+graphView-enable =
+    .label = Mostra il grafico delle citazioni nella parte inferiore della libreria
+graphView-height = Altezza del contenitore del grafico
+
+caption-tip = Suggerimenti
+isShowTip-start =
+    .label = La finestra fluttuante verrà visualizzata dopo che il il mouse di ferma su di un riferimento per più di
+isShowTip-end = ms
+ctrlClickTranslate =
+    .label = All'interno della finestra fluttuante, premere CTRL e cliccare su Text Translate
+shadeMillisecond-start = La finestra fluttuante sfuma per
+shadeMillisecond-end = ms
+removeTipAfterMillisecond-start = Sparisce completamente dopo
+removeTipAfterMillisecond-end = ms
+tipBackgroundColor = Colore di sfondo
+tipTitleColor = Colore del titolo
+
+caption-batch-import = Importazione in blocco e azioni rapide
+downloadOA =
+    .label = Scarica automaticamente i PDF a testo completo Open Access (OA) durante l'importazione in blocco
+downloadOA-description = Cerca manoscritti ad accesso aperto Green e Gold; l'importazione dei metadati continua anche se il file ad accesso aperto non è disponibile.
+caption-actions = Azioni rapide del pannello
 actions-description = Scegli le azioni da mostrare nel menu del pannello. Disattivare un’azione ne nasconde la voce; riattivarla la ripristina. Dati e importazioni esistenti non cambiano.
-
-
 quick-copy-text =
     .label = Copia riferimenti
 quick-copy-doi =
@@ -98,10 +59,27 @@ quick-import-all =
 quick-rollback =
     .label = Annulla ultima importazione
 
-about-caption = Informazioni su Zotero RefFlow
-about-build-date = Data build:
-about-download = Scarica XPI pubblicato
-
+caption-online = Servizi online e chiavi API
+openAlexKey-label = Chiave API OpenAlex (facoltativa)
+openAlexKey-description = Per richieste frequenti, usa la tua chiave gratuita. La chiave viene salvata nelle preferenze locali di Zotero.
+openAlexKey-get = Ottieni / visualizza una chiave API OpenAlex gratuita
+semanticScholarKey-label = Chiave API Semantic Scholar (facoltativa)
+semanticScholarKey-description = Usa l'API Graph ufficiale. Lasciare vuoto per l'accesso anonimo; una chiave configurata viene inviata con x-api-key.
+semanticScholarKey-get = Ottieni / visualizza una chiave API Semantic Scholar gratuita
 connectedPapersKey-label = Chiave API Connected Papers (facoltativa)
 connectedPapersKey-description = Chiave API personale opzionale usata da RefFlow per creare grafi di citazioni interattivi. Lasciare vuoto per richiederla all'occorrenza.
 connectedPapersKey-get = Ottieni / visualizza una chiave API Connected Papers
+cnkiUsername-label = Nome utente CNKI (facoltativo)
+cnkiPassword-label = Password CNKI (facoltativa)
+cnki-description = Utilizzato per la risoluzione dei metadati e delle citazioni delle riviste cinesi. Lasciare vuoto per il recupero pubblico.
+
+about-caption = Informazioni su Zotero RefFlow
+about-maintainer = Modificato e mantenuto da groele
+about-origin = Basato su Zotero Reference / Ethereal Reference (Polygon / MuiseDestiny). Attribuzione originale e licenza AGPL-3.0-or-later conservate.
+about-updates = Aggiornamenti da groele/Zotero-RefFlow. Zotero 10.0.6–11.* supportato.
+about-build-date = Data build:
+about-project = Progetto e aggiornamenti
+about-issues = Segnala un problema
+about-upstream = Progetto originale
+about-release-notes = Note di rilascio
+about-download = Scarica XPI pubblicato

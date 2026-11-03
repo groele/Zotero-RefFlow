@@ -1,94 +1,49 @@
-caption-refresh = 刷新
-autoRefresh = 
-  .label = 自动刷新参考文献，但排除下述条目类型
-
-
+caption-retrieval-source = 文献检索与数据源
 caption-source = 来源
 prioritySource-start = 优先从
 prioritySource-end = 获取参考文献
-
-preLoadingPageNum-start = 当从PDF解析参考文献时，预读取页面最后
-preLoadingPageNum-end = 页，以去页眉页脚等信息
-
-
-
-caption-tip = 浮窗
-isShowTip-start = 
-  .label = 鼠标在参考文献上停留
-isShowTip-end = 毫秒后显示悬浮窗
-
-ctrlClickTranslate = 
-  .label = 浮窗内，ctrl点击文字翻译
-
-shadeMillisecond-start = 浮窗显示/消失透明度渐变
-shadeMillisecond-end = 毫秒
-
-removeTipAfterMillisecond-start = 最后，在
-removeTipAfterMillisecond-end = 毫秒后自动消失
-
-tipBackgroundColor = 背景色
-tipTitleColor = 标题色
-
-
-
-
-caption-related = 关联
-loadingRelated = 
-  .label = 关联文献面板显示推荐关联文献
-
-
-caption-link = 链接
-clickLink-start = 
-  .label = 点击链接跳转于
-clickLink-splitHorizontally = 
-  .label = 横向
-clickLink-splitVertically = 
-  .label = 竖向
-clickLink-end = 分割窗口
-hoverLink = 
-  .label = 悬停链接显示浮窗
-
-
-
-
-caption-save = 储存
-savePDFReferences = 
-  .label = 储存PDF源参考文献
-saveAPIReferences = 
-  .label = 储存API源参考文献
-
-caption-match = 匹配
-notInLibarayOpacity-start = 匹配本地条目，并且以透明度
-notInLibarayOpacity-end = 显示不在我的文库的条目
-
-
-caption-online = 在线服务
-openAlexKey-label = OpenAlex API Key（可选）
-openAlexKey-description = 匿名获取仍可使用；高频获取时可填入自己的免费密钥。密钥仅存放在本机 Zotero 配置中。
 source-auto =
     .label = 自动获取（推荐）
 source-web =
     .label = 出版社网页 / XML
-
-about-maintainer = 二次开发与维护：groele
-about-origin = 基于 Zotero Reference / Ethereal Reference（Polygon / MuiseDestiny）二次修改；保留原作者署名及 AGPL-3.0-or-later 许可。
-about-project = 项目与更新
-about-issues = 反馈问题
-about-upstream = 原始项目
-openAlexKey-get = 申请 / 查看免费的 OpenAlex API Key
-
-about-updates = 插件更新由 groele/Zotero-RefFlow 提供，支持 Zotero 10.0.6–11.*。
-about-release-notes = 版本说明
-semanticScholarKey-label = Semantic Scholar API Key（可选）
-semanticScholarKey-description = 保留官方 Graph API。未填写时使用匿名访问；填写后用于官方 x-api-key 请求头。
-semanticScholarKey-get = 申请 / 查看免费的 Semantic Scholar API Key
-
-caption-actions = 侧栏快捷操作
+autoRefresh =
+    .label = 自动刷新参考文献，但排除下述条目类型
+caption-save = 储存
+savePDFReferences =
+    .label = 储存PDF源参考文献
+saveAPIReferences =
+    .label = 储存API源参考文献
 showSourceDetails =
     .label = 显示来源与完整性
+
+caption-display = 文献列表与卡片显示
+caption-match = 匹配
+notInLibarayOpacity-start = 匹配本地条目，并且以透明度
+notInLibarayOpacity-end = 显示不在我的文库的条目
+caption-graph = 关联文献图谱 (Connected Papers)
+graphView-enable =
+    .label = 在主界面文献库底部显示关联文献图谱
+graphView-height = 图谱容器高度
+
+caption-tip = 浮窗
+isShowTip-start =
+    .label = 鼠标在参考文献上停留
+isShowTip-end = 毫秒后显示悬浮窗
+ctrlClickTranslate =
+    .label = 浮窗内，ctrl点击文字翻译
+shadeMillisecond-start = 浮窗显示/消失透明度渐变
+shadeMillisecond-end = 毫秒
+removeTipAfterMillisecond-start = 最后，在
+removeTipAfterMillisecond-end = 毫秒后自动消失
+tipBackgroundColor = 背景色
+tipTitleColor = 标题色
+
+caption-batch-import = 批量导入与快捷操作
+downloadOA =
+    .label = 批量导入文献时，自动下载开放获取 (OA) 全文 PDF
+downloadOA-description = 优先检索 Unpaywall 与 OpenAlex 开放学术全文；未找到全文时不影响文献条目正常导入。
+caption-actions = 侧栏快捷操作
 actions-description = 勾选需要显示在侧栏“更多操作”菜单中的功能。取消勾选后隐藏对应入口，重新开启即可恢复；不会删除数据或撤回已有导入。
-
-
 quick-copy-text =
     .label = 复制参考文献文本
 quick-copy-doi =
@@ -104,10 +59,27 @@ quick-import-all =
 quick-rollback =
     .label = 撤回最近导入
 
-about-caption = 关于 Zotero RefFlow
-about-build-date = 构建日期：
-about-download = 下载已发布安装包
-
+caption-online = 在线学术服务与 API 凭证
+openAlexKey-label = OpenAlex API Key（可选）
+openAlexKey-description = 匿名获取仍可使用；高频获取时可填入自己的免费密钥。密钥仅存放在本机 Zotero 配置中。
+openAlexKey-get = 申请 / 查看免费的 OpenAlex API Key
+semanticScholarKey-label = Semantic Scholar API Key（可选）
+semanticScholarKey-description = 保留官方 Graph API。未填写时使用匿名访问；填写后用于官方 x-api-key 请求头。
+semanticScholarKey-get = 申请 / 查看免费的 Semantic Scholar API Key
 connectedPapersKey-label = Connected Papers API 密钥（可选）
 connectedPapersKey-description = 可选的个人 API 密钥，用于 RefFlow 构建文献关联图谱。留空时将在需要时弹窗提示。
 connectedPapersKey-get = 申请 / 查看 Connected Papers API 密钥
+cnkiUsername-label = CNKI 用户名（可选）
+cnkiPassword-label = CNKI 密码（可选）
+cnki-description = 用于中国知网中文期刊文献的元数据与引文补充反查。留空时使用公共抓取。
+
+about-caption = 关于 Zotero RefFlow
+about-maintainer = 二次开发与维护：groele
+about-origin = 基于 Zotero Reference / Ethereal Reference（Polygon / MuiseDestiny）二次修改；保留原作者署名及 AGPL-3.0-or-later 许可。
+about-updates = 插件更新由 groele/Zotero-RefFlow 提供，支持 Zotero 10.0.6–11.*。
+about-build-date = 构建日期：
+about-project = 项目与更新
+about-issues = 反馈问题
+about-upstream = 原始项目
+about-release-notes = 版本说明
+about-download = 下载已发布安装包

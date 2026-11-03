@@ -319,8 +319,18 @@
 #zotero-prefpane-refflow .refflow-setting-group[aria-labelledby="refflow-online-title"] .refflow-setting-group-body > p,
 #zotero-prefpane-refflow .refflow-setting-group[aria-labelledby="refflow-online-title"] .refflow-setting-group-body > a,
 #zotero-prefpane-refflow .refflow-setting-subgroup:first-child > .refflow-setting-input-row,
-#zotero-prefpane-refflow .refflow-setting-input-row-compact {
+#zotero-prefpane-refflow .refflow-setting-input-row-compact,
+#zotero-prefpane-refflow .refflow-indented-input,
+#zotero-prefpane-refflow .refflow-indented-pref,
+#zotero-prefpane-refflow .refflow-pref-description {
   margin-inline-start: 24px;
+}
+
+.refflow-pref-description {
+  margin-block: 4px 10px;
+  color: var(--flow-pref-muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .refflow-pref-footer {

@@ -1,88 +1,49 @@
-caption-refresh = Refresh
-autoRefresh = 
-  .label = References are refreshed automatically, but the following item types are not
-  
+caption-retrieval-source = Literature Retrieval & Sources
 caption-source = Source
 prioritySource-start = Priority is
 prioritySource-end = used to access references
-
-preLoadingPageNum-start = When select PDF, Pre-read the last
-preLoadingPageNum-end = pages to remove invalid information
-
-
-caption-tip = Tip
-isShowTip-start = 
-  .label = The floating window is displayed after the mouse stays on the reference for
-isShowTip-end = ms
-
-ctrlClickTranslate = 
-  .label = Inside the floating window, hold down CTRL and click Text Translate
-
-shadeMillisecond-start = Floating window display/disappearing transparency shades
-shadeMillisecond-end = ms
-
-removeTipAfterMillisecond-start = Finally disappears automatically after
-removeTipAfterMillisecond-end = ms
-
-tipBackgroundColor = Background Color
-tipTitleColor = Title Color
-
-
-caption-related = Related
-loadingRelated = 
-  .label = Related panel loads recommended related items
-
-
-
-caption-link = Link
-clickLink-start = 
-  .label = Click link to jump in a split window
-clickLink-splitHorizontally = 
-  .label = Horizontally
-clickLink-splitVertically = 
-  .label = Vertically
-clickLink-end = { "" }
-hoverLink = 
-  .label = Hover link to display a floating window
-
-
-caption-save = Save
-savePDFReferences = 
-  .label = Save references from PDF
-saveAPIReferences = 
-  .label = Save references from API
-
-
-caption-match = Match
-notInLibarayOpacity-start = Match items and show items that are not in my library with transparency
-notInLibarayOpacity-end = { "" }
-caption-online = Online services
-openAlexKey-label = OpenAlex API key (optional)
-openAlexKey-description = Anonymous access is available. For frequent requests, enter your free personal key. The key is stored in the local Zotero preferences.
 source-auto =
     .label = Automatic (recommended)
 source-web =
     .label = Publisher HTML / XML
-
-about-maintainer = Modified and maintained by groele
-about-origin = Derived from Zotero Reference / Ethereal Reference (Polygon / MuiseDestiny). Original attribution and AGPL-3.0-or-later license retained.
-about-project = Project and updates
-about-issues = Report an issue
-about-upstream = Original project
-openAlexKey-get = Get / view a free OpenAlex API key
-
-about-updates = Updates are provided by groele/Zotero-RefFlow. Zotero 10.0.6–11.* supported.
-about-release-notes = Release notes
-semanticScholarKey-label = Semantic Scholar API Key (optional)
-semanticScholarKey-description = Uses the official Graph API. Leave empty for anonymous access; a configured key is sent using x-api-key.
-semanticScholarKey-get = Get / view a free Semantic Scholar API key
-
-caption-actions = Sidebar quick actions
+autoRefresh =
+    .label = References are refreshed automatically, but the following item types are not
+caption-save = Save
+savePDFReferences =
+    .label = Save references from PDF
+saveAPIReferences =
+    .label = Save references from API
 showSourceDetails =
     .label = Show source and completeness
+
+caption-display = Reference List & Card Display
+caption-match = Match
+notInLibarayOpacity-start = Match items and show items that are not in my library with transparency
+notInLibarayOpacity-end = { "" }
+caption-graph = Citation Graph (Connected Papers)
+graphView-enable =
+    .label = Show citation graph at the bottom of the library
+graphView-height = Graph container height
+
+caption-tip = Tip
+isShowTip-start =
+    .label = The floating window is displayed after the mouse stays on the reference for
+isShowTip-end = ms
+ctrlClickTranslate =
+    .label = Inside the floating window, hold down CTRL and click Text Translate
+shadeMillisecond-start = Floating window display/disappearing transparency shades
+shadeMillisecond-end = ms
+removeTipAfterMillisecond-start = Finally disappears automatically after
+removeTipAfterMillisecond-end = ms
+tipBackgroundColor = Background Color
+tipTitleColor = Title Color
+
+caption-batch-import = Batch Import & Quick Actions
+downloadOA =
+    .label = Automatically download Open Access (OA) full-text PDFs during batch import
+downloadOA-description = Resolves Green and Gold open-access manuscripts; regular metadata import proceeds even if no open-access file is located.
+caption-actions = Sidebar quick actions
 actions-description = Choose which actions appear in the sidebar More menu. Turning an action off hides its entry; turning it on restores it. Existing data and imports are not changed.
-
-
 quick-copy-text =
     .label = Copy reference text
 quick-copy-doi =
@@ -98,10 +59,27 @@ quick-import-all =
 quick-rollback =
     .label = Undo last import
 
-about-caption = About Zotero RefFlow
-about-build-date = Build date:
-about-download = Download the published XPI
-
+caption-online = Online Services & API Keys
+openAlexKey-label = OpenAlex API key (optional)
+openAlexKey-description = Anonymous access is available. For frequent requests, enter your free personal key. The key is stored in the local Zotero preferences.
+openAlexKey-get = Get / view a free OpenAlex API key
+semanticScholarKey-label = Semantic Scholar API Key (optional)
+semanticScholarKey-description = Uses the official Graph API. Leave empty for anonymous access; a configured key is sent using x-api-key.
+semanticScholarKey-get = Get / view a free Semantic Scholar API key
 connectedPapersKey-label = Connected Papers API Key (optional)
 connectedPapersKey-description = Optional personal API key used by RefFlow to build interactive citation graphs. Leave empty to prompt when needed.
 connectedPapersKey-get = Get / view a Connected Papers API key
+cnkiUsername-label = CNKI Username (optional)
+cnkiPassword-label = CNKI Password (optional)
+cnki-description = Used for Chinese journal metadata and citation resolution. Leave blank to use public retrieval.
+
+about-caption = About Zotero RefFlow
+about-maintainer = Modified and maintained by groele
+about-origin = Derived from Zotero Reference / Ethereal Reference (Polygon / MuiseDestiny). Original attribution and AGPL-3.0-or-later license retained.
+about-updates = Updates are provided by groele/Zotero-RefFlow. Zotero 10.0.6–11.* supported.
+about-build-date = Build date:
+about-project = Project and updates
+about-issues = Report an issue
+about-upstream = Original project
+about-release-notes = Release notes
+about-download = Download the published XPI

@@ -8,141 +8,192 @@
       <html:p class="refflow-pref-version">v__buildVersion__</html:p>
     </html:div>
   </html:header>
-  <html:details class="refflow-setting-group" aria-labelledby="refflow-online-title" open="open">
+
+  <!-- 模块 1：文献检索与数据源 (默认展开) -->
+  <html:details class="refflow-setting-group" aria-labelledby="refflow-retrieval-title" open="open">
+    <html:summary><html:span id="refflow-retrieval-title" data-l10n-id="caption-retrieval-source"></html:span></html:summary>
+    <html:div class="refflow-setting-group-body">
+      <html:div class="refflow-setting-subgroup">
+        <html:h3 data-l10n-id="caption-source"></html:h3>
+        <html:div class="refflow-setting-input-row">
+          <html:span data-l10n-id="prioritySource-start"></html:span>
+          <menulist native="true" id="__addonRef__-priority-source"
+            preference="extensions.zotero.__addonRef__.prioritySource">
+            <menupopup>
+              <menuitem value="Auto" data-l10n-id="source-auto"></menuitem>
+              <menuitem value="Web" data-l10n-id="source-web"></menuitem>
+              <menuitem value="PDF" label="PDF"></menuitem>
+              <menuitem value="API" label="API"></menuitem>
+            </menupopup>
+          </menulist>
+          <html:span data-l10n-id="prioritySource-end"></html:span>
+        </html:div>
+      </html:div>
+
+      <html:div class="refflow-setting-subgroup">
+        <checkbox native="true" id="__addonRef__-auto-refresh" data-l10n-id="autoRefresh"
+          preference="extensions.zotero.__addonRef__.autoRefresh" />
+        <html:div class="refflow-setting-input-row refflow-setting-input-row-wide refflow-indented-input">
+          <html:input type="text" id="__addonRef__-not-auto-refresh-item-types"
+            preference="extensions.zotero.__addonRef__.notAutoRefreshItemTypes">
+          </html:input>
+        </html:div>
+      </html:div>
+
+      <html:div class="refflow-setting-subgroup">
+        <html:h3 data-l10n-id="caption-save"></html:h3>
+        <checkbox native="true" id="__addonRef__-save-pdf-references" data-l10n-id="savePDFReferences"
+          preference="extensions.zotero.__addonRef__.savePDFReferences" />
+        <checkbox native="true" id="__addonRef__-save-api-references" data-l10n-id="saveAPIReferences"
+          preference="extensions.zotero.__addonRef__.saveAPIReferences" />
+        <checkbox native="true" id="__addonRef__-show-source-details" data-l10n-id="showSourceDetails"
+          preference="extensions.zotero.__addonRef__.showSourceDetails" />
+      </html:div>
+    </html:div>
+  </html:details>
+
+  <!-- 模块 2：文献列表与卡片显示 -->
+  <html:details class="refflow-setting-group" aria-labelledby="refflow-display-title">
+    <html:summary><html:span id="refflow-display-title" data-l10n-id="caption-display"></html:span></html:summary>
+    <html:div class="refflow-setting-group-body">
+      <html:div class="refflow-setting-subgroup">
+        <html:h3 data-l10n-id="caption-match"></html:h3>
+        <hbox class="refflow-setting-input-row refflow-range-row">
+          <html:span data-l10n-id="notInLibarayOpacity-start"></html:span>
+          <html:input type="range" min="0" max="1" step="0.01" id="__addonRef__-not-in-library-opacity"
+            preference="extensions.zotero.__addonRef__.notInLibarayOpacity">
+          </html:input>
+          <html:span data-l10n-id="notInLibarayOpacity-end"></html:span>
+        </hbox>
+      </html:div>
+
+      <html:div class="refflow-setting-subgroup">
+        <html:h3 data-l10n-id="caption-graph"></html:h3>
+        <checkbox native="true" id="__addonRef__-graph-view-enable" data-l10n-id="graphView-enable"
+          preference="extensions.zotero.__addonRef__.graphView.enable" />
+        <html:div class="refflow-setting-input-row refflow-indented-input">
+          <html:span data-l10n-id="graphView-height"></html:span>
+          <html:input type="text" id="__addonRef__-graph-view-height"
+            preference="extensions.zotero.__addonRef__.graphView.height">
+          </html:input>
+        </html:div>
+      </html:div>
+    </html:div>
+  </html:details>
+
+  <!-- 模块 3：文献信息浮窗预览 -->
+  <html:details class="refflow-setting-group" aria-labelledby="refflow-tip-title">
+    <html:summary><html:span id="refflow-tip-title" data-l10n-id="caption-tip"></html:span></html:summary>
+    <html:div class="refflow-setting-group-body">
+      <html:div class="refflow-setting-input-row refflow-tip-delay-row">
+        <checkbox native="true" id="__addonRef__-is-show-tip" data-l10n-id="isShowTip-start"
+          preference="extensions.zotero.__addonRef__.isShowTip" />
+        <html:input type="text" id="__addonRef__-show-tip-after-millisecond"
+          preference="extensions.zotero.__addonRef__.showTipAfterMillisecond">
+        </html:input>
+        <html:span data-l10n-id="isShowTip-end"></html:span>
+      </html:div>
+
+      <checkbox native="true" id="__addonRef__-ctrl-click-translate" data-l10n-id="ctrlClickTranslate"
+        preference="extensions.zotero.__addonRef__.ctrlClickTranslate" />
+
+      <hbox class="refflow-setting-input-row refflow-color-row refflow-indented-pref">
+        <html:span data-l10n-id="tipBackgroundColor"></html:span>
+        <html:input type="text" id="__addonRef__-tip-background-color"
+          preference="extensions.zotero.__addonRef__.tipBackgroundColor">
+        </html:input>
+        <html:span data-l10n-id="tipTitleColor"></html:span>
+        <html:input type="text" id="__addonRef__-tip-title-color"
+          preference="extensions.zotero.__addonRef__.tipTitleColor">
+        </html:input>
+      </hbox>
+
+      <hbox class="refflow-setting-input-row refflow-setting-input-row-compact refflow-indented-pref">
+        <html:span data-l10n-id="shadeMillisecond-start"></html:span>
+        <html:input type="text" id="__addonRef__-shade-millisecond"
+          preference="extensions.zotero.__addonRef__.shadeMillisecond">
+        </html:input>
+        <html:span data-l10n-id="shadeMillisecond-end"></html:span>
+      </hbox>
+
+      <hbox class="refflow-setting-input-row refflow-setting-input-row-compact refflow-indented-pref">
+        <html:span data-l10n-id="removeTipAfterMillisecond-start"></html:span>
+        <html:input type="text" id="__addonRef__-remove-tip-after-millisecond"
+          preference="extensions.zotero.__addonRef__.removeTipAfterMillisecond">
+        </html:input>
+        <html:span data-l10n-id="removeTipAfterMillisecond-end"></html:span>
+      </hbox>
+    </html:div>
+  </html:details>
+
+  <!-- 模块 4：批量导入与快捷操作 -->
+  <html:details class="refflow-setting-group" aria-labelledby="refflow-actions-title">
+    <html:summary><html:span id="refflow-actions-title" data-l10n-id="caption-batch-import"></html:span></html:summary>
+    <html:div class="refflow-setting-group-body">
+      <html:div class="refflow-setting-subgroup">
+        <checkbox native="true" id="__addonRef__-download-oa" data-l10n-id="downloadOA"
+          preference="extensions.zotero.__addonRef__.downloadOA" />
+        <html:p class="refflow-pref-description" data-l10n-id="downloadOA-description"></html:p>
+      </html:div>
+
+      <html:div class="refflow-setting-subgroup">
+        <html:h3 data-l10n-id="caption-actions"></html:h3>
+        <html:p data-l10n-id="actions-description"></html:p>
+        <checkbox native="true" id="__addonRef__-quick-copy-text" data-refflow-quick-action="copy-text" data-l10n-id="quick-copy-text" preference="extensions.zotero.__addonRef__.quickAction.copy-text" />
+        <checkbox native="true" id="__addonRef__-quick-copy-doi" data-refflow-quick-action="copy-doi" data-l10n-id="quick-copy-doi" preference="extensions.zotero.__addonRef__.quickAction.copy-doi" />
+        <checkbox native="true" id="__addonRef__-quick-copy-url" data-refflow-quick-action="copy-url" data-l10n-id="quick-copy-url" preference="extensions.zotero.__addonRef__.quickAction.copy-url" />
+        <checkbox native="true" id="__addonRef__-quick-open" data-refflow-quick-action="open" data-l10n-id="quick-open" preference="extensions.zotero.__addonRef__.quickAction.open" />
+        <checkbox native="true" id="__addonRef__-quick-import-selected" data-refflow-quick-action="import-selected" data-l10n-id="quick-import-selected" preference="extensions.zotero.__addonRef__.quickAction.import-selected" />
+        <checkbox native="true" id="__addonRef__-quick-import-all" data-refflow-quick-action="import-all" data-l10n-id="quick-import-all" preference="extensions.zotero.__addonRef__.quickAction.import-all" />
+        <checkbox native="true" id="__addonRef__-quick-rollback" data-refflow-quick-action="rollback" data-l10n-id="quick-rollback" preference="extensions.zotero.__addonRef__.quickAction.rollback" />
+      </html:div>
+    </html:div>
+  </html:details>
+
+  <!-- 模块 5：在线学术服务与 API 凭证 -->
+  <html:details class="refflow-setting-group" aria-labelledby="refflow-online-title">
     <html:summary><html:span id="refflow-online-title" data-l10n-id="caption-online"></html:span></html:summary>
     <html:div class="refflow-setting-group-body">
-    <html:label data-l10n-id="openAlexKey-label" for="__addonRef__-openalex-key"></html:label>
-    <html:input type="password" id="__addonRef__-openalex-key" preference="extensions.zotero.__addonRef__.openAlexKey" autocomplete="off" />
-    <html:p data-l10n-id="openAlexKey-description"></html:p>
-    <html:a href="https://openalex.org/settings/api" data-l10n-id="openAlexKey-get"></html:a>
-    <html:label data-l10n-id="semanticScholarKey-label" for="__addonRef__-semanticscholar-key"></html:label>
-    <html:input type="password" id="__addonRef__-semanticscholar-key" preference="extensions.zotero.__addonRef__.semanticScholarKey" autocomplete="off" />
-    <html:p data-l10n-id="semanticScholarKey-description"></html:p>
-    <html:a href="https://www.semanticscholar.org/product/api#api-key-form" data-l10n-id="semanticScholarKey-get"></html:a>
-    <html:label data-l10n-id="connectedPapersKey-label" for="__addonRef__-connectedpapers-key"></html:label>
-    <html:input type="password" id="__addonRef__-connectedpapers-key" preference="extensions.zotero.__addonRef__.connectedPapersKey" autocomplete="off" />
-    <html:p data-l10n-id="connectedPapersKey-description"></html:p>
-    <html:a href="https://www.connectedpapers.com" data-l10n-id="connectedPapersKey-get"></html:a>
-    </html:div>
-  </html:details>
-  <html:details class="refflow-setting-group" aria-labelledby="refflow-retrieval-title">
-    <html:summary><html:span id="refflow-retrieval-title" data-l10n-id="caption-refresh"></html:span></html:summary>
-    <html:div class="refflow-setting-group-body">
-    <html:div class="refflow-setting-subgroup">
-    <checkbox native="true" id="__addonRef__-auto-refresh" data-l10n-id="autoRefresh"
-      preference="extensions.zotero.__addonRef__.autoRefresh" />
-    <html:div class="refflow-setting-input-row refflow-setting-input-row-wide">
-      <html:input type="text" id="__addonRef__-not-auto-refresh-item-types"
-        preference="extensions.zotero.__addonRef__.notAutoRefreshItemTypes">
-      </html:input>
-    </html:div>
-    </html:div>
-    <html:div class="refflow-setting-subgroup">
-    <html:h3 data-l10n-id="caption-source"></html:h3>
-    <html:div class="refflow-setting-input-row">
-      <html:span data-l10n-id="prioritySource-start"></html:span>
-      <menulist native="true" id="__addonRef__-priority-source"
-        preference="extensions.zotero.__addonRef__.prioritySource">
-        <menupopup>
-          <menuitem value="Auto" data-l10n-id="source-auto"></menuitem>
-          <menuitem value="Web" data-l10n-id="source-web"></menuitem>
-          <menuitem value="PDF" label="PDF"></menuitem>
-          <menuitem value="API" label="API"></menuitem>
-        </menupopup>
-      </menulist>
-      <html:span data-l10n-id="prioritySource-end"></html:span>
-    </html:div>
-    </html:div>
-    <html:div class="refflow-setting-subgroup">
-    <html:h3 data-l10n-id="caption-tip"></html:h3>
-    <hbox class="refflow-setting-input-row refflow-color-row">
-      <html:span data-l10n-id="tipBackgroundColor"></html:span>
-      <html:input type="text" id="__addonRef__-tip-background-color"
-        preference="extensions.zotero.__addonRef__.tipBackgroundColor">
-      </html:input>
-      <html:span data-l10n-id="tipTitleColor"></html:span>
-      <html:input type="text" id="__addonRef__-tip-title-color"
-        preference="extensions.zotero.__addonRef__.tipTitleColor">
-      </html:input>
-    </hbox>
-    <html:div class="refflow-setting-input-row refflow-tip-delay-row">
-      <checkbox native="true" id="__addonRef__-is-show-tip" data-l10n-id="isShowTip-start"
-        preference="extensions.zotero.__addonRef__.isShowTip"/>
-      <html:input type="text"
-        id="__addonRef__-show-tip-after-millisecond"
-        preference="extensions.zotero.__addonRef__.showTipAfterMillisecond">
-      </html:input>
-      <html:span data-l10n-id="isShowTip-end"></html:span>
-    </html:div>
-    <checkbox native="true" id="__addonRef__-ctrl-click-translate" data-l10n-id="ctrlClickTranslate"
-      preference="extensions.zotero.__addonRef__.ctrlClickTranslate" />
-    <hbox class="refflow-setting-input-row refflow-setting-input-row-compact">
-      <html:span data-l10n-id="shadeMillisecond-start"></html:span>
-      <html:input type="text" id="__addonRef__-shade-millisecond"
-        preference="extensions.zotero.__addonRef__.shadeMillisecond">
-      </html:input>
-      <html:span data-l10n-id="shadeMillisecond-end"></html:span>
-    </hbox>
-    <hbox class="refflow-setting-input-row refflow-setting-input-row-compact">
-      <html:span data-l10n-id="removeTipAfterMillisecond-start"></html:span>
-      <html:input type="text"
-        id="__addonRef__-remove-tip-after-millisecond"
-        preference="extensions.zotero.__addonRef__.removeTipAfterMillisecond">
-      </html:input>
-      <html:span data-l10n-id="removeTipAfterMillisecond-end">
-      </html:span>
-    </hbox>
-    </html:div>
-    <html:div class="refflow-setting-subgroup">
-    <html:h3 data-l10n-id="caption-save"></html:h3>
-    <checkbox native="true" id="__addonRef__-save-pdf-references" data-l10n-id="savePDFReferences"
-      preference="extensions.zotero.__addonRef__.savePDFReferences" />
-    <checkbox native="true" id="__addonRef__-save-api-references" data-l10n-id="saveAPIReferences"
-      preference="extensions.zotero.__addonRef__.saveAPIReferences" />
-    </html:div>
-    <html:div class="refflow-setting-subgroup">
-    <html:h3 data-l10n-id="caption-match"></html:h3>
-    <hbox class="refflow-setting-input-row refflow-range-row">
-      <html:span data-l10n-id="notInLibarayOpacity-start"></html:span>
-      <html:input type="range" min="0" max="1" step="0.01" id="__addonRef__-not-in-library-opacity"
-        preference="extensions.zotero.__addonRef__.notInLibarayOpacity">
-      </html:input>
-      <html:span data-l10n-id="notInLibarayOpacity-end"></html:span>
-    </hbox>
-    </html:div>
-    </html:div>
-  </html:details>
-  <html:details class="refflow-setting-group" aria-labelledby="refflow-actions-title">
-    <html:summary><html:span id="refflow-actions-title" data-l10n-id="caption-actions"></html:span></html:summary>
-    <html:div class="refflow-setting-group-body">
-      <checkbox native="true" id="__addonRef__-show-source-details" data-l10n-id="showSourceDetails" preference="extensions.zotero.__addonRef__.showSourceDetails" />
-      <html:p data-l10n-id="actions-description"></html:p>
-      <checkbox native="true" id="__addonRef__-quick-copy-text" data-refflow-quick-action="copy-text" data-l10n-id="quick-copy-text" preference="extensions.zotero.__addonRef__.quickAction.copy-text" />
-      <checkbox native="true" id="__addonRef__-quick-copy-doi" data-refflow-quick-action="copy-doi" data-l10n-id="quick-copy-doi" preference="extensions.zotero.__addonRef__.quickAction.copy-doi" />
-      <checkbox native="true" id="__addonRef__-quick-copy-url" data-refflow-quick-action="copy-url" data-l10n-id="quick-copy-url" preference="extensions.zotero.__addonRef__.quickAction.copy-url" />
-      <checkbox native="true" id="__addonRef__-quick-open" data-refflow-quick-action="open" data-l10n-id="quick-open" preference="extensions.zotero.__addonRef__.quickAction.open" />
-      <checkbox native="true" id="__addonRef__-quick-import-selected" data-refflow-quick-action="import-selected" data-l10n-id="quick-import-selected" preference="extensions.zotero.__addonRef__.quickAction.import-selected" />
-      <checkbox native="true" id="__addonRef__-quick-import-all" data-refflow-quick-action="import-all" data-l10n-id="quick-import-all" preference="extensions.zotero.__addonRef__.quickAction.import-all" />
-      <checkbox native="true" id="__addonRef__-quick-rollback" data-refflow-quick-action="rollback" data-l10n-id="quick-rollback" preference="extensions.zotero.__addonRef__.quickAction.rollback" />
+      <html:label data-l10n-id="openAlexKey-label" for="__addonRef__-openalex-key"></html:label>
+      <html:input type="password" id="__addonRef__-openalex-key" preference="extensions.zotero.__addonRef__.openAlexKey" autocomplete="off" />
+      <html:p data-l10n-id="openAlexKey-description"></html:p>
+      <html:a href="https://openalex.org/settings/api" data-l10n-id="openAlexKey-get"></html:a>
 
+      <html:label data-l10n-id="semanticScholarKey-label" for="__addonRef__-semanticscholar-key"></html:label>
+      <html:input type="password" id="__addonRef__-semanticscholar-key" preference="extensions.zotero.__addonRef__.semanticScholarKey" autocomplete="off" />
+      <html:p data-l10n-id="semanticScholarKey-description"></html:p>
+      <html:a href="https://www.semanticscholar.org/product/api#api-key-form" data-l10n-id="semanticScholarKey-get"></html:a>
+
+      <html:label data-l10n-id="connectedPapersKey-label" for="__addonRef__-connectedpapers-key"></html:label>
+      <html:input type="password" id="__addonRef__-connectedpapers-key" preference="extensions.zotero.__addonRef__.connectedPapersKey" autocomplete="off" />
+      <html:p data-l10n-id="connectedPapersKey-description"></html:p>
+      <html:a href="https://www.connectedpapers.com" data-l10n-id="connectedPapersKey-get"></html:a>
+
+      <html:label data-l10n-id="cnkiUsername-label" for="__addonRef__-cnki-username"></html:label>
+      <html:input type="text" id="__addonRef__-cnki-username" preference="extensions.zotero.__addonRef__.CNKI.username" autocomplete="off" />
+      <html:label data-l10n-id="cnkiPassword-label" for="__addonRef__-cnki-password"></html:label>
+      <html:input type="password" id="__addonRef__-cnki-password" preference="extensions.zotero.__addonRef__.CNKI.password" autocomplete="off" />
+      <html:p data-l10n-id="cnki-description"></html:p>
     </html:div>
   </html:details>
+
+  <!-- 模块 6：关于与诊断 -->
   <html:details class="refflow-setting-group" aria-labelledby="refflow-about-title">
     <html:summary><html:span id="refflow-about-title" data-l10n-id="about-caption"></html:span></html:summary>
     <html:div class="refflow-setting-group-body">
-    <html:div class="refflow-setting-subgroup" id="__addonRef__-about">
-    <html:p data-l10n-id="about-maintainer"></html:p>
-    <html:p data-l10n-id="about-origin"></html:p>
-    <html:p data-l10n-id="about-updates"></html:p>
-    <html:p class="refflow-about-build"><html:span data-l10n-id="about-build-date"></html:span> <html:span>__buildTime__</html:span></html:p>
-    <html:div class="refflow-about-links">
-      <html:a id="__addonRef__-project-link" href="__homepage__" data-l10n-id="about-project"></html:a>
-      <html:a id="__addonRef__-issues-link" href="__issuesURL__" data-l10n-id="about-issues"></html:a>
-      <html:a href="__upstreamURL__" data-l10n-id="about-upstream"></html:a>
-      <html:a id="__addonRef__-release-notes-link" href="__releaseNotesURL__" data-l10n-id="about-release-notes"></html:a>
-      <html:a id="__addonRef__-download-link" href="__downloadURL__" data-l10n-id="about-download"></html:a>
-    </html:div>
-    </html:div>
+      <html:div class="refflow-setting-subgroup" id="__addonRef__-about">
+        <html:p data-l10n-id="about-maintainer"></html:p>
+        <html:p data-l10n-id="about-origin"></html:p>
+        <html:p data-l10n-id="about-updates"></html:p>
+        <html:p class="refflow-about-build"><html:span data-l10n-id="about-build-date"></html:span> <html:span>__buildTime__</html:span></html:p>
+        <html:div class="refflow-about-links">
+          <html:a id="__addonRef__-project-link" href="__homepage__" data-l10n-id="about-project"></html:a>
+          <html:a id="__addonRef__-issues-link" href="__issuesURL__" data-l10n-id="about-issues"></html:a>
+          <html:a href="__upstreamURL__" data-l10n-id="about-upstream"></html:a>
+          <html:a id="__addonRef__-release-notes-link" href="__releaseNotesURL__" data-l10n-id="about-release-notes"></html:a>
+          <html:a id="__addonRef__-download-link" href="__downloadURL__" data-l10n-id="about-download"></html:a>
+        </html:div>
+      </html:div>
     </html:div>
   </html:details>
 

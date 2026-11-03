@@ -16,9 +16,9 @@
   "githubDescription": "Discover references, citing works, and related research. Part of Zotero Flow.",
   "repository": "https://github.com/groele/Zotero-RefFlow",
   "addonID": "refflow@groele.github.io",
-  "version": "13.1.7",
+  "version": "13.1.8",
   "releaseStatus": "stable",
   "license": "AGPL-3.0-or-later",
-  "releaseTag": "v13.1.7",
-  "releaseNotesURL": "https://github.com/groele/Zotero-RefFlow/blob/main/docs/releases/v13.1.7.md"
+  "releaseTag": "v13.1.8",
+  "releaseNotesURL": "https://github.com/groele/Zotero-RefFlow/blob/main/docs/releases/v13.1.8.md"
 }
