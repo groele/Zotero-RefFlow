@@ -69,9 +69,6 @@ semanticScholarKey-get = Get / view a free Semantic Scholar API key
 connectedPapersKey-label = Connected Papers API Key (optional)
 connectedPapersKey-description = Optional personal API key used by RefFlow to build interactive citation graphs. Leave empty to prompt when needed.
 connectedPapersKey-get = Get / view a Connected Papers API key
-cnkiUsername-label = CNKI Username (optional)
-cnkiPassword-label = CNKI Password (optional)
-cnki-description = Used for Chinese journal metadata and citation resolution. Leave blank to use public retrieval.
 
 about-caption = About Zotero RefFlow
 about-maintainer = Modified and maintained by groele

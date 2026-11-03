@@ -419,8 +419,6 @@ test("Preferences panel adheres to 5+1 modular architecture and covers all core 
     "extensions.zotero.__addonRef__.openAlexKey",
     "extensions.zotero.__addonRef__.semanticScholarKey",
     "extensions.zotero.__addonRef__.connectedPapersKey",
-    "extensions.zotero.__addonRef__.CNKI.username",
-    "extensions.zotero.__addonRef__.CNKI.password"
   ];
 
   for (const pref of expectedPrefs) {

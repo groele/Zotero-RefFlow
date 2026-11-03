@@ -69,9 +69,6 @@ semanticScholarKey-get = 申请 / 查看免费的 Semantic Scholar API Key
 connectedPapersKey-label = Connected Papers API 密钥（可选）
 connectedPapersKey-description = 可选的个人 API 密钥，用于 RefFlow 构建文献关联图谱。留空时将在需要时弹窗提示。
 connectedPapersKey-get = 申请 / 查看 Connected Papers API 密钥
-cnkiUsername-label = CNKI 用户名（可选）
-cnkiPassword-label = CNKI 密码（可选）
-cnki-description = 用于中国知网中文期刊文献的元数据与引文补充反查。留空时使用公共抓取。
 
 about-caption = 关于 Zotero RefFlow
 about-maintainer = 二次开发与维护：groele
