@@ -409,11 +409,11 @@ export default class Views {
 
   private typeMenu(body:HTMLElement,item?:Zotero.Item) {
     if(this.disposed)return;
-    const doc:any=body.ownerDocument,popup=doc.createXULElement("menupopup");
+    const doc:any=body.ownerDocument,popup=Utils.createXULElement(doc,"menupopup");
     const ownerID=body.getAttribute("data-refflow-item-id");
     popup.setAttribute("data-refflow-menu", "literature");
     for(const [type,key] of [["References","cards-type-references"],["Citations","cards-type-citations"],["Related","cards-type-related"]]) {
-      const entry=doc.createXULElement("menuitem");entry.setAttribute("label",getString(key));entry.setAttribute("type","radio");entry.checked=body.getAttribute("data-refflow-type")===type;
+      const entry=Utils.createXULElement(doc,"menuitem");entry.setAttribute("label",getString(key));entry.setAttribute("type","radio");entry.checked=body.getAttribute("data-refflow-type")===type;
       entry.addEventListener("command",()=>Promise.resolve().then(async()=>{if(this.disposed||!body.isConnected||body.getAttribute("data-refflow-item-id")!==ownerID)return;this.resetReferencePane(body);body.setAttribute("data-refflow-type",type);Zotero.Prefs.set(`${config.addonRef}.type`,type);body.setAttribute("source",type==="References"?String(Zotero.Prefs.get(`${config.addonRef}.prioritySource`)||"PDF"):"API");await this.refreshReferences(body as any,true,false,false,item?.parentItem||item);}).catch(error=>ztoolkit.log(error)));popup.append(entry);
     }
     this.menus.add(popup);
