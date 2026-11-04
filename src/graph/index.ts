@@ -1,4 +1,5 @@
 import {validateGraph,graphColor} from '../modules/graphModel';
+import {formatGraphStatus} from './graphStatus';
 
 const ns='http://www.w3.org/2000/svg';
 const svg=document.querySelector<SVGSVGElement>('#graph')!;
@@ -30,7 +31,7 @@ function setState(state:{selected?:string;hover?:string}){
 function clear(message=zh?'先添加起始文献，再构建关系图。':'Add a paper as an origin, then build its graph.'){
   data={nodes:{},edges:[]};layer.replaceChildren();circles.clear();selected=hover='';empty.hidden=false;empty.textContent=message;detail.textContent='';status.textContent=zh?'尚未加载关系图':'No graph loaded';reset();
 }
-function setGraph(raw:any,options:{origins?:string[];retrievedAt?:string}={}){
+function setGraph(raw:any,options:{origins?:string[];retrievedAt?:string;partialOrigins?:number;source?:string}={}){
   const next=validateGraph(raw);data=next;layer.replaceChildren();circles.clear();reset();
   const entries=Object.entries(next.nodes),positions=new Map<string,[number,number]>();
   const provided=entries.every(([,node]:any)=>Array.isArray(node.pos)&&node.pos.length>=2&&node.pos.slice(0,2).every(Number.isFinite));
@@ -57,7 +58,7 @@ function setGraph(raw:any,options:{origins?:string[];retrievedAt?:string}={}){
       else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();const step=['ArrowLeft','ArrowUp'].includes(event.key)?-1:1;const id=(entries[(index+step+entries.length)%entries.length][1] as any).paperId;circles.get(id)?.focus();}
     });nodes.append(circle);circles.set(node.paperId,circle);
   });
-  empty.hidden=entries.length>0;status.textContent=`${entries.length} ${zh?'篇文献':'papers'} · ${next.edges.length} ${zh?'条相似关系':'similarity links'} · Connected Papers${options.retrievedAt?' · '+new Date(options.retrievedAt).toLocaleTimeString():''}`;
+  empty.hidden=entries.length>0;status.textContent=formatGraphStatus(entries.length,next.edges.length,{...options,language:zh?'zh-CN':'en-US'});
   setState({selected:'',hover:''});
 }
 const bridge={version:1,setGraph,setState,clear,get graphdata(){return data;}};

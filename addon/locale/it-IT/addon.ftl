@@ -50,6 +50,8 @@ cards-rollback-failed = Ripristino non riuscito. Verifica i permessi della bibli
 cards-latest-attempt = Ultimo tentativo
 
 graph-origins-changed = Origini modificate. Ricostruisci il grafico.
+graph-origin-resolution-failed = Semantic Scholar non ha riconosciuto alcuna pubblicazione iniziale. Controlla gli elementi selezionati e riprova.
+graph-auth-cancelled = Autenticazione di Connected Papers annullata.
 
 cards-importing-doi = Ricerca DOI in Zotero…
 cards-import-cancelled = Importazione annullata; gli elementi completati rimangono in Zotero

@@ -17,6 +17,7 @@ zotero-cmd.json
 /tests/native-fixtures/*.html
 /tests/native-fixtures/*.xml
 /tests/native-fixtures/*.json
+!/tests/native-fixtures/connectedpapers-graph.json
 
 /tests/gecko153-*.json
 /tests/gecko153-*.log

@@ -17,6 +17,7 @@ export function createReleaseArtifacts(details,xpi,template,manifest) {
   if(manifest.version!==details.version||manifest.applications.zotero.id!==details.config.addonID||manifest.applications.zotero.update_url!==details.config.updateURL)throw new Error('Built manifest and package metadata disagree');
   if(manifest.applications.zotero.strict_min_version!=='10.0'||manifest.applications.zotero.strict_max_version!=='12.*')throw new Error('RefFlow compatibility must be 10.0 through 12.*');
   const sha256=createHash('sha256').update(xpi).digest('hex');
+  const sha512=createHash('sha512').update(xpi).digest('hex');
   const update=structuredClone(template);
   const entries=update.addons?.[details.config.addonID]?.updates;
   if(entries?.length!==1||entries[0].version!==details.version||entries[0].update_link!==details.config.downloadURL)throw new Error('Update manifest version or path mismatch');
@@ -24,10 +25,10 @@ export function createReleaseArtifacts(details,xpi,template,manifest) {
   // for build-time validation, then advertise the immutable tagged asset.
   const releaseDownloadURL=`https://github.com/groele/Zotero-RefFlow/releases/download/${details.config.releaseTag}/${details.name}.xpi`;
   entries[0].update_link=releaseDownloadURL;
-  entries[0].update_hash=`sha256:${sha256}`;
+  entries[0].update_hash=`sha512:${sha512}`;
   entries[0].update_info_url=`https://github.com/groele/Zotero-RefFlow/releases/tag/${details.config.releaseTag}`;
   if(JSON.stringify(entries[0].applications.zotero)!==JSON.stringify({strict_min_version:manifest.applications.zotero.strict_min_version,strict_max_version:manifest.applications.zotero.strict_max_version}))throw new Error('Update compatibility mismatch');
-  return {update,verification:{version:details.version,addonID:details.config.addonID,bytes:xpi.length,sha256,updateURL:details.config.updateURL,downloadURL:releaseDownloadURL}};
+  return {update,verification:{version:details.version,addonID:details.config.addonID,bytes:xpi.length,sha256,sha512,updateURL:details.config.updateURL,downloadURL:releaseDownloadURL}};
 }
 
 export function atomicWrite(filename,data) {

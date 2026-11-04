@@ -2,6 +2,15 @@ import { config } from "../../package.json";
 
 export { initLocale, getString };
 
+let moduleL10n: any = null;
+
+function getAddonInstance(): any {
+  if (typeof (globalThis as any).addon !== "undefined") return (globalThis as any).addon;
+  if (typeof (globalThis as any)._globalThis !== "undefined" && (globalThis as any)._globalThis.addon) return (globalThis as any)._globalThis.addon;
+  if (typeof (Zotero as any)?.[config.addonInstance] !== "undefined") return (Zotero as any)[config.addonInstance];
+  return undefined;
+}
+
 /**
  * Initialize locale data
  */
@@ -9,13 +18,17 @@ function initLocale() {
   try {
     const LocalizationClass =
       typeof Localization === "undefined"
-        ? ztoolkit.getGlobal("Localization")
+        ? (typeof ztoolkit !== "undefined" ? ztoolkit.getGlobal("Localization") : undefined) ||
+          (typeof globalThis !== "undefined" ? (globalThis as any).Localization : undefined)
         : Localization;
-    const l10n = new LocalizationClass([`${config.addonRef}-addon.ftl`], true);
-    if (typeof (globalThis as any).addon !== "undefined") {
-      (globalThis as any).addon.data = (globalThis as any).addon.data || {};
-      (globalThis as any).addon.data.locale = {
-        current: l10n,
+    if (LocalizationClass) {
+      moduleL10n = new LocalizationClass([`${config.addonRef}-addon.ftl`], true);
+    }
+    const addonObj = getAddonInstance();
+    if (addonObj) {
+      addonObj.data = addonObj.data || {};
+      addonObj.data.locale = {
+        current: moduleL10n,
       };
     }
     try {
@@ -28,29 +41,11 @@ function initLocale() {
   }
 }
 
-
 /**
  * Get locale string, see https://firefox-source-docs.mozilla.org/l10n/fluent/tutorial.html#fluent-translation-list-ftl
  * @param localString ftl key
  * @param options.branch branch name
  * @param options.args args
- * @example
- * ```ftl
- * # addon.ftl
- * addon-static-example = This is default branch!
- *     .branch-example = This is a branch under addon-static-example!
- * addon-dynamic-example =
-    { $count ->
-        [one] I have { $count } apple
-       *[other] I have { $count } apples
-    }
- * ```
- * ```js
- * getString("addon-static-example"); // This is default branch!
- * getString("addon-static-example", { branch: "branch-example" }); // This is a branch under addon-static-example!
- * getString("addon-dynamic-example", { args: { count: 1 } }); // I have 1 apple
- * getString("addon-dynamic-example", { args: { count: 2 } }); // I have 2 apples
- * ```
  */
 function getString(localString: string): string;
 function getString(localString: string, branch: string): string;
@@ -83,6 +78,21 @@ const DEFAULT_STRINGS: Record<string, string> = {
   "relatedbox-timeout": "获取超时，请重试或换用另一来源",
   "relatedbox-fetch-error": "获取失败，请重试",
   "cards-list-name": "参考文献",
+  "cards-copy-text": "复制参考文献文本",
+  "cards-copy-doi": "复制 DOI",
+  "cards-copy-url": "复制链接",
+  "cards-open": "在 Zotero 或浏览器中打开",
+  "cards-import-selected": "按 DOI 添加选中文献",
+  "cards-import-all": "按 DOI 添加全部文献",
+  "cards-cached-offline": "网络不可用，显示缓存",
+  "cards-kept-results": "保留上次结果",
+  "cards-no-search-results": "没有匹配的参考文献，按 Esc 清除搜索",
+  "cards-context-changed": "上下文已改变",
+  "cards-refresh-empty-kept": "刷新无结果，保留上次结果",
+  "cards-in-library": "在 Zotero 文库中",
+  "cards-cited": "被引",
+  "cards-show-library": "在文库中显示",
+  "cards-import": "按 DOI 添加到 Zotero",
 };
 
 function _getString(
@@ -91,10 +101,15 @@ function _getString(
 ): string {
   const localStringWithPrefix = `${config.addonRef}-${localeString}`;
   const { branch, args } = options;
-  if (typeof (globalThis as any).addon === "undefined" || !(globalThis as any).addon?.data?.locale?.current) {
-    initLocale();
+  let l10n = moduleL10n;
+  if (!l10n) {
+    const addonObj = getAddonInstance();
+    l10n = addonObj?.data?.locale?.current;
   }
-  const l10n = (globalThis as any).addon?.data?.locale?.current;
+  if (!l10n) {
+    initLocale();
+    l10n = moduleL10n;
+  }
   if (l10n) {
     try {
       const pattern = l10n.formatMessagesSync([
@@ -122,6 +137,12 @@ function _getString(
     } catch {
       // ignore
     }
+  }
+  try {
+    const ftlVal = (Zotero as any)?.ftl?.formatValueSync?.(localStringWithPrefix, args);
+    if (ftlVal && ftlVal !== localStringWithPrefix) return ftlVal;
+  } catch {
+    // ignore
   }
   return DEFAULT_STRINGS[localeString] || localStringWithPrefix;
 }

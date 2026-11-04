@@ -1,0 +1,20 @@
+{
+  "status": "FRESH_GRAPH",
+  "graph_json": {
+    "start_id": "s2-ref-flow-fixture",
+    "nodes": {
+      "s2-ref-flow-fixture": {
+        "paperId": "s2-ref-flow-fixture",
+        "title": "Connected Papers isolated acceptance fixture",
+        "year": 2024,
+        "authors": [{ "name": "Fixture Author" }],
+        "pos": [0, 0]
+      }
+    },
+    "edges": [],
+    "path_lengths": { "s2-ref-flow-fixture": 0 },
+    "common_references": [],
+    "common_citations": [],
+    "common_authors": []
+  }
+}

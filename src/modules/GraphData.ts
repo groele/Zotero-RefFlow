@@ -1,6 +1,7 @@
 import { config } from "../../package.json";
 import { ProgressWindowHelper } from "zotero-plugin-toolkit";
 import { pollGraph } from "./graphTransport";
+import { getString } from "../utils/locale";
 
 const GraphResponseStatuses = {
   BAD_ID: "BAD_ID",
@@ -77,7 +78,7 @@ export default async function buildGraphData(id: string, popupWin: ProgressWindo
   let accessToken = getConnectedPapersToken()
   if (!accessToken) {
     accessToken = await askUserAccessToken(false, signal) as string
-    if (!accessToken) { popupWin.close();return }
+    if (!accessToken) { popupWin.changeLine({ text: getString("graph-auth-cancelled"), type: "fail" });return }
   }
   ztoolkit.log("id", id)
   if (id) {
@@ -117,5 +118,4 @@ export default async function buildGraphData(id: string, popupWin: ProgressWindo
     return graphData
   }
   } catch(error:any){if(error?.name!=="AbortError"){ztoolkit.log("Graph fetch failed",error);popupWin.changeLine({text:String(error),type:"fail"});}}
-  finally{popupWin.startCloseTimer(4000);}
 }

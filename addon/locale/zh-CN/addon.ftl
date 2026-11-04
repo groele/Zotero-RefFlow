@@ -111,6 +111,8 @@ cards-rollback-failed = 撤回失败，请检查文库权限和批次记录后�
 cards-latest-attempt = 本次获取
 
 graph-origins-changed = 起始文献已改变，请重新构建关系图。
+graph-origin-resolution-failed = Semantic Scholar 未能识别任何起始文献。请检查所选条目后重试。
+graph-auth-cancelled = 已取消 Connected Papers 身份验证。
 
 cards-importing-doi = 正在通过 DOI 添加到 Zotero…
 cards-import-cancelled = 已取消导入；已完成的文献仍保留在 Zotero

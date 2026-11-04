@@ -111,6 +111,8 @@ cards-rollback-failed = Rollback failed. Check library permissions and the batch
 cards-latest-attempt = Latest attempt
 
 graph-origins-changed = Origins changed. Build the graph to load current results.
+graph-origin-resolution-failed = No origin could be resolved by Semantic Scholar. Check the selected items and try again.
+graph-auth-cancelled = Connected Papers authentication was cancelled.
 
 cards-importing-doi = Looking up DOI in Zotero…
 cards-import-cancelled = Import cancelled; completed items remain in Zotero

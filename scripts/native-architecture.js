@@ -28,7 +28,7 @@ if (views) {
   await test('graph import relates every origin atomically and rollback restores all links', async () => {
     const second=new Zotero.Item('journalArticle');second.setField('title','Architecture second origin');await second.saveTx();
     const ref={title:'Architecture imported graph node',text:'Architecture imported graph node',authors:['Fixture Author'],identifiers:{}};
-    const result=await views.importReferences(parent,[ref],{relatedParents:[second],downloadOA:false,createSubCollection:false,createManifestNote:false});
+    const result=await views.importReferences(parent,[ref],{relatedParents:[second],downloadOA:false,createSubCollection:false,createManifestNote:false,allowMetadataWithoutDOI:true});
     check(result.importedCount===1&&ref._item,'Graph node was not saved');
     check(parent.relatedItems.includes(ref._item.key)&&second.relatedItems.includes(ref._item.key),'Not all origins linked');
     check(ref._item.relatedItems.includes(parent.key)&&ref._item.relatedItems.includes(second.key),'Reverse links missing');
@@ -37,7 +37,7 @@ if (views) {
     check(Zotero.Items.get(id).deleted,'Rollback did not trash created node');return {origins:2,created:1,rollback:true};
   });
   await test('native graph HTTP polling renders the official public test graph fixture', async () => {
-    const fixture=JSON.parse(await Zotero.File.getContentsAsync(cfg.workspace+'\\docs\\evidence\\architecture-2026-10-12\\connectedpapers-live-fixture.json'));
+    const fixture=JSON.parse(await Zotero.File.getContentsAsync(cfg.fixtures+'\\connectedpapers-graph.json'));
     const original=Zotero.HTTP.request,previousKey=Zotero.Prefs.get('ConnectedPapers.accessToken');let polls=0;
     Zotero.Prefs.set('ConnectedPapers.accessToken','TEST_TOKEN');
     Zotero.HTTP.request=async(method,url,options)=>{

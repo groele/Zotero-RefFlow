@@ -1,5 +1,5 @@
 """Verify the evaluation XPI without promoting a package or update manifest."""
-from hashlib import sha256
+from hashlib import sha256, sha512
 from pathlib import Path
 import json
 import re
@@ -38,7 +38,7 @@ update_path = root / "build" / "update.json"
 if update_path.exists():
     update = json.loads(update_path.read_text(encoding="utf-8"))["addons"][package["config"]["addonID"]]["updates"][0]
     assert update["version"] == package["version"]
-    assert update["update_hash"] == "sha256:" + result["sha256"]
+    assert update["update_hash"] == "sha512:" + sha512(xpi.read_bytes()).hexdigest()
     assert update["applications"]["zotero"]["strict_max_version"] == "12.*"
 (root / "build" / "verification.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
 print(json.dumps(result, indent=2))
