@@ -4,8 +4,17 @@
   "capturedAt": "2026-11-06",
   "debtCleared": true,
   "note": "RefFlow source architecture fully compliant with §5.9. All 72 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "13.2.1",
+  "lastReleasedVersion": "16.0.0",
   "splitHistory": [
+    {
+      "version": "16.0.0",
+      "date": "2026-11-06",
+      "resolved": [
+        "Unified Major Release v16.0.0 across Zotero Flow suite",
+        "All 72 source files in src/ strictly <= 360 lines; zero debt baseline preserved",
+        "Gecko 153 compatibility and esbuild pipeline verified"
+      ]
+    },
     {
       "version": "13.2.1",
       "date": "2026-11-06",

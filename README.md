@@ -1,4 +1,4 @@
-> **13.2.1 架构治理版本更新**：执行全仓 360 行架构守卫拆分，将 Connected Papers 图谱渲染/交互与 Views 侧边栏生命周期/刷新编排解耦为独立领域模块，新增架构守卫自动化测试。[版本说明](docs/releases/v13.2.1.md)。
+> **16.0.0 架构治理版本更新**：执行全仓 360 行架构守卫拆分，将 Connected Papers 图谱渲染/交互与 Views 侧边栏生命周期/刷新编排解耦为独立领域模块，新增架构守卫自动化测试。[版本说明](docs/releases/v16.0.0.md)。
 
 
 
@@ -14,7 +14,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![当前版本](https://img.shields.io/badge/version-13.2.1-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v13.2.1) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v13.2.1/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
+[![当前版本](https://img.shields.io/badge/version-16.0.0-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v16.0.0) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v16.0.0/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
 
 [产品定位](#overview) · [安装与更新](#installation) · [快速开始](#quick-start) · [核心功能](#features) · [设置与使用](#settings) · [数据、同步与外部服务](#data) · [兼容性与验证范围](#compatibility) · [常见问题](#troubleshooting) · [开发与详细文档](#development) · [系列产品](#series) · [项目来源与许可](#license)
 
@@ -30,7 +30,7 @@
 
 ## 安装与更新
 
-1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v13.2.1/zotero-refflow.xpi)（插件版本 **13.2.1**）。不要安装 Source code ZIP。
+1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v16.0.0/zotero-refflow.xpi)（插件版本 **16.0.0**）。不要安装 Source code ZIP。
 2. 在 Zotero 打开 **工具 → 插件／附加组件**，从齿轮菜单选择 **从文件安装插件**。
 3. 选择 XPI，完成安装；按提示重启 Zotero。
 
@@ -81,7 +81,7 @@
 
 | 项目 | 范围 |
 |---|---|
-| 当前插件版本 | 13.2.1 |
+| 当前插件版本 | 16.0.0 |
 | 清单声明的 Zotero 范围 | `10.0` 至 `12.*` |
 | 当前说明 | 359 项自动化单元测试 100% 通过（39 suites，0 失败），8 项全量架构守卫通过，全仓 72 个源码模块 100% 达成 360 行硬约束（0 债务），兼容 Zotero 10 ~ 12 现代 Gecko 架构。 |
 

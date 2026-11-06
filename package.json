@@ -1,17 +1,17 @@
 {
   "name": "zotero-refflow",
-  "version": "13.2.1",
+  "version": "16.0.0",
   "description": "Discover references, citing works, and related research; derived from Zotero Reference / Ethereal Reference by Polygon / MuiseDestiny.",
   "config": {
     "addonName": "Zotero RefFlow",
     "addonID": "refflow@groele.github.io",
     "addonRef": "refflow",
     "addonInstance": "ZoteroRefFlow",
-    "releaseTag": "v13.2.1",
+    "releaseTag": "v16.0.0",
     "downloadURL": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/zotero-refflow.xpi",
     "updateURL": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json",
     "issuesURL": "https://github.com/groele/Zotero-RefFlow/issues",
-    "releaseNotesURL": "https://github.com/groele/Zotero-RefFlow/blob/main/docs/releases/v13.2.1.md",
+    "releaseNotesURL": "https://github.com/groele/Zotero-RefFlow/blob/main/docs/releases/v16.0.0.md",
     "upstreamURL": "https://github.com/MuiseDestiny/zotero-reference"
   },
   "main": "src/index.ts",
@@ -24,7 +24,8 @@
     "tsc": "tsc --noEmit",
     "test": "node scripts/test.mjs",
     "native:fixtures": "python scripts/make-native-fixtures.py",
-    "native:test": "pwsh -NoProfile -File scripts/run-isolated-native.ps1"
+    "native:test": "pwsh -NoProfile -File scripts/run-isolated-native.ps1",
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
