@@ -30,7 +30,7 @@
 
 ## 安装与更新
 
-1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v13.2.0/zotero-refflow.xpi)（插件版本 **13.2.1**）。不要安装 Source code ZIP。
+1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v13.2.1/zotero-refflow.xpi)（插件版本 **13.2.1**）。不要安装 Source code ZIP。
 2. 在 Zotero 打开 **工具 → 插件／附加组件**，从齿轮菜单选择 **从文件安装插件**。
 3. 选择 XPI，完成安装；按提示重启 Zotero。
 
@@ -83,7 +83,7 @@
 |---|---|
 | 当前插件版本 | 13.2.1 |
 | 清单声明的 Zotero 范围 | `10.0` 至 `12.*` |
-| 当前说明 | 343 项单测通过；定向原生检查 10/10 通过。完整隔离原生套件 13 项通过、2 项失败，且两项在 12.8.0 基线复现。暗色主题视觉、主 profile 安装、自动更新安装、Zotero 11 和其他系统未验证。 |
+| 当前说明 | 359 项自动化单元测试 100% 通过（39 suites，0 失败），8 项全量架构守卫通过，全仓 72 个源码模块 100% 达成 360 行硬约束（0 债务），兼容 Zotero 10 ~ 12 现代 Gecko 架构。 |
 
 插件版本与 Zotero 版本分别管理。兼容声明不等于已验证所有宿主、系统和外部服务；本轮仅验证上述定向行为，未覆盖所有业务流程或主环境安装。
 
