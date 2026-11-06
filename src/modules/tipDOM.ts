@@ -27,7 +27,8 @@ export class TipDOM {
       ) &&
       Zotero.Prefs.get(`${config.addonRef}.ctrlClickTranslate`)
     ) {
-      const node = event.currentTarget as HTMLElement;
+      const node = (event.currentTarget || event.target) as HTMLElement;
+      if (!node) return;
       let sourceText = node.getAttribute("sourceText");
       let translatedText = node.getAttribute("translatedText")!;
       ztoolkit.log(sourceText, translatedText);
@@ -233,7 +234,8 @@ export class TipDOM {
     option: TipOptionConfig,
     onClick: () => void
   ): HTMLDivElement {
-    return ztoolkit.UI.createElement(
+    let optionNode: HTMLDivElement;
+    optionNode = ztoolkit.UI.createElement(
       doc,
       "div",
       {
@@ -255,14 +257,14 @@ export class TipDOM {
           },
           {
             type: "mouseenter",
-            listener: () => {
+            listener: (event: any) => {
               const tag = tags.find(t => t.source);
               const source = (
                 (tag && tag.source && according && `${tag.source} view according to ${according}`) ||
                 "reference view"
               );
-              const optionNode = doc.getElementById(`option-${index}`);
-              if (optionNode) optionNode.title = source;
+              const target = (optionNode || event?.currentTarget || doc.getElementById(`option-${index}`)) as HTMLElement;
+              if (target) target.title = source;
             }
           },
           {
@@ -272,6 +274,7 @@ export class TipDOM {
         ]
       }
     ) as HTMLDivElement;
+    return optionNode;
   }
 
   public static insertOptionNode(optionContainer: HTMLElement, optionNode: HTMLElement, index: number) {
