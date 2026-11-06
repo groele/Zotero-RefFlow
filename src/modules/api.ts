@@ -8,7 +8,8 @@ import PublisherReferences from "./publisherReferences";
 import type {ReferenceResult} from "./referenceRetrieval";
 import SemanticScholarProvider from "./semanticScholar";
 import {selectUniqueTitle} from "./titleResolution";
-import {tryReferenceData} from './referenceData';
+import createProviderMappers from './apiMappers';
+import CNKIProvider from './cnkiProvider';
 
 class API {
   private async optional<T>(work:(signal:AbortSignal)=>Promise<T>,timeoutMs:number,fallback:T,signal?:AbortSignal):Promise<T> {
@@ -27,6 +28,7 @@ class API {
   public semanticScholar: SemanticScholarProvider;
   public publisherReferences=new PublisherReferences();
   public retractionChecker: RetractionChecker;
+  public cnki: CNKIProvider;
   public Info: { crossref: Function, connectedpapers: Function, readpaper: Function, semanticscholar: Function, unpaywall: Function, arXiv: Function };
   public BaseInfo: { readcube: Function };
   constructor(utils: Utils) {
@@ -35,218 +37,10 @@ class API {
     this.openAlex = new OpenAlexProvider(this.requests);
     this.semanticScholar = new SemanticScholarProvider(this.requests);
     this.retractionChecker = new RetractionChecker(this.requests);
-    this.Info = {
-      crossref: (item: any) => {
-        const types: any = {
-          "journal-article": "journalArticle",
-          "report": "report",
-          "posted-content": "preprint",
-          "book-chapter": "bookSection"
-        }
-        let references: ItemBaseInfo[] = (Array.isArray(item.reference)?item.reference:[]).flatMap((item: any,index:number) => {
-          if(!item||typeof item!=='object'||Array.isArray(item))return [];
-          try {
-          let identifiers
-          let url: string | undefined
-          let text: string
-          let textInfo: any = {}
-          if (item.unstructured) {
-            text = item.unstructured
-            textInfo = this.utils.refText2Info(text)
-          } else {
-            const volume=item.volume?String(item.volume)+(item.issue?`(${item.issue})`:""):"";
-            const pages=item["first-page"]?String(item["first-page"]):"";
-            text=[item.author,item["article-title"],item["journal-title"],volume+(pages?(volume?": ":"")+pages:""),item.year?`(${item.year})`:"",item.DOI?`https://doi.org/${item.DOI}`:""].filter(Boolean).join(". ");
-            if(!text)text=Object.entries(item).filter(([key])=>key!=="key").map(([key,value])=>`${key}: ${value}`).join("; ");
-          }
-          if (item.DOI) {
-            identifiers = { DOI: item.DOI }
-            url = this.utils.identifiers2URL(identifiers)
-          }
-          let info: ItemBaseInfo = {
-            identifiers: identifiers || textInfo!.identifiers || {},
-            title: item["article-title"] || textInfo?.title,
-            authors: item?.author ? [item.author] : (textInfo?.authors || []),
-            year: item.year || textInfo?.year,
-            text: text,
-            type: types[item.type] || textInfo?.type || "journalArticle",
-            publicationVenue: item["journal-title"] || textInfo?.publicationVenue,
-            volume:item.volume,issue:item.issue,pages:item['first-page'],number:index+1,
-            url: textInfo?.url || url
-          };
-          const row=tryReferenceData(info);return row?[row]:[];
-          }catch{return [];}
-        });
-
-        const refCount = item["is-referenced-by-count"];
-        const resolvedTitle = Array.isArray(item.title) ? item.title[0] : (item.title || "");
-        const resolvedAuthors = (Array.isArray(item.author)?item.author:[]).filter(Boolean).map((i: any) => {
-          return i.family ? (i.given ? `${i.given} ${i.family}` : i.family) : (i.name || "");
-        }).filter(Boolean) || [];
-        const resolvedYear = (item.published && item.published["date-parts"]?.[0]?.[0]) ||
-          (item["published-print"] && item["published-print"]["date-parts"]?.[0]?.[0]) ||
-          (item["published-online"] && item["published-online"]["date-parts"]?.[0]?.[0]) ||
-          (item.created && item.created["date-parts"]?.[0]?.[0]);
-        const resolvedVenue = Array.isArray(item["container-title"]) ? item["container-title"][0] : (item["container-title"] || "");
-
-        let info: ItemInfo = {
-          identifiers: { DOI: item.DOI },
-          authors: resolvedAuthors,
-          title: resolvedTitle,
-          year: resolvedYear ? String(resolvedYear) : undefined,
-          type: types[item.type] || "journalArticle",
-          text: resolvedTitle,
-          url: item.URL || (item.DOI ? `https://doi.org/${item.DOI}` : undefined),
-          abstract: item.abstract,
-          publishDate: item.published && item.published["date-parts"]?.[0]?.join("-"),
-          source: item.source ? item.source.toLowerCase() : "crossref",
-          primaryVenue: resolvedVenue,
-          references: references,
-          tags: [
-            ...(refCount && refCount > 0 ? [{
-              text: String(refCount),
-              color: "#2fb8cb",
-              tip: "is-referenced-by-count"
-            }] : []),
-          ]
-        };
-        return info;
-      },
-      connectedpapers: (item: any) => {
-        let info: ItemInfo = {
-          identifiers: { DOI: item.doiInfo.doi },
-          authors: item?.authors?.map((i: any) => i[0].name),
-          title: item.title.text,
-          year: item.year.text,
-          type: "journalArticle",
-          text: item.title.text,
-          url: item.doiInfo.doiUrl,
-          abstract: item.paperAbstract.text,
-          source: "connectedpapers",
-          primaryVenue: item.venue.text,
-          references: [],
-          tags: [
-            { text: item.citationStats.numCitations, tip: "citationStats.numCitations", color: "rgba(53, 153, 154, 0.5)" },
-            { text: item.citationStats.numReferences, tip: "citationStats.numReferences", color: "rgba(53, 153, 154, 0.75)" }
-          ]
-        }
-        return info
-      },
-      readpaper: (data: any) => {
-        let info: ItemInfo = {
-          identifiers: {},
-          title: this.utils.Html2Text(data.title) as string,
-          year: data.year,
-          publishDate: data.publishDate,
-          authors: data?.authorList.map((i: any) => this.utils.Html2Text(i.name)),
-          abstract: this.utils.Html2Text(data.summary) as string,
-          primaryVenue: this.utils.Html2Text(data.primaryVenue) as string,
-          tags: [
-            ...(data.venueTags || []),
-            ...(
-              data.citationCount && data.citationCount > 0 ?
-                [
-                  {
-                    text: data.citationCount,
-                    tip: "citationCount",
-                    color: "#1f71e0"
-                  }
-                ] : []
-            )
-          ],
-          source: "readpaper",
-          type: "journalArticle"
-        }
-        return info
-      },
-      semanticscholar(data: any) {
-        let info: ItemInfo = {
-          identifiers: { DOI: data.DOI },
-          title: data.title,
-          authors: (data.authors || []).map((i: any) => i.name),
-          year: data.year,
-          publishDate: data.publicationDate,
-          abstract: data.abstract,
-          source: "semanticscholar",
-          type: "journalArticle",
-          tags: data.fieldsOfStudy || [],
-          primaryVenue: data.journal?.name,
-          url: data.DOI ? `https://doi.org/${data.DOI}` : undefined
-        }
-        return info
-      },
-      unpaywall(data: any) {
-        const types: any = {
-          "journal-article": "journalArticle",
-          "report": "report",
-          "posted-content": "preprint",
-          "book-chapter": "bookSection"
-        }
-        let info: ItemInfo = {
-          identifiers: { DOI: data.DOI },
-          authors: (data.z_authors || []).map((i: any) => i.family),
-          title: data.title,
-          year: data.year,
-          type: types[data.genre],
-          primaryVenue: data.journal_name,
-          source: "unpaywall",
-          publishDate: data.published_date,
-          abstract: undefined
-        }
-        return info
-      },
-      arXiv: (data: any) => {
-        const rawTitle = Array.isArray(data.title) ? data.title[0] : (data.title || "");
-        const rawSummary = Array.isArray(data.summary) ? data.summary[0] : (data.summary || "");
-        const authors = Array.isArray(data.author)
-          ? data.author.map((e: any) => Array.isArray(e.name) ? e.name[0] : (e.name || ""))
-          : [];
-        const categories = Array.isArray(data.category)
-          ? data.category.map((e: any) => e["$"]?.term).filter(Boolean)
-          : [];
-
-        let info: ItemInfo = {
-          identifiers: { arXiv: data.arXiv },
-          title: rawTitle.replace(/\n/g, " ").trim(),
-          year: data.year,
-          authors: authors,
-          abstract: rawSummary.replace(/\n/g, " ").trim(),
-          url: this.utils.identifiers2URL({ arXiv: data.arXiv }),
-          type: "preprint",
-          tags: categories,
-          publishDate: Array.isArray(data.published) ? data.published[0] : data.published,
-          primaryVenue: data["arxiv:comment"] && data["arxiv:comment"][0]?.["_"] ? data["arxiv:comment"][0]["_"].replace(/\n/g, " ").trim() : undefined
-        };
-        return info;
-      }
-    }
-    this.BaseInfo = {
-      readcube: (data: any) => {
-        let identifiers
-        if (data.doi && this.utils.regex.arXiv.test(data.doi)) {
-          data.arxiv = data.doi.match(this.utils.regex.arXiv).slice(-1)[0]
-          data.doi = undefined
-        }
-        let type = "journalArticle"
-        if (data.arxiv && !data.doi) {
-          identifiers = { arXiv: data.arxiv }
-          type = "preprint"
-        } else {
-          identifiers = { DOI: data.doi }
-        }
-        let url = this.utils.identifiers2URL(identifiers)
-        let related: ItemBaseInfo = {
-          identifiers: identifiers,
-          title: data.title,
-          authors: data?.authors,
-          year: data.year,
-          type: type,
-          text: data.title,
-          url: url
-        }
-        return related
-      }
-    }
+    this.cnki = new CNKIProvider(this.requests, this.utils);
+    const mappers = createProviderMappers(this.utils);
+    this.Info = mappers.Info;
+    this.BaseInfo = mappers.BaseInfo;
   }
 
   async getDOIBaseInfo(DOI:string,signal?:AbortSignal):Promise<ItemBaseInfo|undefined> {
@@ -510,184 +304,15 @@ class API {
   }
 
   async getCNKIURL(keywords: string, silent: boolean = false, signal?: AbortSignal) {
-    if (!silent) {
-      (new ztoolkit.ProgressWindow("[Pending] API", ))
-        .createLine({ text: `Get CNKI URL`, type: "default" })
-        .show()
-    }
-    const query = {Platform:"",DBCode:"CFLS",KuaKuCode:"CJFQ,CDMD,CIPD,CCND,CISD,SNAD,BDZK,CCJD,CCVD,CJFN",
-      QNode:{QGroup:[{Key:"Subject",Title:"",Logic:1,Items:[{Title:"主题",Name:"SU",Value:keywords,Operate:"%=",BlurType:""}],ChildItems:[]}]},CodeLang:"ch"};
-    const form = {IsSearch:"true",QueryJson:JSON.stringify(query),PageName:"defaultresult",DBCode:"CFLS",CurPage:"1",RecordsCntPerPage:"20",
-      CurDisplayMode:"listmode",CurrSortField:"",CurrSortFieldType:"desc",IsSentenceSearch:"false",Subject:""};
-    const body = Object.entries(form).map(([key,value])=>`${encodeURIComponent(key)}=${encodeURIComponent(value)}`).join("&");
-    const res = await this.requests.post("https://kns.cnki.net/kns8/Brief/GetGridTableHtml",body,"text",{
-      Accept:"text/html", "Content-Type":"application/x-www-form-urlencoded; charset=UTF-8", "X-Requested-With":"XMLHttpRequest"
-    }, signal);
-    if(signal?.aborted)return;
-    try {
-      if (typeof res === "string") {
-        let cnkiMatch = res.match(/href='(.+FileName=.+?&DbName=.+?)'/i);
-        if (cnkiMatch && cnkiMatch[1]) {
-          let args = this.utils.parseCNKIURL(cnkiMatch[1]);
-          if (args) {
-            return `https://kns.cnki.net/kcms/detail/detail.aspx?FileName=${args.fileName}&DbName=${args.dbName}&DbCode=${args.dbCode}`;
-          }
-        }
-      }
-    } catch { }
-    if (!silent) {
-      (new ztoolkit.ProgressWindow("[Pending] API", ))
-        .createLine({ text: `Get CNKI URL Fail`, type: "fail" })
-        .show()
-    }
+    return this.cnki.getCNKIURL(keywords, silent, signal);
   }
 
-  async getTitleInfoByCNKI(refText: string, signal?:AbortSignal): Promise<ItemInfo | undefined> {
-    // 拒绝非中文请求，避免被封IP
-    if (signal?.aborted || !this.utils.isChinese(refText)) { return }
-    let res = this.utils.parseRefText(refText)
-    const key = `${res.title}${res.authors}${refText}`
-    const cached = this.requests.getCache(key);
-    if (cached) {
-      return cached;
-    }
-    ztoolkit.log("parseRefText", refText, res)
-    let url = await this.getCNKIURL(res.title, true,signal)
-    if (!url || typeof url !== "string") { return }
-
-    let htmlString = await this.requests.get(url, "text",{},signal)
-    if(signal?.aborted || typeof htmlString!=="string")return;
-    ztoolkit.log(url, htmlString)
-    const parser = ztoolkit.getDOMParser();
-    const doc = parser.parseFromString(htmlString, "text/html").documentElement as any;
-    let aTags = doc.querySelectorAll(".top-tip span a")
-    const informSpan = [...doc.querySelectorAll("p.total-inform span")].find(span => span.innerText.includes("下载"));
-    const downloadMatch = informSpan?.innerText?.match(/\d+/);
-    const downloadCount = downloadMatch ? downloadMatch[0] : undefined;
-    const returnedTitle=String(doc.querySelector(".brief h1")?.textContent||"").trim();
-    const requestedTitle=CitationVerifier.cleanTitle(res.title);
-    if(requestedTitle.length<6 || !returnedTitle || (requestedTitle!==CitationVerifier.cleanTitle(returnedTitle) && CitationVerifier.tokenJaccard(res.title,returnedTitle)<0.95))return;
-
-    let info: ItemInfo = {
-      identifiers: { CNKI: url },
-      title: returnedTitle,
-      abstract: doc.querySelector("span#ChDivSummary")?.innerText || "",
-      authors: [...doc.querySelectorAll("#authorpart span a")].map((a: any) => a.innerText),
-      type: "journalArticle",
-      primaryVenue: aTags[0]?.innerText || "",
-      year: aTags[1]?.innerText ? aTags[1].innerText.split(",")[0] : "",
-      url: url,
-      source: "CNKI",
-      tags: [...doc.querySelectorAll(".keywords a")].map((a: any) => a.innerText.replace(/(\n|\s+|;)/g, ""))
-        .concat(downloadCount!==undefined?[
-          {
-            text: downloadCount,
-            color: "#cc7c08",
-            tip: "知网下载量"
-          }
-        ]:[])
-    }
-    this.requests.setCache(key, info);
-    return info
+  async getTitleInfoByCNKI(refText: string, signal?: AbortSignal): Promise<ItemInfo | undefined> {
+    return this.cnki.getTitleInfoByCNKI(refText, signal);
   }
 
-  async getCNKIFileInfo(fileName: string, count=0, signal?:AbortSignal): Promise<ItemInfo | undefined> {
-    if(signal?.aborted || !fileName)return;
-    const prefsKey=`${config.addonRef}.CNKI.token`;
-    const username=String(Zotero.Prefs.get(`${config.addonRef}.CNKI.username`)||"");
-    const password=String(Zotero.Prefs.get(`${config.addonRef}.CNKI.password`)||"");
-    let token=String(Zotero.Prefs.get(prefsKey)||"");
-    const updateToken=async()=>{
-      if(!username||!password||signal?.aborted)return false;
-      const res=await this.requests.post("https://apix.cnki.net/databusapi/api/v1.0/credential/namepasswithcleartext/personalaccount",
-        {Username:username,Password:password},"json",{},signal,{cache:false});
-      if(signal?.aborted || typeof res?.Content!=="string" || !res.Content.trim())return false;
-      token=res.Content.trim();Zotero.Prefs.set(prefsKey,token);return true;
-    };
-    if(!token && !await updateToken())return;
-    const name=encodeURIComponent(fileName);
-    const infoApi=`https://x.cnki.net/readApi/api/v1/paperInfo?fileName=${name}&tableName=CJFDTOTAL&dbCode=CJFD&from=ReadingHistory&type=psmc&fsType=1&taskId=0`;
-    const refApi=`https://x.cnki.net/readApi/api/v1/paperRefreNotes?appId=CRSP_BASIC_PSMC&dbcode=CJFD&tablename=CJFDTOTAL&filename=${name}&type=1&page=1`;
-    const infoData=await this.requests.get(infoApi,"json",{token},signal);
-    if(signal?.aborted)return;
-    const refData=await this.requests.get(refApi,"json",{token},signal);
-    if(signal?.aborted)return;
-    if(!refData || String(refData.code)!=="200") {
-      // Renew only an explicit authentication rejection, once. Transport,
-      // rate-limit and unknown vendor failures do not trigger repeated logins.
-      const rejected=["401","403"].includes(String(refData?.code));
-      if(rejected && count<1 && await updateToken())return this.getCNKIFileInfo(fileName,count+1,signal);
-      return;
-    }
-
-    let info: ItemInfo = {
-      identifiers: {},
-      authors: [],
-      type: "",
-      references: [],
-      title: ""
-    }
-    const typeMap: any = {
-      "journal": "journalArticle"
-    }
-    if (String(infoData?.code) == "200" && infoData?.content?.paper?.bibliography) {
-      const bibList = Array.isArray(infoData.content.paper.bibliography) ? infoData.content.paper.bibliography : [];
-      const refList = Array.isArray(refData?.content?.refer) ? refData.content.refer : [];
-      bibList.forEach((ref: {title: string}) => {
-        let _ref = refList.find((_r: {title: string}) => {
-          return Boolean(ref?.title && _r?.title && ref.title.indexOf(_r.title) != -1);
-        });
-        const refText = (ref?.title || "").replace(/^\[\d+\]/, "");
-        if (_ref) {
-          const dbCode = (_ref.dbSource || "").split("_")[0];
-          const cnkiURL = `https://kns.cnki.net/kcms/detail/detail.aspx?FileName=${encodeURIComponent(_ref.fileName||"")}&DbName=${encodeURIComponent(_ref.tableName||"")}&DbCode=${encodeURIComponent(dbCode)}`;
-          info.references?.push({
-            identifiers: {
-              CNKI: cnkiURL
-            },
-            text: refText,
-            title: _ref.title,
-            authors: [],
-            type: typeMap[_ref.type] || "journalArticle",
-            url: cnkiURL
-          });
-        } else {
-          info.references?.push({
-            identifiers: {},
-            text: refText,
-            authors: [],
-            type: "journalArticle",
-            title: refText
-          });
-        }
-      });
-    } else if (Array.isArray(refData?.content?.refer)) {
-      const referList = [...refData.content.refer];
-      referList.sort((a: any, b: any) => Number(a.citationNumber || 0) - Number(b.citationNumber || 0))
-        .forEach((ref: any) => {
-          const title = (ref.title || "").replace(/^\[\d+\]/, "");
-          const dbCode = (ref.dbSource || "").split("_")[0];
-          const cnkiURL = `https://kns.cnki.net/kcms/detail/detail.aspx?FileName=${encodeURIComponent(ref.fileName||"")}&DbName=${encodeURIComponent(ref.tableName||"")}&DbCode=${encodeURIComponent(dbCode)}`;
-          const authors = typeof ref.author === "string" ? ref.author.split(";").filter((s: string) => s.length) : [];
-          info.references?.push({
-            identifiers: {
-              CNKI: cnkiURL
-            },
-            authors: authors,
-            type: typeMap[ref.type] || "journalArticle",
-            text: `${ref.author || ""}. ${title}[${ref.type?.[0] || "J"}]. ${ref.source || ""}, ${ref.year || ""}, ${ref.volumn || ""}:${ref.pageNumber || ""}.`,
-            title: ref.title,
-            year: ref.year,
-            url: cnkiURL,
-            number: Number(ref.citationNumber || 0)
-          });
-        });
-    }
-    // Vendor pagination is undocumented. Only the complete bibliography can
-    // establish completeness; a first-page refer list remains partial.
-    info.referencePartial=!Array.isArray(infoData?.content?.paper?.bibliography);
-    if(signal?.aborted)return;
-    return info
+  async getCNKIFileInfo(fileName: string, count = 0, signal?: AbortSignal): Promise<ItemInfo | undefined> {
+    return this.cnki.getCNKIFileInfo(fileName, count, signal);
   }
 }
 

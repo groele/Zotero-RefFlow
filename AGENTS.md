@@ -17,3 +17,9 @@
 ## Version changes
 
 - User policy (2026-10-27): every work session that changes source, tests, documentation or build configuration must increment the add-on version, at least a patch; apply SemVer for feature or incompatible changes. Read-only audits do not require a bump. Use one target version for the fixes and validation iterations of the same session. Synchronize authoritative metadata before committing; distinguish version preparation from publication and installation.
+
+## Architecture and baseline governance
+
+- **§5.9 360-Line Ceiling with Freeze-and-Shrink Baseline**: All source modules in `src/` must remain <= 360 lines. Known legacy debt is tracked in `scripts/architecture-baseline.json` and must never grow; all other files are strictly capped at 360 lines.
+- **Status Label Governance**: `docs/brand/product.json` must strictly declare `releaseStatus` as `"released"` or `"unreleased"`, aligning with the Zotero Flow suite standard (no `"stable"` or ad-hoc labels).
+- **Architecture Guard**: Run `npm run guard` (`node scripts/architecture-guard.mjs`) to verify baseline validity, Fluent symmetry across `en-US`/`zh-CN`/`it-IT`, 100% `data-l10n-id` UI driving, and version parity. Build pipeline executes `tsc -> guard -> build-prod`.

@@ -1,0 +1,30 @@
+{
+  "policy": "freeze-and-shrink",
+  "maxSourceLines": 360,
+  "capturedAt": "2026-11-06",
+  "debtCleared": true,
+  "note": "RefFlow source architecture fully compliant with §5.9. All 72 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
+  "lastReleasedVersion": "13.2.1",
+  "splitHistory": [
+    {
+      "version": "13.2.1",
+      "date": "2026-11-06",
+      "resolved": [
+        "src/modules/batchImporter.ts (424 -> 286 lines): split out rollback & migration logic into src/modules/batchRollback.ts (202 lines)",
+        "src/modules/utils.ts (517 -> 280 lines): split out text/identifier/URL parsing into src/modules/referenceParser.ts (241 lines)",
+        "src/modules/tip.ts (567 -> 139 lines): split out DOM node construction into src/modules/tipDOM.ts (303 lines) and container layout/positioning into src/modules/tipView.ts (186 lines)",
+        "src/modules/api.ts (694 -> 320 lines): split out CNKI requests into src/modules/cnkiProvider.ts (184 lines) and provider mappers into src/modules/apiMappers.ts (232 lines)",
+        "Cleared all architectural line-count debt across 72 source files: 0 oversized files remaining, debtCleared set to true"
+      ]
+    },
+    {
+      "version": "13.2.0",
+      "date": "2026-11-06",
+      "resolved": [
+        "Migrated from 17-module partial whitelist to comprehensive workspace-wide freeze-and-shrink baseline covering all 66+ source modules",
+        "Unified releaseStatus in product.json to 'released', aligning status label governance with the rest of Zotero Flow suite"
+      ]
+    }
+  ],
+  "oversized": {}
+}

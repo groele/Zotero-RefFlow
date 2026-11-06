@@ -459,11 +459,28 @@ test("Repository version, release notes, product metadata, and READMEs are 100% 
   const ver = pkg.version;
   assert.equal(pkg.config.releaseTag, `v${ver}`);
   assert.equal(product.version, ver);
-  assert.equal(update.addons[pkg.config.addonID].updates[0].version, ver);
+  assert.equal(product.releaseTag, pkg.config.releaseTag, "product.json releaseTag must match package.json");
+  assert.equal(product.releaseNotesURL, pkg.config.releaseNotesURL, "product.json releaseNotesURL must match package.json");
+
+  // Zotero Flow release-status vocabulary is exactly released | unreleased (no "stable" etc.).
+  // The update feed is served from raw main, so while a version is being prepared it must
+  // keep advertising the last published release; READMEs advertise that published version too.
+  assert.ok(["released", "unreleased"].includes(product.releaseStatus), `releaseStatus must be released or unreleased, got ${product.releaseStatus}`);
+  const feedVersion = update.addons[pkg.config.addonID].updates[0].version;
+  const semver = (v: string) => v.split("-")[0].split(".").map(Number);
+  const newer = (a: string, b: string) => { const [x, y] = [semver(a), semver(b)]; for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i]; return false; };
+  if (product.releaseStatus === "released") {
+    assert.equal(feedVersion, ver, "a released version must be advertised by update.json");
+  } else {
+    assert.ok(newer(ver, feedVersion), `unreleased ${ver} must be newer than the published feed version ${feedVersion}`);
+    assert.equal(fs.existsSync(`docs/releases/v${feedVersion}.md`), true, "the published feed version must keep its release notes");
+  }
+  const published = feedVersion;
 
   const releaseNoteRelPath = `docs/releases/v${ver}.md`;
   assert.equal(pkg.config.releaseNotesURL, `https://github.com/groele/Zotero-RefFlow/blob/main/${releaseNoteRelPath}`);
   assert.equal(fs.existsSync(releaseNoteRelPath), true, `${releaseNoteRelPath} must exist on disk`);
+  const publishedNotePath = `docs/releases/v${published}.md`;
 
   assert.equal(readmeZH.includes(`version-${ver}-245ac7`), true, "README.md badge must match package version");
   assert.equal(readmeZH.includes(`releases/download/v${ver}/zotero-refflow.xpi`), true, "README.md download link must match package version");

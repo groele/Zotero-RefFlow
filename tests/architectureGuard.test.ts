@@ -40,21 +40,68 @@ const GUARDED_MODULES = [
   "src/modules/referencePipeline.ts",
 ];
 
-test("architecture guard: refactored graph and views modules must stay within 360 lines", () => {
+test("architecture guard: all source files in src/ respect 360-line ceiling (freeze-and-shrink baseline)", () => {
   const rootDir = findRepoRoot();
-  const violations: { file: string; lines: number }[] = [];
+  const baselinePath = path.join(rootDir, "scripts/architecture-baseline.json");
+  assert.ok(fs.existsSync(baselinePath), "scripts/architecture-baseline.json must exist");
+  const baseline = JSON.parse(fs.readFileSync(baselinePath, "utf8"));
+  const maxLines = baseline.maxSourceLines || MAX_TARGET_LINE_COUNT;
 
-  for (const relativePath of GUARDED_MODULES) {
-    const fullPath = path.join(rootDir, relativePath);
-    assert.ok(fs.existsSync(fullPath), `Guarded module file does not exist: ${relativePath}`);
+  function walk(dir: string): string[] {
+    const fullDir = path.join(rootDir, dir);
+    if (!fs.existsSync(fullDir)) return [];
+    return fs.readdirSync(fullDir, { withFileTypes: true }).flatMap((entry) => {
+      const rel = path.posix.join(dir, entry.name);
+      if (entry.isDirectory()) return walk(rel);
+      return entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts") ? [rel] : [];
+    });
+  }
+
+  const allSourceFiles = walk("src");
+  assert.ok(allSourceFiles.length >= 60, "Expected at least 60 source files in src/");
+
+  const violations: { file: string; lines: number; maxAllowed: number }[] = [];
+  for (const file of allSourceFiles) {
+    const fullPath = path.join(rootDir, file);
     const content = fs.readFileSync(fullPath, "utf8");
-    const lines = content.split("\n").length;
-    if (lines > MAX_TARGET_LINE_COUNT) {
-      violations.push({ file: relativePath, lines });
+    const lines = content.trimEnd().split(/\r?\n/).length;
+    const frozenCeiling = baseline.oversized[file];
+
+    if (frozenCeiling !== undefined) {
+      if (lines > frozenCeiling) {
+        violations.push({ file, lines, maxAllowed: frozenCeiling });
+      }
+    } else if (lines > maxLines) {
+      violations.push({ file, lines, maxAllowed: maxLines });
     }
   }
 
-  assert.deepEqual(violations, [], `The following modules exceed the ${MAX_TARGET_LINE_COUNT}-line limit: ${JSON.stringify(violations)}`);
+  assert.deepEqual(violations, [], violations.length + " files violated §5.9 360-line baseline");
+});
+
+test("architecture guard: baseline contains no stale entries", () => {
+  const rootDir = findRepoRoot();
+  const baseline = JSON.parse(fs.readFileSync(path.join(rootDir, "scripts/architecture-baseline.json"), "utf8"));
+  const maxLines = baseline.maxSourceLines || MAX_TARGET_LINE_COUNT;
+  const entries = Object.entries(baseline.oversized as Record<string, number>);
+
+  const problems: string[] = [];
+  for (const [file, frozen] of entries) {
+    const full = path.join(rootDir, file);
+    if (!fs.existsSync(full)) {
+      problems.push(file + ": baseline entry points at a non-existent file");
+      continue;
+    }
+    const lines = fs.readFileSync(full, "utf8").trimEnd().split(/\r?\n/).length;
+    if (lines <= maxLines) {
+      problems.push(file + ": reduced to " + lines + " lines <= " + maxLines + ", remove from baseline");
+    }
+    if (frozen < lines) {
+      problems.push(file + ": frozen ceiling " + frozen + " is lower than current " + lines + " lines");
+    }
+  }
+
+  assert.deepEqual(problems, [], "Baseline integrity errors: " + problems.join("; "));
 });
 
 test("architecture guard: no temporary or version-prefixed identifiers/filenames in source", () => {
