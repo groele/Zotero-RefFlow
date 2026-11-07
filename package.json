@@ -1,17 +1,18 @@
 {
   "name": "zotero-refflow",
-  "version": "16.0.0",
+  "version": "16.1.0",
   "description": "Discover references, citing works, and related research; derived from Zotero Reference / Ethereal Reference by Polygon / MuiseDestiny.",
   "config": {
     "addonName": "Zotero RefFlow",
     "addonID": "refflow@groele.github.io",
     "addonRef": "refflow",
     "addonInstance": "ZoteroRefFlow",
-    "releaseTag": "v16.0.0",
+    "releaseDate": "2026-11-07",
+    "releaseTag": "v16.1.0",
     "downloadURL": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/zotero-refflow.xpi",
     "updateURL": "https://raw.githubusercontent.com/groele/Zotero-RefFlow/main/update.json",
     "issuesURL": "https://github.com/groele/Zotero-RefFlow/issues",
-    "releaseNotesURL": "https://github.com/groele/Zotero-RefFlow/blob/main/docs/releases/v16.0.0.md",
+    "releaseNotesURL": "https://github.com/groele/Zotero-RefFlow/blob/main/docs/releases/v16.1.0.md",
     "upstreamURL": "https://github.com/MuiseDestiny/zotero-reference"
   },
   "main": "src/index.ts",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@types/node": "^18.13.0",
     "compressing": "^1.7.0",
+    "yazl": "2.5.1",
     "concurrently": "^7.6.0",
     "cross-env": "^7.0.3",
     "esbuild": "0.28.2",

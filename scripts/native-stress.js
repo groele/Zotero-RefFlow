@@ -157,7 +157,7 @@ await test('native 404 is not retried',async()=>{
   const client=new HTTP({retryDelayMs:10});try{check(await client.get(base+'/missing?test='+stamp)===undefined,'404 returned success');check(client.metrics.requests===1,'404 retried');return {...client.metrics};}finally{client.dispose();}
 });
 await test('Retry-After longer than the budget exits without an early retry',async()=>{
-  const client=new HTTP({budgetMs:200,retryDelayMs:10});try{const start=Date.now();await client.get(base+'/limited?test='+stamp);check(client.metrics.requests===1,'Ignored Retry-After');check(Date.now()-start<1000,'Nested native retry was not disabled');return {ms:Date.now()-start,...client.metrics};}finally{client.dispose();}
+  const client=new HTTP({budgetMs:200,retryDelayMs:10});try{const start=Date.now();await client.get(base+'/limited?test='+stamp,'json',{'X-Api-Key':'isolated-cooldown-test'});check(client.metrics.requests===1,'Ignored Retry-After');check(Date.now()-start<1000,'Nested native retry was not disabled');return {ms:Date.now()-start,...client.metrics};}finally{client.dispose();}
 });
 await test('native XHR timeout returns promptly and does not cache late responses',async()=>{
   const client=new HTTP({timeoutMs:80,budgetMs:200});try{const start=Date.now();check(await client.get(base+'/slow?test='+stamp)===undefined,'Slow request did not time out');check(Date.now()-start<1000,'Native XHR timeout exceeded');await delay(1600);check(client.cache.size===0,'Late response repopulated cache');return {requests:client.metrics.requests,cacheSize:client.cache.size};}finally{client.dispose();}

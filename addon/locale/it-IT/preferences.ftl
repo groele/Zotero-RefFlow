@@ -80,3 +80,11 @@ about-issues = Segnala un problema
 about-upstream = Progetto originale
 about-release-notes = Note di rilascio
 about-download = Scarica XPI pubblicato
+
+cache-enabled =
+    .label = Memorizza gli elenchi bibliografici
+cache-referenceDays = Riferimenti online completi (giorni)
+cache-neighborhoodDays = Citazioni e lavori correlati (giorni)
+cache-pdfDays = Riferimenti PDF completi (giorni)
+cache-partialMinutes = Risultati parziali (minuti)
+cache-duration-help = Imposta 0 giorni per conservare i risultati fino all’aggiornamento manuale. Le modifiche invalidano la cache e i limiti di spazio possono rimuovere gli elenchi meno recenti.

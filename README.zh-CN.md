@@ -1,4 +1,4 @@
-> **v16.0.0**：统一重大版本发布，全流程文献发现与引文网络加速。[版本说明](https://github.com/groele/Zotero-RefFlow/releases/tag/v16.0.0)。
+> **16.1.0** 支持设置参考文献缓存的保留时间，并缩小强制刷新的请求范围。[版本说明](docs/releases/v16.1.0.md)。
 
 [简体中文](README.md) · [English](README.en.md)
 

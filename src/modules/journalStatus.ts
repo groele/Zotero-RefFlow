@@ -12,7 +12,8 @@ export default class JournalStatus {
   async show(){
     const generation=++this.generation,parentID=this.body.getAttribute('data-refflow-item-id');
     const current=()=>generation===this.generation&&this.body.isConnected&&this.body.getAttribute('data-refflow-item-id')===parentID;
-    const diagnostics=await batchJournal.diagnostics();if(!current())return;
+    const parent=Zotero.Items.get(Number(parentID));
+    const diagnostics=await batchJournal.diagnostics(parent ? parent.libraryID : undefined);if(!current())return;
     const doc=this.body.ownerDocument,panel=doc.createElement('div');panel.className='refflow-journal-status';
     const status=doc.createElement('p');status.setAttribute('role','status');status.setAttribute('aria-live','polite');
     status.textContent=getString(diagnostics.state==='ready'?'cards-journal-ready':diagnostics.canRetry?'cards-journal-committed':'cards-journal-unknown');panel.append(status);

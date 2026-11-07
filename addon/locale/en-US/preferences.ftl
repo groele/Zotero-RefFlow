@@ -80,3 +80,11 @@ about-issues = Report an issue
 about-upstream = Original project
 about-release-notes = Release notes
 about-download = Download the published XPI
+
+cache-enabled =
+    .label = Cache literature lists
+cache-referenceDays = Complete online references (days)
+cache-neighborhoodDays = Citations and related works (days)
+cache-pdfDays = Complete PDF references (days)
+cache-partialMinutes = Partial results (minutes)
+cache-duration-help = Set days to 0 to keep results until manual refresh. Changed inputs invalidate snapshots and storage limits can evict older lists.

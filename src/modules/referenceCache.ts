@@ -1,3 +1,4 @@
+import {cacheEnabled, retentionMs} from "./cachePolicy";
 const SCHEMA = 4;
 import { referenceData, tryReferenceData } from "./referenceData";
 import { normalizeReferenceResult, ReferenceResult } from "./referenceRetrieval";
@@ -24,8 +25,9 @@ export function cacheReferenceResult(value: ReferenceResult, signature: string, 
 }
 
 export function readCachedReferenceResult(value: any, signature: string, now = Date.now()): ReferenceResult | undefined {
+  if (!cacheEnabled(value?.snapshot?.source || "Online")) return;
   const partial = value?.snapshot?.partial || ["partial", "unavailable"].includes(value?.snapshot?.status);
-  const references = readCachedReferences(value, signature, partial ? 15 * 60 * 1000 : 24 * 60 * 60 * 1000, now);
+  const references = readCachedReferences(value, signature, retentionMs(/^PDF\b/.test(value?.snapshot?.source) ? "pdf" : "reference", Boolean(partial) || value?.snapshot?.status === "empty"), now);
   if (!references || !value.snapshot || typeof value.snapshot !== "object") return;
   return normalizeReferenceResult({ ...value.snapshot, references });
 }

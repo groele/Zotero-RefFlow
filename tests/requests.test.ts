@@ -24,19 +24,19 @@ describe("Requests Suite", () => {
     const original=Zotero.HTTP.request;let calls=0;
     Zotero.HTTP.request=async (_method:string,url:string,options:any)=>{calls++;return options.headers.Authorization||url.includes('other.test')?{status:200,response:{ok:true}}:{status:429,getResponseHeader:(name:string)=>name==='Retry-After'?'60':null};};
     const client=new Requests({budgetMs:100});
-    try{await client.get('https://api.test/a');client.clearCache();assert.equal(await client.get('https://api.test/b'),undefined);assert.equal(calls,1);assert.equal(client.lastFailure?.status,429);assert.ok(client.lastFailure!.retryAfterMs!>0);assert.equal(client.metrics.cooldownHits,1);assert.deepEqual(await client.get('https://api.test/b','json',{Authorization:'Bearer fresh'}),{ok:true});assert.deepEqual(await client.get('https://other.test/a'),{ok:true});assert.equal(calls,3);}finally{client.dispose();Zotero.HTTP.request=original;}
+    try{await client.get('https://shared-limit.test/a');client.clearCache();assert.equal(await new Requests().get("https://shared-limit.test/another-pane"),undefined);assert.equal(await client.get('https://shared-limit.test/b'),undefined);assert.equal(calls,1);assert.equal(client.lastFailure?.status,429);assert.ok(client.lastFailure!.retryAfterMs!>0);assert.equal(client.metrics.cooldownHits,1);assert.deepEqual(await client.get('https://shared-limit.test/b','json',{Authorization:'Bearer fresh'}),{ok:true});assert.deepEqual(await client.get('https://other.test/a'),{ok:true});assert.equal(calls,3);}finally{client.dispose();Zotero.HTTP.request=original;}
   });
   test("daily-budget headers prevent retrying before reset",async()=>{
     const original=Zotero.HTTP.request;let calls=0;
     Zotero.HTTP.request=async()=>{calls++;return {status:429,getResponseHeader:(name:string)=>name==='X-RateLimit-Remaining'?'0':name==='X-RateLimit-Reset'?'3600':null};};
     const client=new Requests({budgetMs:100,retryDelayMs:1});
-    try{await client.get('https://api.test/daily');assert.equal(calls,1);assert.ok(client.lastFailure!.retryAfterMs!>=3600000);await client.get('https://api.test/another');assert.equal(calls,1);}finally{client.dispose();Zotero.HTTP.request=original;}
+    try{await client.get('https://daily.test/daily');assert.equal(calls,1);assert.ok(client.lastFailure!.retryAfterMs!>=3600000);await client.get('https://daily.test/another');assert.equal(calls,1);}finally{client.dispose();Zotero.HTTP.request=original;}
   });
   test("expired cooldowns automatically recover",async()=>{
     const original=Zotero.HTTP.request;let calls=0;
     Zotero.HTTP.request=async()=>++calls===1?{status:429,getResponseHeader:()=>null}:{status:200,response:{ok:true}};
     const client=new Requests({budgetMs:5,retryDelayMs:20});
-    try{await client.get('https://api.test/expire');await new Promise(resolve=>setTimeout(resolve,30));assert.deepEqual(await client.get('https://api.test/expire'),{ok:true});assert.equal(calls,2);}finally{client.dispose();Zotero.HTTP.request=original;}
+    try{await client.get('https://expiry.test/expire');await new Promise(resolve=>setTimeout(resolve,30));assert.deepEqual(await client.get('https://expiry.test/expire'),{ok:true});assert.equal(calls,2);}finally{client.dispose();Zotero.HTTP.request=original;}
   });
   test("disposal releases active and queued requests even when transport cancellation never settles",async()=>{
     const original=Zotero.HTTP.request;let cancelled=0;
@@ -65,7 +65,7 @@ describe("Requests Suite", () => {
   test("honors a Retry-After that exceeds the operation budget without retrying early",async()=>{
     const original=Zotero.HTTP.request;let calls=0;
     Zotero.HTTP.request=async()=>{calls++;return {status:429,getResponseHeader:()=> '60'};};
-    try{assert.equal(await new Requests({budgetMs:100,retryDelayMs:1}).get('https://api.test/throttle'),undefined);assert.equal(calls,1);}finally{Zotero.HTTP.request=original;}
+    try{assert.equal(await new Requests({budgetMs:100,retryDelayMs:1}).get('https://throttle.test/throttle'),undefined);assert.equal(calls,1);}finally{Zotero.HTTP.request=original;}
   });
   test("a timed-out request is physically cancelled and is not cached",async()=>{
     const original=Zotero.HTTP.request;let cancelled=0;

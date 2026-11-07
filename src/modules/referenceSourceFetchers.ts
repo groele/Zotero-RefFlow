@@ -1,3 +1,4 @@
+import {cacheEnabled, retentionMs} from "./cachePolicy";
 import { getString } from "../utils/locale";
 import { safeProviderAttempt } from "./referenceSourceDetails";
 import {
@@ -42,7 +43,7 @@ export async function fetchAutoOrWebReferences(
     result = await views.smartReferences(item, reader, task, source !== "Web", fromCurrentPage, label, source === "Web");
     if (!task.isCurrent()) return undefined;
     result = preferCachedReferences(result, previous, getString("cards-cached-offline"));
-    if (result.references.length && !result.retained && !fromCurrentPage && views.mayPersist(result)) {
+    if ((result.references.length || result.status === "empty") && !result.retained && !fromCurrentPage && views.mayPersist(result)) {
       await views.storage.set(item, key, cacheReferenceResult(result, signature));
     }
   }
@@ -71,7 +72,7 @@ export async function fetchPdfReferences(
   const key = "References-PDF";
   const cached = await views.storage.getAsync(item, key);
   let partial = Boolean(cached?.snapshot?.partial);
-  let references = local && !fromCurrentPage && signature ? (readCachedReferences(cached, signature, partial ? 15 * 60 * 1000 : Number.MAX_SAFE_INTEGER) as any) : undefined;
+  let references = local && cacheEnabled("PDF") && !fromCurrentPage && signature ? (readCachedReferences(cached, signature, retentionMs("pdf",partial)) as any) : undefined;
   if (!task.isCurrent()) return undefined;
 
   let resultSource = "PDF";
@@ -167,7 +168,7 @@ export async function fetchApiReferences(
     });
     if (!task.isCurrent()) return undefined;
     result = preferCachedReferences(result, previous, getString("cards-cached-offline"));
-    if (result.references.length && !result.retained && !fromCurrentPage && views.mayPersist(result)) {
+    if ((result.references.length || result.status === "empty") && !result.retained && !fromCurrentPage && views.mayPersist(result)) {
       await views.storage.set(item, key, cacheReferenceResult(result, signature));
     }
   }

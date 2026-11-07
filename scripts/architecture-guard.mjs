@@ -154,7 +154,7 @@ test('§3 source filenames carry no version numbers or transient prefixes', () =
   assert.deepEqual(bad, [], `transient or version-prefixed source filenames: ${bad.join(', ')}`);
 });
 
-test('§6 version fields are aligned across package, lock, manifest, brand, UI and update feed', (t) => {
+function checkVersionAlignment(t) {
   const pkg = readJson('package.json');
   const lock = readJson('package-lock.json');
   const manifest = readJson('addon/manifest.json');
@@ -170,13 +170,24 @@ test('§6 version fields are aligned across package, lock, manifest, brand, UI a
     'update.json': update.addons[pkg.config.addonID]?.updates?.[0]?.version,
   };
 
+  for (const [field, value] of Object.entries(versions)) {
+    if (field.endsWith("#releaseTag")) continue;
+    assert.equal(value, ver, field);
+  }
+  assert.equal(lock.packages[""].version, ver);
+  assert.ok([ver,"__buildVersion__"].includes(manifest.version));
+  for (const name of ["README.md","README.zh-CN.md","README.en.md"]) {
+    assert.ok(read(name).split("\n")[0].includes(ver), name + " release notice");
+  }
   assert.equal(product.version, ver);
   assert.equal(product.releaseTag, `v${ver}`);
   assert.equal(pkg.config.releaseTag, `v${ver}`);
   assert.equal(update.addons[pkg.config.addonID]?.updates?.[0]?.version, ver);
   assert.equal(baseline.lastReleasedVersion, ver);
   t.diagnostic(`version fields aligned at v${ver}`);
-});
+}
+
+test('§6 version fields are aligned across package, lock, manifest, brand, UI and update feed', checkVersionAlignment);
 
 test('§9 update feeds point at valid released HTTPS URLs and complete SHA-512 hashes', (t) => {
   const pkg = readJson('package.json');

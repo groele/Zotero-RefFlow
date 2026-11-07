@@ -1,3 +1,4 @@
+import {isFresh} from "./cachePolicy";
 import Requests from "./requests";
 import CitationVerifier from "./verifier";
 
@@ -124,6 +125,7 @@ export default class PublisherReferences {
       if(value===undefined)unavailable=true;
       return value;
     };
+    if(isFresh(signal))this.misses.delete(cacheKey);
     if((this.misses.get(cacheKey)||0)>Date.now())return [];
     if(url && publisherForURL(url)) {
       const html=await request(url,"text",{Accept:"text/html"});

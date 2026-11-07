@@ -3,6 +3,7 @@
  * 具备请求超时控制、429/503 指数退避自动重试、500项 LRU 内存容量限制与 RFC 5854 内容协商支持
  */
 
+import {isFresh} from "./cachePolicy";
 import { version, homepage } from "../../package.json";
 import {encodeData,utf8Bytes} from "./jsonData";
 import {SharedRequestScheduler} from './requestScheduler';
@@ -26,7 +27,7 @@ export default class Requests {
   private disposed=false;
   private cacheGeneration=0;
   public lastFailure?: {status:number;endpoint:string;message:string;retryAfterMs?:number};
-  private cooldowns=new Map<string,{until:number;message:string}>();
+  private static cooldowns=new Map<string,{until:number;message:string}>();
   public readonly metrics={requests:0,cacheHits:0,deduplicated:0,retries:0,timeouts:0,cooldownHits:0,cancellations:0};
 
   constructor(options: RequestOptions={}) {
@@ -40,7 +41,7 @@ export default class Requests {
     this.disposed=true;
     for(const flight of this.inFlight.values())flight.controller.abort();
     for(const cancel of this.cancellers) cancel();
-    this.cancellers.clear();this.clearCache();this.cooldowns.clear();
+    this.cancellers.clear();this.clearCache();
     for(const resume of this.queue.splice(0)) resume();
   }
 
@@ -98,10 +99,10 @@ export default class Requests {
   }
 
   private coolingDown(key:string,url:string):boolean {
-    const entry=this.cooldowns.get(key);
+    const entry=Requests.cooldowns.get(key);
     if(!entry)return false;
     const remaining=entry.until-Date.now();
-    if(remaining<=0){this.cooldowns.delete(key);return false;}
+    if(remaining<=0){Requests.cooldowns.delete(key);return false;}
     this.metrics.cooldownHits++;
     this.lastFailure={status:429,endpoint:url.split("?")[0],message:entry.message,retryAfterMs:remaining};
     return true;
@@ -235,8 +236,8 @@ export default class Requests {
           const reset=Number(res.getResponseHeader?.("X-RateLimit-Reset"));
           if(remaining!==null&&remaining!==undefined&&remaining!==""&&Number(remaining)===0&&Number.isFinite(reset)&&reset>0)retryAfter=Math.max(retryAfter,reset*1000);
           const wait=Math.max(delayMs,retryAfter);
-          if(!this.cooldowns.has(throttleKey)&&this.cooldowns.size>=128)this.cooldowns.delete(this.cooldowns.keys().next().value!);
-          this.cooldowns.set(throttleKey,{until:Date.now()+wait,message:this.lastFailure.message});
+          if(!Requests.cooldowns.has(throttleKey)&&Requests.cooldowns.size>=128)Requests.cooldowns.delete(Requests.cooldowns.keys().next().value!);
+          Requests.cooldowns.set(throttleKey,{until:Date.now()+wait,message:this.lastFailure.message});
           this.lastFailure.retryAfterMs=wait;
           retryAfter=wait;
         }
@@ -268,6 +269,7 @@ export default class Requests {
   async get(url: string, responseType: string = "json", headers: Record<string, string> = {},signal?:AbortSignal): Promise<any> {
     if(this.disposed||signal?.aborted)return undefined;
     const cacheKey = this.getCacheKey("GET", url, { responseType, headers });
+    if (isFresh(signal)) this.evictCache(cacheKey);
     const cached = this.getCache(cacheKey);
     if (cached !== undefined) {
       return cached;
@@ -294,6 +296,7 @@ export default class Requests {
     }, this.defaultHeaders, headers);
     const cacheKey = this.getCacheKey("POST", url, { body, responseType, headers: mergedHeaders });
     const cacheable=policy.cache!==false;
+    if (isFresh(signal)) this.evictCache(cacheKey);
     const cached = cacheable?this.getCache(cacheKey):undefined;
     if (cached !== undefined) {
       return cached;

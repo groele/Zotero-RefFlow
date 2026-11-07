@@ -1,3 +1,4 @@
+import {isFresh, markFresh} from "./cachePolicy";
 /** One deadline for a whole provider operation, including lookup, queues and pages. */
 export class OperationBudget {
   private controller=new AbortController();
@@ -8,6 +9,7 @@ export class OperationBudget {
   private closed=false;
   readonly deadline:number;
   constructor(private parent?:AbortSignal,timeoutMs=25000) {
+    if(isFresh(parent)) markFresh(this.controller.signal);
     this.deadline=Date.now()+Math.max(1,timeoutMs);
     this.stopped=new Promise(resolve=>{this.stop=()=>resolve(undefined);});
     this.controller.signal.addEventListener("abort",this.stop,{once:true});

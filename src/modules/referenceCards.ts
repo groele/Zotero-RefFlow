@@ -1,3 +1,4 @@
+import {actionIcon} from "./cardActionIcon";
 import {config} from "../../package.json";
 import {getString} from "../utils/locale";
 import type Views from "./views";
@@ -6,6 +7,7 @@ import BatchImporter from "./batchImporter";
 import BatchResults from "./batchResults";
 import JournalStatus from "./journalStatus";
 import {JournalCommitPendingError,JournalUnavailableError} from "./batchJournal";
+import {ListIndices} from "./listIndices";
 import {referenceIdentity} from "./referenceIdentity";
 import { cleanupSync } from "../utils/lifecycle";
 import {importFailureText,importErrorText,importSummaryText} from './importErrors';
@@ -39,6 +41,7 @@ export default class ReferenceCards {
   private virtualCount=0;
   private virtual=false;
   private rowHeight=144;
+  private indices = new ListIndices();
   private searchIndex=new WeakMap<ItemBaseInfo,string>();
 
   constructor(private views:Views,private body:HTMLElement,private grid:HTMLElement,private search:HTMLInputElement,listLabel='Reference list') {
@@ -61,18 +64,9 @@ export default class ReferenceCards {
     this.cleanup.push(()=>search.removeEventListener("input",onInput),()=>search.removeEventListener("keydown",onKeyDown),()=>grid.removeEventListener("contextmenu",onContextMenu));
   }
   dispose(){if(this.disposed)return;this.disposed=true;this.cleanup.forEach(cleanupSync);this.cleanup=[];for(const menu of this.menus)cleanupSync(()=>menu.remove());this.menus.clear();globalThis.clearTimeout(this.searchTimer);this.clear();}
-  clear(preserveResults=false){if(!preserveResults){this.batchResults.clear();this.journalStatus.clear();}this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.listCurrent=undefined;this.windowStart=0;this.virtualCount=0;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.clearTip();this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
+  clear(preserveResults=false){if(!preserveResults){this.indices=new ListIndices();this.batchResults.clear();this.journalStatus.clear();}this.generation++;this.matchGeneration++;this.matchCurrent=undefined;this.listCurrent=undefined;this.windowStart=0;this.virtualCount=0;this.observer?.disconnect();this.matchQueue=[];globalThis.clearTimeout(this.searchTimer);globalThis.clearTimeout(this.hoverTimer);this.clearTip();this.selected.clear();this.refs=[];this.rows=[];this.empty?.remove();this.empty=undefined;this.grid.replaceChildren();this.search.value="";}
   private clearTip(){const tip=this.tip;this.tip=undefined;if(tip){globalThis.clearTimeout(tip.tipTimer);tip.clear();}}
   private drainMatches(){while(this.matchActive<4&&this.matchQueue.length){const match=this.matchQueue.shift()!;this.matchActive++;void match().catch(error=>ztoolkit.log(error)).finally(()=>{this.matchActive--;if(!this.disposed)this.drainMatches();});}}
-  private actionIcon(action:HTMLButtonElement,state:'add'|'open'|'busy'|'error',label:string){
-    const doc=action.ownerDocument,ns='http://www.w3.org/2000/svg';
-    action.dataset.actionState=state;action.title=label;action.setAttribute('aria-label',label);
-    const svg=doc.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 16 16');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
-    svg.setAttribute('fill','none');svg.setAttribute('stroke','currentColor');svg.setAttribute('stroke-width','1.5');svg.setAttribute('stroke-linecap','round');svg.setAttribute('stroke-linejoin','round');
-    if(state==='busy')for(const x of [3,8,13]){const circle=doc.createElementNS(ns,'circle');circle.setAttribute('cx',String(x));circle.setAttribute('cy','8');circle.setAttribute('r','1');circle.setAttribute('fill','currentColor');circle.setAttribute('stroke','none');svg.append(circle);}
-    else{const path=doc.createElementNS(ns,'path');path.setAttribute('d',state==='add'?'M8 3v10M3 8h10':state==='open'?'M4 12 12 4M5 4h7v7':'M8 3.5v6M8 12h0');svg.append(path);}
-    action.replaceChildren(svg);
-  }
   private queueLibraryMatch(row:HTMLElement,parent:Zotero.Item,current:()=>boolean){
     if(this.matchedRows.has(row))return;
     this.matchedRows.add(row);
@@ -89,7 +83,7 @@ export default class ReferenceCards {
       ref.retraction=provider?.isRetracted?provider:local?.isRetracted?local:provider;
       const action=row.querySelector<HTMLButtonElement>(".reference-action")!;
       const editable=Boolean(parent && !parent.deleted && (typeof parent.isEditable !== 'function' || parent.isEditable()) && (Zotero as any).Libraries.get(parent.libraryID)?.editable !== false);
-      this.actionIcon(action,found?'open':'add',getString(found?"cards-show-library":(editable?"cards-import":"cards-library-readonly")));
+      actionIcon(action,found?'open':'add',getString(found?"cards-show-library":(editable?"cards-import":"cards-library-readonly")));
       action.disabled=Boolean(!found && !editable);
       const dot=row.querySelector<HTMLElement>('.reference-state')!;
       dot.style.backgroundColor=found?"var(--color-accent, #3678b5)":"var(--color-secondary, #9ca3af)";dot.title=found?getString('cards-in-library'):String(ref.year||'');
@@ -145,7 +139,9 @@ export default class ReferenceCards {
       if(this.disposed||!current())return;
     }
     const query=this.search.value;
-    const selected=new Set([...this.selected].map(referenceIdentity));
+    const sameList = refs === this.refs;
+    const sameSelection = sameList ? [...this.selected] : [];
+    const selected = new Set(sameList ? [] : [...this.selected].map(referenceIdentity));
     const active=this.grid.ownerDocument.activeElement as HTMLElement|null;
     const focused=active?.closest?.('.reference-item') as any;
     const focusKey=focused&&this.grid.contains(focused)?referenceIdentity(focused.reference):undefined;
@@ -154,7 +150,7 @@ export default class ReferenceCards {
     const scrollTop=this.grid.scrollTop;
     this.virtual=refs.length>200;
     if(this.virtual){const fontSize=parseFloat(this.body.ownerDocument.defaultView?.getComputedStyle(this.grid)?.fontSize||'13')||13;this.rowHeight=Math.max(144,Math.ceil(fontSize*10.5+24));}
-    const indices=refs.map((ref,index)=>index).filter(index=>!this.virtual||this.matches(refs[index]));
+    const {indices,numbers,width}=this.indices.forList(refs,(this.body as any).references || refs, this.virtual ? query : "", ref=>this.matches(ref));
     const start=this.virtual?Math.min(this.windowStart,Math.max(0,indices.length-60)):0;
     const displayIndices=this.virtual?indices.slice(start,start+60):indices;
     this.clear(true);this.search.value=query;this.refs=refs;
@@ -166,10 +162,7 @@ export default class ReferenceCards {
     this.grid.style.maxHeight=this.virtual?'65vh':'';
     const spacer=(height:number)=>{const node=this.body.ownerDocument.createElement('div');node.style.height=`${height}px`;node.style.flexShrink='0';node.setAttribute('aria-hidden','true');return node;};
     if(this.virtual)fragment.append(spacer(start*this.rowHeight));
-    const original:ItemBaseInfo[]=(this.body as any).references||refs;
-    const positions=new Map(original.map((ref,index)=>[ref,index+1]));
-    const numbers=refs.map((ref,index)=>Number.isSafeInteger(Number(ref.number))&&Number(ref.number)>0?Number(ref.number):(positions.get(ref)||index+1));
-    this.grid.style.setProperty("--refflow-number-width",`${numbers.reduce((width,number)=>Math.max(width,String(number).length+1),2)}ch`);
+    this.grid.style.setProperty("--refflow-number-width",width+"ch");
     if((this.body.ownerDocument.defaultView as any).IntersectionObserver)this.observer=new (this.body.ownerDocument.defaultView as any).IntersectionObserver((entries:IntersectionObserverEntry[])=>{
       for(const entry of entries)if(entry.isIntersecting){this.observer?.unobserve(entry.target);
         this.queueLibraryMatch(entry.target as HTMLElement,parent,current);
@@ -197,7 +190,7 @@ export default class ReferenceCards {
       if(this.virtual){about.style.display='-webkit-box';about.style.setProperty('-webkit-box-orient','vertical');about.style.setProperty('-webkit-line-clamp','2');about.style.overflow='hidden';}
       const metadata=doc.createElement('div');metadata.className='reference-metadata';metadata.append(about);metadata.hidden=!about.textContent;
       if(ref.retraction?.isRetracted){const warning=doc.createElement("span");warning.className="reference-retracted";warning.textContent=getString("relatedbox-retracted-badge");warning.title=ref.retraction.reason||"";content.append(warning);}
-      const editable=Boolean(parent && !parent.deleted && (typeof parent.isEditable !== 'function' || parent.isEditable()) && (Zotero as any).Libraries.get(parent.libraryID)?.editable !== false);const action=doc.createElement("button");action.type="button";action.className="reference-action";this.actionIcon(action,ref._item?'open':'add',getString(ref._item?"cards-show-library":(editable?"cards-import":"cards-library-readonly")));if(!ref._item && !editable)action.disabled=true;
+      const editable=Boolean(parent && !parent.deleted && (typeof parent.isEditable !== 'function' || parent.isEditable()) && (Zotero as any).Libraries.get(parent.libraryID)?.editable !== false);const action=doc.createElement("button");action.type="button";action.className="reference-action";actionIcon(action,ref._item?'open':'add',getString(ref._item?"cards-show-library":(editable?"cards-import":"cards-library-readonly")));if(!ref._item && !editable)action.disabled=true;
       action.addEventListener('dblclick',event=>event.stopPropagation());
       action.addEventListener("click",async event=>{
         event.stopPropagation();if(action.disabled||!current()||!row.isConnected)return;
@@ -205,7 +198,7 @@ export default class ReferenceCards {
         const collections=this.views.utils.importCollections(parent,this.body.ownerDocument.defaultView!);
         const active=()=>current()&&row.isConnected&&this.parent()?.id===parent.id;
         action.disabled=true;action.setAttribute('aria-busy','true');row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);
-        this.actionIcon(action,'busy',getString('cards-importing-doi'));
+        actionIcon(action,'busy',getString('cards-importing-doi'));
         try {
           const found=await this.views.utils.searchLibraryItem({...ref,_item:undefined},parent.libraryID);
           if(!active())return;
@@ -215,8 +208,8 @@ export default class ReferenceCards {
             if(result.failedCount)throw new Error(importFailureText(result.failures[0]));
             if(active())this.label().textContent=importSummaryText(result);
           }
-          if(active()&&ref._item){this.actionIcon(action,'open',getString("cards-show-library"));dot.style.backgroundColor="var(--color-accent, #3678b5)";dot.title=getString("cards-in-library");row.style.opacity="1";this.invalidateLibraryMatches();}
-        }catch(error){if(error instanceof JournalCommitPendingError||error instanceof JournalUnavailableError)void this.journalStatus.show();if(active()){const message=importErrorText(error);this.label().textContent=message;this.actionIcon(action,'error',message);}ztoolkit.log(error);}finally{row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);action.disabled=false;action.removeAttribute('aria-busy');}
+          if(active()&&ref._item){actionIcon(action,'open',getString("cards-show-library"));dot.style.backgroundColor="var(--color-accent, #3678b5)";dot.title=getString("cards-in-library");row.style.opacity="1";this.invalidateLibraryMatches();}
+        }catch(error){if(error instanceof JournalCommitPendingError||error instanceof JournalUnavailableError)void this.journalStatus.show();if(active()){const message=importErrorText(error);this.label().textContent=message;actionIcon(action,'error',message);}ztoolkit.log(error);}finally{row.dataset.importRevision=String(Number(row.dataset.importRevision||0)+1);action.disabled=false;action.removeAttribute('aria-busy');}
       });
       action.setAttribute("aria-label",action.title);
       row.style.opacity=ref._item?"1":String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`)||"1");
@@ -253,8 +246,11 @@ export default class ReferenceCards {
       if(this.virtual)fragment.append(spacer(Math.max(0,indices.length-start-displayIndices.length)*this.rowHeight));
       this.grid.append(fragment);if(this.virtual)this.grid.scrollTop=scrollTop;
       this.empty=this.body.ownerDocument.createElement("p");this.empty.className="refflow-empty-result";this.empty.setAttribute("role","status");this.empty.textContent=getString("cards-no-search-results");this.empty.hidden=true;this.grid.after(this.empty);
-      for(const ref of refs)if(selected.has(referenceIdentity(ref)))this.selected.add(ref);
-      this.anchor=Math.max(0,refs.findIndex(ref=>referenceIdentity(ref)===anchorKey));
+      if(sameList) for(const ref of sameSelection)this.selected.add(ref);
+      else {
+        if(selected.size)for(const ref of refs)if(selected.has(referenceIdentity(ref)))this.selected.add(ref);
+        this.anchor=anchorKey ? Math.max(0,refs.findIndex(ref=>referenceIdentity(ref)===anchorKey)) : 0;
+      }
       this.updateSelection();
       if(query&&!this.virtual)this.filter();
       if(this.virtual){this.label().textContent=`${indices.length} / ${this.refs.length} · ${this.body.getAttribute('data-refflow-result-source')||''}`;this.empty.hidden=indices.length>0||!this.refs.length;}

@@ -1,5 +1,7 @@
 import { build } from "esbuild";
-import { zip } from "compressing";
+import yazl from "yazl";
+import {createWriteStream} from "node:fs";
+import {pipeline} from "node:stream/promises";
 import path from "path";
 import {
   existsSync,
@@ -23,7 +25,7 @@ const details = JSON.parse(readFileSync(path.join(__dirname, "../package.json"),
 const { name, author, description, homepage, version, config } = details;
 
 const t = new Date();
-const buildTime = dateFormat("YYYY-mm-dd HH:MM:SS", new Date());
+const buildTime = details.config.releaseDate;
 const buildDir = "build";
 
 const isPreRelease = version.includes("-");
@@ -73,26 +75,28 @@ function clearFolder(target) {
   mkdirSync(target, { recursive: true });
 }
 
-function dateFormat(fmt, date) {
-  let ret;
-  const opt = {
-    "Y+": date.getFullYear().toString(),
-    "m+": (date.getMonth() + 1).toString(),
-    "d+": date.getDate().toString(),
-    "H+": date.getHours().toString(),
-    "M+": date.getMinutes().toString(),
-    "S+": date.getSeconds().toString(),
-  };
-  for (let k in opt) {
-    ret = new RegExp("(" + k + ")").exec(fmt);
-    if (ret) {
-      fmt = fmt.replace(
-        ret[1],
-        ret[1].length == 1 ? opt[k] : opt[k].padStart(ret[1].length, "0"),
-      );
+async function packageXpi(directory, output) {
+  const archive = new yazl.ZipFile();
+  const finished = pipeline(archive.outputStream, createWriteStream(output));
+  const options = {mtime: new Date(1980, 0, 1), mode: 0o100644};
+  function visit(folder, prefix) {
+    for (const name of readdirSync(folder).sort()) {
+      const file = path.join(folder, name);
+      if (lstatSync(file).isDirectory()) visit(file, prefix + name + "/");
+      else {
+        let bytes = readFileSync(file);
+        if (/\.(?:js|css|html|xhtml|ftl|json|manifest|svg)$/i.test(name)) {
+          const normalized = Buffer.from(bytes.toString("utf8").replace(/\r\n/g, "\n"));
+          if (!bytes.equals(normalized)) writeFileSync(file, normalized);
+          bytes = normalized;
+        }
+        archive.addBuffer(bytes, prefix + name, options);
+      }
     }
   }
-  return fmt;
+  visit(directory, "");
+  archive.end();
+  await finished;
 }
 
 function renameLocaleFiles() {
@@ -286,14 +290,7 @@ async function main() {
 
   console.log("[Build] Addon prepare OK");
 
-  await zip.compressDir(
-    path.join(buildDir, "addon"),
-    path.join(buildDir, `${name}.xpi`),
-    {
-      ignoreBase: true,
-    },
-  );
-
+  await packageXpi(path.join(buildDir, "addon"),path.join(buildDir, name + ".xpi"));
   console.log("[Build] Addon pack OK");
   if(!isPreRelease)prepareRelease(details,buildDir,env.NODE_ENV==='production' && env.REFNEXUS_NO_PROMOTE!=='1' && env.REFFLOW_NO_PROMOTE!=='1');
   console.log(

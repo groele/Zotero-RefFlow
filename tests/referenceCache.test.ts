@@ -20,3 +20,24 @@ test("cached reference metadata drops live Zotero objects and returns fresh iden
   assert.equal(readCachedReferences(record,"sig",1000)?.[0].identifiers.DOI,"10.1234/a");
   assert.equal(first[0]._item,undefined);
 });
+
+test("source and global switches gate snapshot reads, with separate complete and partial lifetimes", async () => {
+  const {cacheReferenceResult, readCachedReferenceResult} = await import("../src/modules/referenceCache");
+  const original = Zotero.Prefs.get;
+  const values = new Map<string,any>();
+  (Zotero.Prefs as any).get = (name:string)=>values.get(name);
+  try {
+    const snapshot = cacheReferenceResult({references:[{text:"cached reference",identifiers:{}}],source:"Online"}, "sig", 100);
+    values.set("refflow.referenceDays", 0);
+    assert.ok(readCachedReferenceResult(snapshot, "sig", 100 + 365*86400000));
+    values.set("refflow.saveAPIReferences", false);
+    assert.equal(readCachedReferenceResult(snapshot, "sig", 101), undefined);
+    values.set("refflow.saveAPIReferences", true);
+    values.set("refflow.cacheEnabled", false);
+    assert.equal(readCachedReferenceResult(snapshot, "sig", 101), undefined);
+    values.set("refflow.cacheEnabled", true);
+    values.set("refflow.partialMinutes", 5);
+    snapshot.snapshot.partial=true;
+    assert.equal(readCachedReferenceResult(snapshot, "sig", 101 + 300000), undefined);
+  } finally {Zotero.Prefs.get = original;}
+});

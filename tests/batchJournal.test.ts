@@ -8,7 +8,8 @@ function fixture(){
  const z:any=Zotero,old={win:z.getMainWindow,DB:z.DB,Items:z.Items};
  let file:any,backup:any,failWrite=false,failCommit=false,writes=0,failAt=0;
  const parent:any={id:501,key:"PARENT01",libraryID:1},child:any={id:502,key:"CHILD001",libraryID:1};
- z.Items={getAsync:async(id:number)=>id===501?parent:id===502?child:undefined};
+ const find=(id:number)=>id===501?parent:id===502?child:undefined;
+ z.Items={getAsync:async(id:number|number[])=>Array.isArray(id)?id.map(find).filter(Boolean):find(id)};
  z.getMainWindow=()=>({IOUtils:{exists:async(path:string)=>path.endsWith('.previous')?backup!==undefined:file!==undefined,readJSON:async(path:string)=>clone(path.endsWith('.previous')?backup:file),writeJSON:async(_path:string,data:any)=>{if(_path.endsWith('.previous')){if(failWrite)throw new Error('disk denied');backup=clone(data);return;}if(failWrite||writes+1===failAt)throw new Error("disk denied");file=clone(data);writes++;}}});
  z.DB={executeTransaction:async(fn:any)=>{const value=await fn();if(failCommit)throw new Error("DB commit failed");return value;}};
  const record:any={version:2,parentID:501,libraryID:1,createdIDs:[502],relations:[],memberships:[],attachments:[],uses:[],states:{}};
@@ -107,4 +108,17 @@ test("read-only and identical journal updates do not rewrite journal files",asyn
  const f=fixture();try{const j=new BatchJournal();await j.transaction(()=>j.put(f.parent,"refnexus_batch_noop",f.record));const writes=f.writes;
  await j.transaction(()=>j.get(f.parent,"refnexus_batch_noop"));await j.transaction(()=>j.put(f.parent,"refnexus_batch_noop",f.record));assert.equal(f.writes,writes);assert.equal((await j.diagnostics()).backupAvailable,true);
  }finally{f.restore();}
+});
+
+test("diagnostics use the same owner validation as subsequent transactions",async()=>{
+  const f=fixture();
+  try {
+    const journal=new BatchJournal();
+    f.file={version:1,pending:false,entries:[{}]};
+    assert.equal((await journal.diagnostics(1)).state,"invalid");
+    await assert.rejects(journal.transaction(async()=>{},1),/batch owner/);
+    f.file={version:1,pending:false,entries:[{record:{libraryID:2}}]};
+    assert.equal((await journal.diagnostics(1)).state,"ready");
+    assert.equal((await journal.diagnostics(2)).state,"invalid");
+  } finally {f.restore();}
 });

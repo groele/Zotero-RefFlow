@@ -1,3 +1,4 @@
+import {cacheEnabled, markFresh} from "./cachePolicy";
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
 import CitationVerifier from "./verifier";
@@ -27,8 +28,7 @@ export function getPanelItem(views: Views, panel: Element): Zotero.Item | undefi
 }
 
 export function mayPersist(result: ReferenceResult): boolean {
-  const pdf = /^PDF\b/.test(result.source);
-  return Boolean(Zotero.Prefs.get(`${config.addonRef}.${pdf ? "savePDFReferences" : "saveAPIReferences"}`));
+  return cacheEnabled(result.source);
 }
 
 export function referenceDescription(result: ReferenceResult): string {
@@ -206,8 +206,7 @@ export async function performReferences(
   }
 
   let references: ItemBaseInfo[] = [];
-  if (!local && ["API", "Auto", "Web"].includes(source)) views.utils.API.requests.clearCache();
-  if (!local && ["API", "Auto", "Web"].includes(source)) views.utils.API.publisherReferences.clearCache();
+  if (!local || !cacheEnabled()) markFresh(task.signal);
 
   let resultSource = source;
   let sourceEvidence: ReferenceSourceEvidence | undefined;

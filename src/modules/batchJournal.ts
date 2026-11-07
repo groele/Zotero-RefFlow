@@ -25,6 +25,10 @@ export class BatchJournal {
     const data=await this.io.readJSON(this.filename);
     if(data?.version!==1||typeof data.pending!=="boolean"||!Array.isArray(data.entries))throw new JournalUnavailableError("invalid","RefFlow batch journal is unreadable; original file preserved");
     if(data.pending)throw new JournalUnavailableError("unknown-pending","RefFlow batch journal contains an interrupted transaction; preserve the file and resolve it before importing or undoing batches");
+    this.validateEntries(data,libraryID);
+    return data;
+  }
+  private validateEntries(data:JournalFile,libraryID?:number){
     const ids=new Set<string>();
     for(const entry of data.entries){
       // Only an unambiguous library identity permits isolating a damaged entry.
@@ -36,7 +40,6 @@ export class BatchJournal {
       const key=entry.record.libraryID+":"+entry.batchID;if(ids.has(key))throw new Error("Duplicate RefFlow batch journal");ids.add(key);
       for(const [id,key] of Object.entries(entry.itemKeys))if(!Number.isSafeInteger(Number(id))||Number(id)<=0||typeof key!=="string"||!key)throw new Error("Malformed RefFlow item identity");
     }
-    return data;
   }
   private async write(data:JournalFile){await this.io.writeJSON(this.filename,data,{tmpPath:this.filename+".tmp"});}
   private async resumeKnownCommit(){
@@ -46,11 +49,12 @@ export class BatchJournal {
     await this.write({...this.committedRecovery,pending:false});this.committedRecovery=undefined;
   }
   public retryCommitted(){const task=this.queue.catch(()=>{}).then(async()=>{if(!this.committedRecovery)throw new Error('No in-process commit evidence; automatic recovery is unavailable');await this.resumeKnownCommit();});this.queue=task;return task;}
-  public async diagnostics(){
+  public async diagnostics(libraryID?:number){
     await this.queue.catch(()=>{});
     let backupAvailable=false;
     try{backupAvailable=await this.io.exists(this.filename+'.previous');if(!await this.io.exists(this.filename))return {state:'ready',canRetry:false,backupAvailable};const data=await this.io.readJSON(this.filename);
       if(data?.version!==1||typeof data.pending!=='boolean'||!Array.isArray(data.entries))return {state:'invalid',canRetry:false,backupAvailable};
+      if(!data.pending)this.validateEntries(data,libraryID);
       const canRetry=Boolean(this.committedRecovery&&JSON.stringify(data)===JSON.stringify({...this.committedRecovery,pending:true}));
       return {state:data.pending?(canRetry?'committed-pending':'unknown-pending'):'ready',canRetry,backupAvailable};
     }catch{return {state:'invalid',canRetry:false,backupAvailable};}
@@ -91,10 +95,22 @@ export class BatchJournal {
   public async put(parent:Zotero.Item,batchID:string,record:BatchRecord){
     this.assertScope(parent.libraryID);validateBatchRecord(record,parent.id,parent.libraryID);
     const index=this.draft!.entries.findIndex(row=>row.batchID===batchID&&row.record.libraryID===parent.libraryID);
-    if(index>=0)await this.get(parent,batchID);
-    const itemKeys:Record<string,string>=index>=0?{...this.draft!.entries[index].itemKeys}:{};
-    for(const id of this.itemIDs(record)){
-      const item=await Zotero.Items.getAsync(id);if(item){if(item.libraryID!==parent.libraryID)throw new Error('Batch identity belongs to another library');if(itemKeys[id]&&itemKeys[id]!==item.key)throw new Error('Batch item identity changed; refusing update');itemKeys[id]=item.key;this.track(item);}
+    const previous = this.draft!.entries[index];
+    if (previous && (previous.parentKey !== parent.key || previous.record.parentID !== parent.id)) {
+      throw new Error("Batch ownership does not match this parent item");
+    }
+    const itemKeys = {...previous?.itemKeys};
+    const priorIDs = previous ? this.itemIDs(previous.record) : new Set<number>();
+    const ids = new Set([...priorIDs, ...this.itemIDs(record)]);
+    const items = await Zotero.Items.getAsync([...ids]);
+    for (const item of items) {
+      if (!item) continue;
+      if (item.libraryID !== parent.libraryID) throw new Error("Batch identity belongs to another library");
+      if ((priorIDs.has(item.id) || itemKeys[item.id]) && itemKeys[item.id] !== item.key) {
+        throw new Error("Batch item identity changed or is incomplete; refusing update");
+      }
+      itemKeys[item.id] = item.key;
+      this.track(item);
     }
     this.track(parent);const entry={batchID,parentKey:parent.key,record:clone(record),itemKeys};
     if(index>=0&&JSON.stringify(this.draft!.entries[index])===JSON.stringify(entry))return;

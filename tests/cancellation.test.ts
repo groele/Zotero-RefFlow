@@ -37,7 +37,7 @@ test('optional enrichment deadline aborts its child request',async()=>{
 });
 test('Retry-After beyond a day is not shortened to an early retry',async()=>{
  const original=Zotero.HTTP.request;Zotero.HTTP.request=async()=>({status:429,getResponseHeader:(name:string)=>name==='Retry-After'?'172800':null});const client=new Requests({budgetMs:100});
- try{await client.get('https://fixture/long-cooldown');assert.equal(client.lastFailure?.retryAfterMs,172800000);}finally{client.dispose();Zotero.HTTP.request=original;}
+ try{await client.get('https://long-cooldown.test/example');assert.equal(client.lastFailure?.retryAfterMs,172800000);}finally{client.dispose();Zotero.HTTP.request=original;}
 });
 test('UI identity survives DOI case/URL changes and distinguishes author-year works',()=>{
  assert.equal(referenceIdentity({identifiers:{DOI:'https://doi.org/10.1234/ABC'}} as any),referenceIdentity({identifiers:{DOI:'10.1234/abc'}} as any));

@@ -1,3 +1,4 @@
+import {isFresh, markFresh} from "./cachePolicy";
 import Utils from "./utils";
 import { config } from "../../package.json";
 import Requests from "./requests";
@@ -15,6 +16,7 @@ class API {
   private async optional<T>(work:(signal:AbortSignal)=>Promise<T>,timeoutMs:number,fallback:T,signal?:AbortSignal):Promise<T> {
     let timer:any;
     const controller=new AbortController();
+    if(isFresh(signal)) markFresh(controller.signal);
     let release:()=>void=()=>{};
     const cancelled=new Promise<T>(resolve=>{release=()=>resolve(fallback);});
     const abort=()=>{controller.abort();release();};signal?.addEventListener('abort',abort,{once:true});

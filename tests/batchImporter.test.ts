@@ -53,7 +53,7 @@ test("legacy migration preserves a manual Extra edit made while child identities
  const parent:any={id:501,key:"PARENT01",libraryID:1,getField:()=>extra,setField:(_key:string,value:string)=>extra=value,save:async()=>{}};
  let childExtra='import_batch: refnexus_batch_migrate';const child:any={id:502,key:"CHILD001",libraryID:1,getField:()=>childExtra,setField:(_key:string,value:string)=>childExtra=value,save:async()=>{}};
  z.Search=class{addCondition(){}async search(){return [];}};
- z.Items={getAsync:async(id:any)=>{if(Array.isArray(id))return [];if(id===502){if(!late){late=true;extra+='\nLate manual note';}return child;}return parent;}};
+ z.Items={getAsync:async(id:any)=>{if(Array.isArray(id))return Promise.all(id.map(i=>z.Items.getAsync(i)));if(id===502){if(!late){late=true;extra+='\nLate manual note';}return child;}return parent;}};
  z.DB={executeTransaction:async(fn:any)=>fn()};z.getMainWindow=()=>({IOUtils:{exists:async()=>Boolean(file),readJSON:async()=>file,writeJSON:async(_p:string,data:any)=>file=JSON.parse(JSON.stringify(data))}});
  try{const journal=(await import('../src/modules/batchJournal')).default;await journal.transaction(()=>(BatchImporter as any).migrateRecords(1,parent));assert.equal(extra,'SCI: 是\nLate manual note');assert.equal(childExtra,'');assert.equal(file.entries.length,1);}
  finally{z.getMainWindow=original.win;z.Items=original.Items;z.Search=original.Search;z.DB=original.DB;}

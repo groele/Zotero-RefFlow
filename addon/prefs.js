@@ -18,6 +18,11 @@ pref("extensions.zotero.__addonRef__.tipTitleColor", "#2270d9");
 pref("extensions.zotero.__addonRef__.arXivInfoIndex", 0);
 pref("extensions.zotero.__addonRef__.DOIInfoIndex", 0);
 pref("extensions.zotero.__addonRef__.TitleInfoIndex", 0);
+pref("extensions.zotero.__addonRef__.cacheEnabled", true);
+pref("extensions.zotero.__addonRef__.referenceDays", 1);
+pref("extensions.zotero.__addonRef__.pdfDays", 0);
+pref("extensions.zotero.__addonRef__.neighborhoodDays", 1);
+pref("extensions.zotero.__addonRef__.partialMinutes", 15);
 pref("extensions.zotero.__addonRef__.savePDFReferences", true);
 pref("extensions.zotero.__addonRef__.saveAPIReferences", true);
 
