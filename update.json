@@ -11,7 +11,7 @@
               "strict_max_version": "12.*"
             }
           },
-          "update_hash": "sha512:b366979d053fb899a503fc9e429a4057db39baf90d801ebdae33326424bea65b0dfd30865ae8c143abde850ee4e6afb1ba267d2e4207cd5dfa70ffc18faaf942",
+          "update_hash": "sha512:f1e3c604b4f6120924dd3fe8cba2a106043abf89892295f8d0366c12b64fa382cf0d88a2d1feb09f646caba9e673e29ee0551594116059aa058d1e4dc4a9bc92",
           "update_info_url": "https://github.com/groele/Zotero-RefFlow/releases/tag/v16.0.0"
         }
       ]
