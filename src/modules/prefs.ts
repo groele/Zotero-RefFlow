@@ -36,6 +36,7 @@ function bindCachePreferences(win: Window) {
     usage.setAttribute("data-l10n-id",`${config.addonRef}-${!value.persistent?"cache-usage-memory":value.writeFailed?"cache-usage-failed":"cache-usage"}`);
     usage.setAttribute("data-l10n-args",JSON.stringify({items:value.items,maxItems:value.maxItems,
       used:(value.bytes/1048576).toFixed(2),limit:value.maxBytes/1048576,
+      index:(value.indexBytes/1024).toFixed(1),
       evicted:storage.metrics.evictions,expired:storage.metrics.expired,skipped:storage.metrics.skipped}));
   }
   const unsubscribe = storage?.subscribe(updateUsage);
@@ -47,17 +48,15 @@ function bindCachePreferences(win: Window) {
   },{signal:controller.signal});
   const location = root.querySelector<HTMLInputElement>("#refflow-cache-path");
   const openFolder = root.querySelector<HTMLButtonElement>("#refflow-cache-folder");
-  const filename = addon.views?.storage.filename;
-  const directory = filename && PathUtils.parent(filename);
-  if (location && openFolder && filename && directory) {
-    location.value = filename;
-    location.title = filename;
-    openFolder.disabled = false;
-    openFolder.addEventListener("click", () => {
-      try { Zotero.launchFile(directory); }
+  function updateLocation() {
+    const directory=storage?.directory;
+    if(location){location.value=directory||"";location.title=directory||"";}
+    if(openFolder)openFolder.disabled=!directory;
+  }
+  openFolder?.addEventListener("click", () => {
+      try { if(storage?.directory)Zotero.launchFile(storage.directory); }
       catch (error) { Zotero.logError(error as Error); }
     }, {signal: controller.signal});
-  }
   function updateDependencies() {
     const enabled = Zotero.Prefs.get(key("cacheEnabled")) !== false;
     const pdf = enabled && Zotero.Prefs.get(key("savePDFReferences")) !== false;
@@ -98,7 +97,8 @@ function bindCachePreferences(win: Window) {
   addon.data.preferenceCleanups.add(dispose);
   updateDependencies();
   updateUsage();
-  void storage?.lock.promise.then(()=>{if(!controller.signal.aborted)updateUsage();});
+  updateLocation();
+  void storage?.lock.promise.then(()=>{if(!controller.signal.aborted){updateUsage();updateLocation();}});
 }
 
 export function registerPrefsScripts(_window: Window) {

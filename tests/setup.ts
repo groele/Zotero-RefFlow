@@ -3,7 +3,26 @@
  */
 
 // Mock Zotero global environment
-(globalThis as any).PathUtils = {join: (...parts: string[]) => parts.join("/")};
+(globalThis as any).PathUtils = {join: (...parts: string[]) => parts.join("/"),parent:(path:string)=>path.slice(0,path.lastIndexOf("/"))};
+const mockCacheFiles = new Map<string,{text:string;modified:number}>();
+const mockCacheDirectories = new Set<string>();
+let mockCacheClock = 0;
+const mockCacheIO = {
+  exists:async(path:string)=>mockCacheFiles.has(path)||mockCacheDirectories.has(path),
+  makeDirectory:async(path:string)=>{mockCacheDirectories.add(path);},
+  stat:async(path:string)=>{
+    if(mockCacheDirectories.has(path))return {type:"directory",size:0,lastModified:0};
+    const file=mockCacheFiles.get(path);if(!file)throw Error("Missing fixture file");
+    return {type:"regular",size:Buffer.byteLength(file.text),lastModified:file.modified};
+  },
+  getChildren:async(path:string)=>[...mockCacheDirectories,...mockCacheFiles.keys()].filter(key=>key.startsWith(path+"/")&&!key.slice(path.length+1).includes("/")),
+  remove:async(path:string)=>{mockCacheFiles.delete(path);},
+  move:async(from:string,to:string,options:any)=>{
+    if(options?.noOverwrite&&mockCacheFiles.has(to))throw Error("Destination exists");
+    const file=mockCacheFiles.get(from);if(!file)throw Error("Missing fixture file");
+    mockCacheFiles.set(to,file);mockCacheFiles.delete(from);
+  }
+};
 (globalThis as any).Zotero = (globalThis as any).Zotero || {
   setTimeout: globalThis.setTimeout,
   clearTimeout: globalThis.clearTimeout,
@@ -19,13 +38,13 @@
     delay: (ms: number) => new Promise(r => setTimeout(r, ms))
   },
   File: {
-    getContentsAsync: async (path: string) => "{}",
-    putContentsAsync: async (path: string, content: string) => true
+    getContentsAsync: async (path: string) => mockCacheFiles.get(path)?.text ?? "{}",
+    putContentsAsync: async (path: string, content: string) => {mockCacheFiles.set(path,{text:String(content),modified:++mockCacheClock});}
   },
   DataDirectory: {
     dir: "/mock/zotero/data"
   },
-  getMainWindow: () => ({}),
+  getMainWindow: () => ({IOUtils: mockCacheIO}),
   getTempDirectory: () => ({ path: "/mock/temp/zotero", leafName: "zotero" }),
   getProfileDirectory: () => ({ path: "/mock/zotero/profile" }),
   Prefs: {

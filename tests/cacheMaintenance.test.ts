@@ -28,16 +28,19 @@ test("retention cleanup separates PDF, neighborhood, partial, empty and permanen
 
 test("startup prunes expired lists before capacity eviction and saves readable JSON",async()=>{
   const read=Zotero.File.getContentsAsync,write=Zotero.File.putContentsAsync;
-  let persisted="";
-  Zotero.File.getContentsAsync=async()=>JSON.stringify({"1:FRESH":{list:{fresh:true}},"1:OLD":{list:{fresh:false}}});
-  Zotero.File.putContentsAsync=async(_file,content)=>{persisted=String(content);};
-  const store=new LocalStorage("startup-cleanup",{maxItems:1},(_key,value)=>!value.fresh);
+  const directory='/mock/zotero/data/startup-cleanup-reference-cache';
+  const io=(Zotero.getMainWindow() as any).IOUtils;
+  await io.makeDirectory(directory);await io.makeDirectory(directory+'/1');
+  for(const [key,age] of [['FRESH',0],['OLD',31*86400000]] as const){
+    await write(directory+'/1/'+key+'.json',JSON.stringify({schema:1,itemKey:'1:'+key,data:{'References-API':{schema:4,savedAt:Date.now()-age,references:[],snapshot:{status:'success'}}}}));
+  }
+  const store=new LocalStorage("startup-cleanup",{maxItems:1},referenceSnapshotExpired);
   try{
     await store.lock.promise;
-    assert.equal(store.get({key:"FRESH",libraryID:1},"list").fresh,true);
+    assert.ok(await store.getAsync({key:"FRESH",libraryID:1},"References-API"));
     assert.equal(store.metrics.evictions,0);assert.equal(store.metrics.expired,1);
     await store.flush();
-    assert.match(persisted,/\n  "1:FRESH": \{\n    "list":/);
+    const persisted=String(await read(directory+'/1/FRESH.json'));
     assert.equal(Buffer.byteLength(persisted),store.cacheUsage.bytes);
     assert.ok(store.cacheUsage.bytes<=store.cacheUsage.maxBytes);
   }finally{await store.dispose();Zotero.File.getContentsAsync=read;Zotero.File.putContentsAsync=write;}
@@ -73,11 +76,11 @@ test("maintenance observes changes, runs while caching is disabled and stops on 
   const maintenance=new CacheMaintenance(store);
   try{
     await store.set({key:"A",libraryID:1},"list",1);expired=true;tick();
-    await store.lock.promise;
+    await store.maintain();
     assert.equal(store.cacheUsage.items,0);
     assert.equal(observers.size,6);
     maintenance.dispose();assert.equal(observers.size,0);assert.equal(cleared,true);
     await store.set({key:"A",libraryID:1},"other",1);const removed=store.metrics.expired;
-    tick();await store.lock.promise;assert.equal(store.metrics.expired,removed);
+    tick();await store.flush();assert.equal(store.metrics.expired,removed);
   }finally{maintenance.dispose();await store.dispose();Object.assign(prefs,original);globalThis.setInterval=interval;globalThis.clearInterval=clear;}
 });

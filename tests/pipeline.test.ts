@@ -116,9 +116,9 @@ test("persistent cache owns data, rejects unknown library and caps UTF8 size",as
 });
 test("failed atomic cache write remains retryable",async()=>{
   const original=Zotero.File.putContentsAsync;let attempts=0,last="";
-  Zotero.File.putContentsAsync=async(_path,snapshot)=>{if(++attempts===1)throw new Error("Controlled disk failure");last=String(snapshot);};
+  Zotero.File.putContentsAsync=async(path,snapshot)=>{if(++attempts===1)throw new Error("Controlled disk failure");await original(path,snapshot);if(!String(path).endsWith('/index.json'))last=String(snapshot);};
   const storage=new Storage("retry-test");
-  try{await storage.set({key:"OWNED",libraryID:1},"data",1);await assert.rejects(storage.flush(),/Controlled disk failure/);await storage.set({key:"OWNED",libraryID:1},"data",2);await storage.flush();assert.equal(JSON.parse(last)["1:OWNED"].data,2);assert.equal(storage.metrics.writeFailures,1);}finally{await storage.dispose();Zotero.File.putContentsAsync=original;}
+  try{await storage.set({key:"OWNED",libraryID:1},"data",1);await assert.rejects(storage.flush(),/Controlled disk failure/);await storage.set({key:"OWNED",libraryID:1},"data",2);await storage.flush();assert.equal(JSON.parse(last).data.data,2);assert.equal(storage.metrics.writeFailures,1);}finally{await storage.dispose();Zotero.File.putContentsAsync=original;}
 });
 test("a continued reference heading does not hide the PDF scan limit",async()=>{
   const host:any=Zotero,original=host.SDT;

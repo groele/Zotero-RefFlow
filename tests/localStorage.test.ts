@@ -16,8 +16,8 @@ describe("LocalStorage Suite", () => {
   });
   test("shutdown flush saves the latest update before the debounce fires",async()=>{
     const original=Zotero.File.putContentsAsync;let content='';
-    Zotero.File.putContentsAsync=async (_file:string,snapshot:string)=>{content=snapshot;};
-    try{const storage=new LocalStorage('shutdown-test');await storage.set({key:'FINAL',libraryID:2},'data',{title:'last update'});await storage.dispose();assert.equal(JSON.parse(content)['2:FINAL'].data.title,'last update');}finally{Zotero.File.putContentsAsync=original;}
+    Zotero.File.putContentsAsync=async (file:string,snapshot:string)=>{await original(file,snapshot);if(!file.endsWith('/index.json'))content=snapshot;};
+    try{const storage=new LocalStorage('shutdown-test');await storage.set({key:'FINAL',libraryID:2},'data',{title:'last update'});await storage.dispose();assert.equal(JSON.parse(content).data.data.title,'last update');}finally{Zotero.File.putContentsAsync=original;}
   });
   test("should prioritize Zotero.DataDirectory.dir over temporary directory", async () => {
     const storage = new LocalStorage("test-cache");
@@ -53,8 +53,8 @@ describe("LocalStorage Suite", () => {
     let savedContent = "";
     const originalPut = (globalThis as any).Zotero.File.putContentsAsync;
     (globalThis as any).Zotero.File.putContentsAsync = async (file: string, content: string) => {
-      savedContent = content;
-      return true;
+      if(!file.endsWith('/index.json'))savedContent = content;
+      await originalPut(file,content);
     };
 
     try {

@@ -2,23 +2,8 @@ if (!/refflow-z10-release-/.test(Zotero.DataDirectory.dir)) throw Error('Isolate
 const views = Zotero.ZoteroRefFlow.views;
 const store = views.storage;
 await store.lock.promise;
-if (store.filename !== PathUtils.join(Zotero.DataDirectory.dir, "refflow-reference-cache.json")) throw Error("Unexpected cache filename");
-const prefix = "migration-probe";
-const oldPath = PathUtils.join(Zotero.DataDirectory.dir, prefix + "-v2.json");
-const newPath = PathUtils.join(Zotero.DataDirectory.dir, prefix + "-reference-cache.json");
-const original = JSON.stringify({"1:PROBE":{References:["preserved"]}});
-await window.IOUtils.writeUTF8(oldPath, original);
-const migrated = new store.constructor(prefix);
-await migrated.lock.promise;
-if (await window.IOUtils.exists(oldPath) || await window.IOUtils.readUTF8(newPath) !== original ||
-    migrated.get({key:"PROBE",libraryID:1},"References")[0] !== "preserved") throw Error("Existing cache migration failed");
-await migrated.dispose();
-await window.IOUtils.writeUTF8(oldPath, "{}");
-const reopened = new store.constructor(prefix);
-await reopened.lock.promise;
-if (reopened.get({key:"PROBE",libraryID:1},"References")[0] !== "preserved" ||
-    await window.IOUtils.readUTF8(oldPath) !== "{}") throw Error("Existing destination was overwritten");
-await reopened.dispose();
+if (store.directory !== PathUtils.join(Zotero.DataDirectory.dir, "refflow-reference-cache")) throw Error("Unexpected cache directory");
+if (store.filename !== PathUtils.join(store.directory, "index.json")) throw Error("Unexpected cache index");
 const item = new Zotero.Item('journalArticle');
 item.setField('title','Reference list cache audit');
 item.setField('DOI','10.1234/cache-audit');
@@ -53,8 +38,9 @@ try {
   views.utils.API.requests.clearCache();
   body.references = [];
   await stage('repeat open after clearing HTTP memory',()=>views.refreshReferences(body,true,false,false,item));
-  const disk = JSON.parse(await Zotero.File.getContentsAsync(views.storage.filename));
-  const persisted = disk[item.libraryID+':'+item.key]['References-API'];
+  const paperPath=PathUtils.join(store.directory,String(item.libraryID),item.key+".json");
+  const disk = JSON.parse(await Zotero.File.getContentsAsync(paperPath));
+  const persisted = disk.data['References-API'];
   await views.utils.API.requests.get('https://audit.invalid/B');
   await stage('manual force refresh A',()=>views.refreshReferences(body,false,false,false,item));
   await stage('reuse independent HTTP response B',()=>views.utils.API.requests.get('https://audit.invalid/B'));
@@ -66,7 +52,7 @@ try {
     for(let i=0;i<100 && find("referenceDays")?.value!=="30";i++) await Zotero.Promise.delay(50);
     const days=find("referenceDays"),master=find("cacheEnabled");
     expect(days?.value==="30" && find("neighborhoodDays").value==="30" && find("pdfDays").value==="30" && master?.checked,"Cache defaults not bound");
-    expect(find("cache-path").value===views.storage.filename && find("cache-path").readOnly,"Unexpected cache file path");
+    expect(find("cache-path").value===store.directory && find("cache-path").readOnly,"Unexpected cache folder path");
     const capacity=find("cacheMaxMiB"),count=find("cacheMaxItems"),usage=find("cache-usage");
     expect(capacity.value==="8" && count.value==="250","Capacity defaults not bound");
     expect(usage.getAttribute("data-l10n-args").includes('"items"'),"Usage not populated");
@@ -88,7 +74,9 @@ try {
     await Zotero.Promise.delay(300);
     const formatted=await Zotero.File.getContentsAsync(store.filename);
     expect(formatted===JSON.stringify(JSON.parse(formatted),null,2)+"\n","Cache is not consistently formatted");
-    expect(new TextEncoder().encode(formatted).length===store.cacheUsage.bytes,"Formatted bytes not reflected in usage");
+    const index=JSON.parse(formatted);
+    const dataBytes=Object.values(index.entries).reduce((sum,entry)=>sum+entry.bytes,0);
+    expect(dataBytes===store.cacheUsage.bytes,"Paper bytes not reflected in usage");
     expect(store.metrics.expired>0,"Expired cleanup not counted");
     for(const name of ["cacheMaxMiB","cacheMaxItems","pdfDays"])Zotero.Prefs.clear("refflow."+name);
     await Zotero.Promise.delay(50);
@@ -98,7 +86,7 @@ try {
     try {
       Zotero.launchFile=path=>{opened=path;};
       find("cache-folder").click();
-      expect(opened===Zotero.DataDirectory.dir,"Wrong containing folder");
+      expect(opened===store.directory,"Wrong cache folder");
     } finally {Zotero.launchFile=launch;}
     days.value="7";
     days.dispatchEvent(new pref.Event("change",{bubbles:true}));
