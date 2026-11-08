@@ -167,7 +167,7 @@ function checkVersionAlignment(t) {
     'package-lock.json': lock.version,
     'docs/brand/product.json': product.version,
     'docs/brand/product.json#releaseTag': product.releaseTag,
-    'update.json': update.addons[pkg.config.addonID]?.updates?.[0]?.version,
+    'update-template.json': readJson('update-template.json').addons.__addonID__.updates[0].version.replace('__buildVersion__', ver),
   };
 
   for (const [field, value] of Object.entries(versions)) {
@@ -182,8 +182,10 @@ function checkVersionAlignment(t) {
   assert.equal(product.version, ver);
   assert.equal(product.releaseTag, `v${ver}`);
   assert.equal(pkg.config.releaseTag, `v${ver}`);
-  assert.equal(update.addons[pkg.config.addonID]?.updates?.[0]?.version, ver);
-  assert.equal(baseline.lastReleasedVersion, ver);
+  const published = update.addons[pkg.config.addonID].updates[0].version;
+  assert.equal(baseline.lastReleasedVersion, published);
+  if (product.releaseStatus === "released") assert.equal(published, ver);
+  else assert.ok(ver.localeCompare(published, "en", {numeric:true}) > 0, "candidate must follow published feed");
   t.diagnostic(`version fields aligned at v${ver}`);
 }
 
@@ -197,7 +199,7 @@ test('§9 update feeds point at valid released HTTPS URLs and complete SHA-512 h
 
   assert.match(
     entry.update_link,
-    new RegExp('^https://github\\.com/groele/Zotero-RefFlow/releases/download/v' + pkg.version.replace(/\./g, '\\.') + '/'),
+    new RegExp('^https://github\\.com/groele/Zotero-RefFlow/releases/download/v' + entry.version.replace(/\./g, '\\.') + '/'),
     'update_link must point to official release',
   );
   assert.match(entry.update_hash, /^sha512:[0-9a-f]{128}$/i, 'update_hash must be a valid 128-hex sha512 digest');

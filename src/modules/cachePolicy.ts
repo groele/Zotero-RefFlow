@@ -7,9 +7,9 @@ export function cacheEnabled(source?: string): boolean {
 
 export function retentionMs(kind: "reference" | "neighborhood" | "pdf", partial: boolean): number {
   const [key, fallback, unit, max] = partial ? ["partialMinutes", 15, 60000, 10080] as const
-    : kind === "pdf" ? ["pdfDays", 0, 86400000, 3650] as const
-    : kind === "neighborhood" ? ["neighborhoodDays", 1, 86400000, 3650] as const
-    : ["referenceDays", 1, 86400000, 3650] as const;
+    : kind === "pdf" ? ["pdfDays", 30, 86400000, 3650] as const
+    : kind === "neighborhood" ? ["neighborhoodDays", 30, 86400000, 3650] as const
+    : ["referenceDays", 30, 86400000, 3650] as const;
   const value = read(key);
   const n = typeof value === "number" && Number.isInteger(value) && value >= (partial ? 1 : 0) && value <= max ? value : fallback;
   return n ? n * unit : Number.MAX_SAFE_INTEGER;

@@ -399,3 +399,12 @@
 #zotero-prefpane-refflow a:hover {
   text-decoration: underline;
 }
+
+#zotero-prefpane-refflow .refflow-cache-location {
+  flex-wrap: wrap;
+}
+
+#zotero-prefpane-refflow .refflow-cache-location > input[type="text"] {
+  flex: 1 1 18em;
+  min-width: 0;
+}

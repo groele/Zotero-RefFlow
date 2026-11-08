@@ -28,6 +28,9 @@ test("source and global switches gate snapshot reads, with separate complete and
   (Zotero.Prefs as any).get = (name:string)=>values.get(name);
   try {
     const snapshot = cacheReferenceResult({references:[{text:"cached reference",identifiers:{}}],source:"Online"}, "sig", 100);
+    const month = 30 * 86400000;
+    assert.ok(readCachedReferenceResult(snapshot, "sig", 100 + month));
+    assert.equal(readCachedReferenceResult(snapshot, "sig", 101 + month), undefined);
     values.set("refflow.referenceDays", 0);
     assert.ok(readCachedReferenceResult(snapshot, "sig", 100 + 365*86400000));
     values.set("refflow.saveAPIReferences", false);

@@ -88,3 +88,5 @@ cache-neighborhoodDays = 被引与相关文献（天）
 cache-pdfDays = 完整 PDF 参考文献（天）
 cache-partialMinutes = 部分结果（分钟）
 cache-duration-help = 天数设为 0 时保留至手动刷新。条目或附件变化会使旧结果失效，达到存储上限时会清理较久未用的列表。
+cache-file-path = 缓存文件路径
+cache-open-folder = 打开所在文件夹

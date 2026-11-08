@@ -88,3 +88,5 @@ cache-neighborhoodDays = Citations and related works (days)
 cache-pdfDays = Complete PDF references (days)
 cache-partialMinutes = Partial results (minutes)
 cache-duration-help = Set days to 0 to keep results until manual refresh. Changed inputs invalidate snapshots and storage limits can evict older lists.
+cache-file-path = Cache file path
+cache-open-folder = Open containing folder

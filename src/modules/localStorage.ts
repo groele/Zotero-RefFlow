@@ -10,6 +10,7 @@ class LocalStorage {
   private writeQueue:Promise<void>=Promise.resolve();
   private disposed=false;
   private dirty=false;
+  private diskReady=false;
   private sizes=new Map<string,number>();
   private bytes=2;
   private options:Required<StorageOptions>;
@@ -48,7 +49,19 @@ class LocalStorage {
   async init(filename:string){
     try {
       const basePath=Zotero.DataDirectory.dir;if(!basePath)throw new Error("Zotero data directory unavailable");
-      this.filename=(globalThis as any).PathUtils.join(basePath,`${filename}-v2.json`);
+      this.filename=PathUtils.join(basePath,`${filename}-reference-cache.json`);
+      const legacy=PathUtils.join(basePath,`${filename}-v2.json`);
+      const pathToFile=Zotero.File.pathToFile;
+      if (pathToFile && !pathToFile(this.filename).exists() && pathToFile(legacy).exists()) {
+        const io = (globalThis as any).IOUtils ?? (Zotero.getMainWindow() as any).IOUtils;
+        try {
+          await io.move(legacy, this.filename, {noOverwrite:true});
+        } catch (error) {
+          // Another initializer may have completed the same atomic rename.
+          if (!pathToFile(this.filename).exists()) throw error;
+        }
+      }
+      this.diskReady=true;
       try {
         const file=(Zotero.File as any).pathToFile?.(this.filename);
         if(file?.exists() && file.fileSize>this.options.maxBytes)throw new Error("Oversized reference cache");
@@ -81,7 +94,7 @@ class LocalStorage {
   async flush(){
     if(this.saveTimer){globalThis.clearTimeout(this.saveTimer);this.saveTimer=null;}
     await this.lock.promise;
-    if(!this.filename||!this.dirty){await this.writeQueue;return;}
+    if(!this.diskReady||!this.dirty){await this.writeQueue;return;}
     const snapshot=encodeData(this.data);if(snapshot===undefined)throw new Error("Invalid reference cache snapshot");
     this.dirty=false;
     const write=this.writeQueue.catch(()=>{}).then(async()=>{await Zotero.File.putContentsAsync(this.filename,snapshot);this.metrics.writes++;});

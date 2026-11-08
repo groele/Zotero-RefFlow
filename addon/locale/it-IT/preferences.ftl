@@ -88,3 +88,5 @@ cache-neighborhoodDays = Citazioni e lavori correlati (giorni)
 cache-pdfDays = Riferimenti PDF completi (giorni)
 cache-partialMinutes = Risultati parziali (minuti)
 cache-duration-help = Imposta 0 giorni per conservare i risultati fino all’aggiornamento manuale. Le modifiche invalidano la cache e i limiti di spazio possono rimuovere gli elenchi meno recenti.
+cache-file-path = Percorso del file di cache
+cache-open-folder = Apri cartella

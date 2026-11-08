@@ -482,15 +482,15 @@ test("Repository version, release notes, product metadata, and READMEs are 100% 
   assert.equal(fs.existsSync(releaseNoteRelPath), true, `${releaseNoteRelPath} must exist on disk`);
   const publishedNotePath = `docs/releases/v${published}.md`;
 
-  assert.equal(readmeZH.includes(`version-${ver}-245ac7`), true, "README.md badge must match package version");
-  assert.equal(readmeZH.includes(`releases/download/v${ver}/zotero-refflow.xpi`), true, "README.md download link must match package version");
-  assert.equal(readmeZH.includes(`| 当前插件版本 | ${ver} |`), true, "README.md compatibility table version must match");
+  assert.equal(readmeZH.includes(`version-${published}-245ac7`), true, "README.md badge must match published version");
+  assert.equal(readmeZH.includes(`releases/download/v${published}/zotero-refflow.xpi`), true, "README.md download link must match published version");
+  assert.equal(readmeZH.includes(`| 当前插件版本 | ${published} |`), true, "README.md compatibility table version must match");
   assert.equal(readmeZH.includes("`10.0` 至 `12.*`"), true, "README.md Zotero range must be 10.0 to 12.*");
   assert.equal(readmeZH.includes(releaseNoteRelPath), true, "README.md must link to current release notes");
 
-  assert.equal(readmeEN.includes(`version-${ver}-245ac7`), true, "README.en.md badge must match package version");
-  assert.equal(readmeEN.includes(`releases/download/v${ver}/zotero-refflow.xpi`), true, "README.en.md download link must match package version");
-  assert.equal(readmeEN.includes(`| Current add-on version | ${ver} |`), true, "README.en.md compatibility table version must match");
+  assert.equal(readmeEN.includes(`version-${published}-245ac7`), true, "README.en.md badge must match published version");
+  assert.equal(readmeEN.includes(`releases/download/v${published}/zotero-refflow.xpi`), true, "README.en.md download link must match published version");
+  assert.equal(readmeEN.includes(`| Current add-on version | ${published} |`), true, "README.en.md compatibility table version must match");
   assert.equal(readmeEN.includes("`10.0` through `12.*`"), true, "README.en.md Zotero range must be 10.0 through 12.*");
   assert.equal(readmeEN.includes(releaseNoteRelPath), true, "README.en.md must link to current release notes");
 });

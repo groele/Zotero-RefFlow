@@ -25,6 +25,19 @@ function bindCachePreferences(win: Window) {
   const inputs = Array.from(root.querySelectorAll<HTMLInputElement>("[data-cache-duration]")) as HTMLInputElement[];
   const switches = ["save-pdf-references", "save-api-references"].map(id => win.document.getElementById(config.addonRef + "-" + id));
   const controller = new (win as Window & typeof globalThis).AbortController();
+  const location = root.querySelector<HTMLInputElement>("#refflow-cache-path");
+  const openFolder = root.querySelector<HTMLButtonElement>("#refflow-cache-folder");
+  const filename = addon.views?.storage.filename;
+  const directory = filename && PathUtils.parent(filename);
+  if (location && openFolder && filename && directory) {
+    location.value = filename;
+    location.title = filename;
+    openFolder.disabled = false;
+    openFolder.addEventListener("click", () => {
+      try { Zotero.launchFile(directory); }
+      catch (error) { Zotero.logError(error as Error); }
+    }, {signal: controller.signal});
+  }
   function updateDependencies() {
     const enabled = Zotero.Prefs.get(key("cacheEnabled")) !== false;
     const pdf = enabled && Zotero.Prefs.get(key("savePDFReferences")) !== false;

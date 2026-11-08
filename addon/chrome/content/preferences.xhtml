@@ -64,6 +64,11 @@
           <html:input id="__addonRef__-partialMinutes" data-cache-duration="partialMinutes" type="number" min="1" max="10080" step="1" />
         </html:div>
         <html:p class="refflow-pref-description" data-l10n-id="cache-duration-help"></html:p>
+        <html:div class="refflow-setting-input-row refflow-cache-location">
+          <html:label for="__addonRef__-cache-path" data-l10n-id="cache-file-path"></html:label>
+          <html:input type="text" id="__addonRef__-cache-path" readonly="readonly" />
+          <html:button type="button" id="__addonRef__-cache-folder" data-l10n-id="cache-open-folder" disabled="disabled"></html:button>
+        </html:div>
         <checkbox native="true" id="__addonRef__-show-source-details" data-l10n-id="showSourceDetails"
           preference="extensions.zotero.__addonRef__.showSourceDetails" />
       </html:div>
