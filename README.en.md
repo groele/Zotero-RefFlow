@@ -1,4 +1,4 @@
-> **16.1.2** displays the cache file location and defaults to 30 days for complete lists. [Version notes](docs/releases/v16.1.2.md).
+> **16.2.0 candidate** — Configurable cache capacity, live usage and proactive expiry cleanup. [Release notes](docs/releases/v16.2.0.md).
 
 
 

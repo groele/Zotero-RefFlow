@@ -1,4 +1,5 @@
 import { config } from "../../package.json";
+import {cacheSetting, cacheSettings} from "./cacheMaintenance";
 
 
 export async function registerPrefs() {
@@ -23,8 +24,27 @@ function bindCachePreferences(win: Window) {
   activeCachePanes.add(root);
   const key = (name: string) => config.addonRef + "." + name;
   const inputs = Array.from(root.querySelectorAll<HTMLInputElement>("[data-cache-duration]")) as HTMLInputElement[];
+  const capacityInputs = Array.from(root.querySelectorAll<HTMLInputElement>("[data-cache-capacity]")) as HTMLInputElement[];
+  const usage = root.querySelector<HTMLElement>("#refflow-cache-usage");
+  const clean = root.querySelector<HTMLButtonElement>("#refflow-cache-clean");
   const switches = ["save-pdf-references", "save-api-references"].map(id => win.document.getElementById(config.addonRef + "-" + id));
   const controller = new (win as Window & typeof globalThis).AbortController();
+  const storage = addon.views?.storage;
+  function updateUsage() {
+    if(controller.signal.aborted || !storage || !usage)return;
+    const value=storage.cacheUsage;
+    usage.setAttribute("data-l10n-id",`${config.addonRef}-${!value.persistent?"cache-usage-memory":value.writeFailed?"cache-usage-failed":"cache-usage"}`);
+    usage.setAttribute("data-l10n-args",JSON.stringify({items:value.items,maxItems:value.maxItems,
+      used:(value.bytes/1048576).toFixed(2),limit:value.maxBytes/1048576,
+      evicted:storage.metrics.evictions,expired:storage.metrics.expired,skipped:storage.metrics.skipped}));
+  }
+  const unsubscribe = storage?.subscribe(updateUsage);
+  clean?.addEventListener("click",async()=>{
+    clean.disabled=true;
+    try{await storage?.maintain();await storage?.flush();}
+    catch(error){Zotero.logError(error as Error);}
+    finally{if(!controller.signal.aborted){clean.disabled=false;updateUsage();}}
+  },{signal:controller.signal});
   const location = root.querySelector<HTMLInputElement>("#refflow-cache-path");
   const openFolder = root.querySelector<HTMLButtonElement>("#refflow-cache-folder");
   const filename = addon.views?.storage.filename;
@@ -43,6 +63,10 @@ function bindCachePreferences(win: Window) {
     const pdf = enabled && Zotero.Prefs.get(key("savePDFReferences")) !== false;
     const online = enabled && Zotero.Prefs.get(key("saveAPIReferences")) !== false;
     for (const control of switches) control?.toggleAttribute("disabled", !enabled);
+    for (const input of capacityInputs) {
+      input.value=String(cacheSetting(input.dataset.cacheCapacity as keyof typeof cacheSettings));
+      input.disabled=!enabled;
+    }
     for (const input of inputs) {
       const name = input.dataset.cacheDuration!;
       input.value = String(Zotero.Prefs.get(key(name)));
@@ -55,11 +79,16 @@ function bindCachePreferences(win: Window) {
     }
     updateDependencies();
   }, {signal: controller.signal});
-  const observers = ["cacheEnabled","savePDFReferences","saveAPIReferences",...inputs.map(el=>el.dataset.cacheDuration!)].map(
+  for(const input of capacityInputs)input.addEventListener("change",()=>{
+    if(!input.disabled && input.validity.valid && Number.isInteger(input.valueAsNumber))Zotero.Prefs.set(key(input.dataset.cacheCapacity!),input.valueAsNumber);
+    updateDependencies();
+  },{signal:controller.signal});
+  const observers = ["cacheEnabled","savePDFReferences","saveAPIReferences",...inputs.map(el=>el.dataset.cacheDuration!),...capacityInputs.map(el=>el.dataset.cacheCapacity!)].map(
     name => Zotero.Prefs.registerObserver(key(name), updateDependencies)
   );
   const dispose = () => {
     controller.abort();
+    unsubscribe?.();
     for (const observer of observers) Zotero.Prefs.unregisterObserver(observer);
     activeCachePanes.delete(root);
     addon.data.preferenceCleanups.delete(dispose);
@@ -68,6 +97,8 @@ function bindCachePreferences(win: Window) {
   win.addEventListener("unload", dispose, {once:true,signal:controller.signal});
   addon.data.preferenceCleanups.add(dispose);
   updateDependencies();
+  updateUsage();
+  void storage?.lock.promise.then(()=>{if(!controller.signal.aborted)updateUsage();});
 }
 
 export function registerPrefsScripts(_window: Window) {

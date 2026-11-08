@@ -23,6 +23,8 @@ pref("extensions.zotero.__addonRef__.referenceDays", 30);
 pref("extensions.zotero.__addonRef__.pdfDays", 30);
 pref("extensions.zotero.__addonRef__.neighborhoodDays", 30);
 pref("extensions.zotero.__addonRef__.partialMinutes", 15);
+pref("extensions.zotero.__addonRef__.cacheMaxMiB", 8);
+pref("extensions.zotero.__addonRef__.cacheMaxItems", 250);
 pref("extensions.zotero.__addonRef__.savePDFReferences", true);
 pref("extensions.zotero.__addonRef__.saveAPIReferences", true);
 

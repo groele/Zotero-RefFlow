@@ -64,6 +64,20 @@
           <html:input id="__addonRef__-partialMinutes" data-cache-duration="partialMinutes" type="number" min="1" max="10080" step="1" />
         </html:div>
         <html:p class="refflow-pref-description" data-l10n-id="cache-duration-help"></html:p>
+        <html:div class="refflow-setting-input-row refflow-indented-pref">
+          <html:label for="__addonRef__-cacheMaxMiB" data-l10n-id="cache-max-mib"></html:label>
+          <html:input id="__addonRef__-cacheMaxMiB" data-cache-capacity="cacheMaxMiB" type="number" min="1" max="64" step="1" />
+        </html:div>
+        <html:div class="refflow-setting-input-row refflow-indented-pref">
+          <html:label for="__addonRef__-cacheMaxItems" data-l10n-id="cache-max-items"></html:label>
+          <html:input id="__addonRef__-cacheMaxItems" data-cache-capacity="cacheMaxItems" type="number" min="10" max="10000" step="1" />
+        </html:div>
+        <html:p class="refflow-pref-description" data-l10n-id="cache-capacity-help"></html:p>
+        <html:p id="__addonRef__-cache-usage" class="refflow-pref-description" role="status" aria-live="polite" data-l10n-id="cache-usage-loading"></html:p>
+        <html:div class="refflow-setting-input-row refflow-indented-pref">
+          <html:button type="button" id="__addonRef__-cache-clean" data-l10n-id="cache-clean-expired"></html:button>
+        </html:div>
+        <html:p class="refflow-pref-description" data-l10n-id="cache-cleanup-help"></html:p>
         <html:div class="refflow-setting-input-row refflow-cache-location">
           <html:label for="__addonRef__-cache-path" data-l10n-id="cache-file-path"></html:label>
           <html:input type="text" id="__addonRef__-cache-path" readonly="readonly" />

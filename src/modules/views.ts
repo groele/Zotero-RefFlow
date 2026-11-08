@@ -3,6 +3,7 @@ import { initLocale, getString } from "../utils/locale";
 import TipUI from "./tip";
 import Utils from "./utils";
 import LocalStorge from "./localStorage";
+import CacheMaintenance, {cacheLimits, referenceSnapshotExpired} from "./cacheMaintenance";
 import BatchImporter from "./batchImporter";
 import ReferenceTasks, { ReferenceTaskContext } from "./referenceTasks";
 import { ReferenceResult } from "./referenceRetrieval";
@@ -40,7 +41,8 @@ import {
 export default class Views {
   public utils!: Utils;
   public readonly referenceTasks = new ReferenceTasks();
-  public readonly storage = new LocalStorge(config.addonRef);
+  public readonly storage = new LocalStorge(config.addonRef,cacheLimits(),referenceSnapshotExpired);
+  private cacheMaintenance = new CacheMaintenance(this.storage);
   private paneID?: string;
   private notifierID?: string;
   private disposed = false;
@@ -192,6 +194,7 @@ export default class Views {
     this.notifierID = this.paneID = undefined;
     if (notifierID) cleanupSync(() => Zotero.Notifier.unregisterObserver(notifierID));
     if (paneID) cleanupSync(() => Zotero.ItemPaneManager.unregisterSection(paneID));
+    cleanupSync(() => this.cacheMaintenance.dispose());
     await cleanupAsync(() => this.storage.dispose());
     const enumerator = (globalThis as any).Services?.wm?.getEnumerator?.("");
     const windows = enumerator ? {

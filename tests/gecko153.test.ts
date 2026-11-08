@@ -159,6 +159,7 @@ test("view shutdown continues after host unregister and storage failures, then r
   Object.assign(views, { disposed: false, menus: new Set(), panes: new Set([{ _cards: { dispose: () => steps.push("cards") } }]), tips: new Map(),
     localizationDocuments: new Set([doc]), notifierID: "notifier", paneID: "pane", referenceTasks: { dispose: () => steps.push("tasks") },
     utils: { API: { requests: { dispose: () => steps.push("requests") }, publisherReferences: { dispose: () => steps.push("publisher") } } },
+    cacheMaintenance: { dispose: () => {} },
     storage: { dispose: async () => { steps.push("storage");throw new Error("storage failure"); } } });
   try { await views.shutdown();await views.shutdown();
     assert.deepEqual(steps, ["cards", "tasks", "requests", "publisher", "notifier", "pane", "storage", "style", "fluent"]);
