@@ -4,8 +4,16 @@
   "capturedAt": "2026-11-06",
   "debtCleared": true,
   "note": "RefFlow source architecture fully compliant with §5.9. All 72 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "16.3.0",
+  "lastReleasedVersion": "16.4.0",
   "splitHistory": [
+    {
+      "version": "16.4.0",
+      "date": "2026-11-11",
+      "resolved": [
+        "Feature: 2-column responsive grid layout for cache preferences (2x2 duration inputs, 1x2 capacity inputs)",
+        "Architecture: 40px baseline alignment and 580px media query for mobile/narrow preference window"
+      ]
+    },
     {
       "version": "16.3.0",
       "date": "2026-11-11",
