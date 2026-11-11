@@ -83,7 +83,7 @@ Seven sidebar quick-action switches control copy, open, import and rollback entr
 |---|---|
 | Current add-on version | 16.5.0 |
 | Declared Zotero range | `10.0` through `12.*` |
-| Evidence boundary | All 379 unit tests passed 100% across 43 suites (0 failures); 9 architecture guard rules passed; all 82 source modules strictly comply with §5.9 360-line ceiling (0 debt declared); fully compatible with modern Zotero 10 ~ 12 Gecko architecture. |
+| Evidence boundary | All 379 unit tests passed 100% across 43 suites (0 failures); 9 architecture guard rules passed; all 84 source modules strictly comply with §5.9 360-line ceiling (0 debt declared); fully compatible with modern Zotero 10 ~ 12 Gecko architecture. |
 
 Add-on and Zotero versions are separate. Declared compatibility does not establish testing on every host, operating system or service. This patch validates the targeted behaviors listed above, not all plugin workflows or main-profile installation.
 

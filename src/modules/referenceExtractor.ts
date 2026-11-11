@@ -27,8 +27,9 @@ const COMPOUND_PREFIXES = /^(?:spin|non|self|cross|co|multi|quasi|semi|high|low|
 function normalizeText(text: string): string {
   return String(text || "")
     .replace(/[\u00ad\u200b\ufeff]/g, "")
-    .replace(/[ﬀﬁﬂﬃﬄ]/g, value => ({ "ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl" }[value]!))
-    .replace(/[\t\u00a0]+/g, " ")
+    .replace(/[ﬀﬁﬂﬃﬄﬅﬆ]/g, value => ({ "ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl", "ﬅ": "ft", "ﬆ": "st" }[value]!))
+    .replace(/\u2212/g, "-")
+    .replace(/[\t\u00a0\u3000]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }

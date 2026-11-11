@@ -98,6 +98,44 @@ function bindCachePreferences(win: Window) {
   updateDependencies();
   updateUsage();
   updateLocation();
+
+  // 实时回显未在文库条目的透明度滑块数值
+  const opacityInput = root.querySelector<HTMLInputElement>("#refflow-not-in-library-opacity");
+  const opacityOutput = root.querySelector<HTMLOutputElement>("#refflow-not-in-library-opacity-val");
+  function updateOpacityDisplay() {
+    if (opacityInput && opacityOutput) {
+      const val = Number(opacityInput.value || 1);
+      opacityOutput.textContent = `${Math.round(val * 100)}%`;
+    }
+  }
+  opacityInput?.addEventListener("input", updateOpacityDisplay, { signal: controller.signal });
+  opacityInput?.addEventListener("change", updateOpacityDisplay, { signal: controller.signal });
+  updateOpacityDisplay();
+
+  // 颜色选择器与文本框双向同步
+  function bindColorPair(textId: string, pickerId: string) {
+    const textInput = root?.querySelector<HTMLInputElement>(textId);
+    const pickerInput = root?.querySelector<HTMLInputElement>(pickerId);
+    if (!textInput || !pickerInput) return;
+    const syncToPicker = () => {
+      const val = textInput.value.trim();
+      if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(val)) {
+        pickerInput.value = val.length === 4 ? `#${val[1]}${val[1]}${val[2]}${val[2]}${val[3]}${val[3]}` : val;
+      }
+    };
+    const syncToText = () => {
+      textInput.value = pickerInput.value;
+      textInput.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    syncToPicker();
+    textInput.addEventListener("input", syncToPicker, { signal: controller.signal });
+    textInput.addEventListener("change", syncToPicker, { signal: controller.signal });
+    pickerInput.addEventListener("input", syncToText, { signal: controller.signal });
+    pickerInput.addEventListener("change", syncToText, { signal: controller.signal });
+  }
+  bindColorPair("#refflow-tip-background-color", "#refflow-tip-background-color-picker");
+  bindColorPair("#refflow-tip-title-color", "#refflow-tip-title-color-picker");
+
   void storage?.lock.promise.then(()=>{if(!controller.signal.aborted){updateUsage();updateLocation();}});
 }
 

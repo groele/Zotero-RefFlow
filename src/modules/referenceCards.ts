@@ -12,6 +12,7 @@ import { referenceIdentity } from "./referenceIdentity";
 import { cleanupSync } from "../utils/lifecycle";
 import { importFailureText, importErrorText, importSummaryText } from "./importErrors";
 import { openReferenceCardMenu, CardFilterMode } from "./referenceCardMenu";
+import { executeCardSettingsAction } from "./cardSettingsActions";
 import { navigateToPdfReference } from "./readerNavigation";
 
 /** Compact reference cards and selection behavior aligned with the supplied XPI. */
@@ -288,38 +289,19 @@ export default class ReferenceCards {
   updateStatus() { if (this.search.value.trim() && !this.virtual) this.filter(); }
   private open(ref: ItemBaseInfo) { if (ref._item) this.views.utils.selectItemInLibrary(ref._item, this.body.ownerDocument.defaultView!); else { const url = ref.url || (ref.identifiers?.DOI ? `https://doi.org/${ref.identifiers.DOI}` : undefined); if (url && /^https?:\/\//i.test(url)) Zotero.launchURL(url); } }
   public async runSettingsAction(action: string) {
-    if (this.disposed || !this.body.isConnected) throw new Error(getString("cards-settings-no-context"));
-    const parent = this.parent(), all = [...this.refs], refs = this.subset();
-    if (action === "import-selected" && !this.selected.size) throw new Error(getString("cards-select-before-import"));
-    if (!parent || (action !== "rollback" && !(action === "import-all" ? all.length : refs.length))) throw new Error(getString("cards-settings-no-context"));
-    if ((action === "import-selected" || action === "import-all" || action === "rollback") && parent && typeof parent.isEditable === "function" && !parent.isEditable()) {
-      throw new Error(getString("cards-library-readonly"));
-    }
-    const same = () => !this.disposed && this.body.isConnected && Number(this.body.getAttribute("data-refflow-item-id")) === parent.id;
-    if (action === "copy-text") this.views.utils.copyText(refs.map(ref => ref.text || ref.title).join("\n"), false);
-    else if (action === "copy-doi") { const values = refs.map(ref => ref.identifiers?.DOI).filter(Boolean); if (!values.length) throw new Error(getString("cards-settings-no-doi")); this.views.utils.copyText(values.join("\n"), false); }
-    else if (action === "copy-url") { const values = refs.map(ref => ref.url || (ref.identifiers?.DOI ? `https://doi.org/${ref.identifiers.DOI}` : "")).filter(Boolean); if (!values.length) throw new Error(getString("cards-settings-no-url")); this.views.utils.copyText(values.join("\n"), false); }
-    else if (action === "open") {
-      const available = refs.filter(ref => Boolean(ref._item) || /^https?:\/\//i.test(ref.url || (ref.identifiers?.DOI ? `https://doi.org/${ref.identifiers.DOI}` : "")));
-      if (!available.length) throw new Error(getString("cards-settings-no-open"));
-      available.slice(0, 20).forEach(ref => this.open(ref));
-      return getString("cards-settings-opened", { args: { count: Math.min(20, available.length), total: available.length } });
-    }
-    else if (action === "import-selected" || action === "import-all") {
-      const chosen = action === "import-all" ? all : refs;
-      if (!(Zotero as any).Libraries.get(parent.libraryID)?.editable) throw new Error(getString("cards-library-readonly"));
-      const collections = this.views.utils.importCollections(parent, this.body.ownerDocument.defaultView!);
-      const result = await this.batchResults.run(parent, chosen, { owner: this.body, collections, downloadOA: Boolean(Zotero.Prefs.get(`${config.addonRef}.downloadOA`)), createSubCollection: true, createManifestNote: true, resolveMissingDOI: true }, chosen.map(ref => all.indexOf(ref) + 1));
-      if (same()) { this.invalidateLibraryMatches(); this.label().textContent = (result.cancelled ? getString("cards-import-cancelled") : importSummaryText(result)) + (result.failedCount ? " · " + importFailureText(result.failures[0]) : ""); }
-      return result.cancelled ? getString("cards-import-cancelled") : importSummaryText(result);
-    } else if (action === "rollback") {
-      const id = await BatchImporter.latestBatchID(parent);
-      if (!id) return getString("relatedbox-no-rollback-batch");
-      const count = await this.views.rollbackReferences(parent, id);
-      if (same()) { this.batchResults.clear(); this.invalidateLibraryMatches(); this.label().textContent = getString("cards-rollback-summary", { args: { count } }); }
-      return getString("cards-rollback-summary", { args: { count } });
-    } else throw new Error("Unknown RefFlow action");
-    return getString("cards-settings-done");
+    return executeCardSettingsAction(action, {
+      disposed: this.disposed,
+      body: this.body,
+      parent: this.parent(),
+      refs: [...this.refs],
+      subset: this.subset(),
+      selectedCount: this.selected.size,
+      views: this.views,
+      batchResults: this.batchResults,
+      invalidateLibraryMatches: () => this.invalidateLibraryMatches(),
+      label: () => this.label(),
+      open: (ref) => this.open(ref)
+    });
   }
   public closeQuickMenu() { for (const menu of this.menus) { (menu as any).hidePopup?.(); menu.remove(); } this.menus.clear(); }
   menu(event?: MouseEvent) {
