@@ -22,10 +22,12 @@ const AUTHOR_YEAR_START = /^\s*(?:[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]+(
 const AUTHOR_INITIALS_START = /^(?:(?:(?:van|von|de|del|der|da|di|du|la|le)\s+){0,3}\p{Lu}[\p{L}'’.-]{1,40},?\s+\p{Lu}\.(?:\s*\p{Lu}\.)?|[\u4e00-\u9fff]{2,8}[，,]\s*[\u4e00-\u9fff]{2,8})/u;
 const SECTION_HEADING = /^(?:(?:\d+(?:\.\d+)*\s+)?(?:appendix|acknowledg(?:e)?ments?|conclusion|discussion|supplementary|supporting\s+information|methods|author\s+contributions?|competing\s+interests?|conflicts?\s+of\s+interest|data\s+availability|funding|publisher[’']?s\s+note)\b|附录|致谢|结论|讨论|补充材料)/i;
 
+const COMPOUND_PREFIXES = /^(?:spin|non|self|cross|co|multi|quasi|semi|high|low|two|three|four|first|second|all|well|ill|user|real|large|small|time|space|single|double|zero|deep|long|short|feed|wide|scale|state|on|off|in|out)$/i;
+
 function normalizeText(text: string): string {
   return String(text || "")
     .replace(/[\u00ad\u200b\ufeff]/g, "")
-    .replace(/[ﬀﬁﬂﬃﬄ]/g, value=>({"ﬀ":"ff","ﬁ":"fi","ﬂ":"fl","ﬃ":"ffi","ﬄ":"ffl"}[value]!))
+    .replace(/[ﬀﬁﬂﬃﬄ]/g, value => ({ "ﬀ": "ff", "ﬁ": "fi", "ﬂ": "fl", "ﬃ": "ffi", "ﬄ": "ffl" }[value]!))
     .replace(/[\t\u00a0]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -55,14 +57,50 @@ export function isReferenceStart(text: string): boolean {
   return getNumber(text) !== undefined || AUTHOR_YEAR_START.test(text) || AUTHOR_INITIALS_START.test(text);
 }
 
+/** Join continuation line with hyphen and URL/DOI continuity awareness */
+export function joinReferenceLines(prev: string, next: string): string {
+  if (!prev) return next;
+  if (!next) return prev;
+
+  if (prev.endsWith("-")) {
+    const lastWordMatch = prev.match(/([A-Za-z]+)-$/);
+    if (lastWordMatch) {
+      const prefix = lastWordMatch[1];
+      const nextWordMatch = next.match(/^([A-Za-z]+)/);
+      if (COMPOUND_PREFIXES.test(prefix) || !nextWordMatch || /^[A-Z0-9]/.test(next)) {
+        return prev + next;
+      }
+      // Line-broken hyphenated word (e.g. trans- + former -> transformer)
+      return prev.slice(0, -1) + next;
+    }
+    return prev + next;
+  }
+
+  // URL or DOI continuation without extraneous space
+  if (/(?:https?:\/\/[^\s]+|doi\.org\/[^\s]+|10\.\d{4,9}\/[^\s]+)$/i.test(prev)) {
+    if (prev.endsWith("/") || /^[a-z0-9/._\-]/i.test(next) && (prev.endsWith("-") || prev.endsWith("="))) {
+      return prev + next;
+    }
+  }
+
+  return `${prev} ${next}`;
+}
+
 /** Extract a bibliography section from page-ordered PDF text lines. */
 export function extractReferencesFromLines(input: ReferenceTextLine[]): ExtractedReference[] {
   // Repeated margin text is a running header/footer, not part of a wrapped citation.
-  const repeated=new Map<string,Set<number>>();
-  for(const line of input)if(line.margin&&!isBibliographyHeading(line.text)&&getNumber(line.text)===undefined){const key=normalizeText(line.text);const pages=repeated.get(key)||new Set<number>();pages.add(line.page);repeated.set(key,pages);}
+  const repeated = new Map<string, Set<number>>();
+  for (const line of input) {
+    if (line.margin && !isBibliographyHeading(line.text) && getNumber(line.text) === undefined) {
+      const key = normalizeText(line.text);
+      const pages = repeated.get(key) || new Set<number>();
+      pages.add(line.page);
+      repeated.set(key, pages);
+    }
+  }
   const lines = input
     .map(line => ({ ...line, text: normalizeText(line.text) }))
-    .filter(line => line.text.length > 0 && !/^\d{1,4}$/.test(line.text) && !(line.margin&&(repeated.get(line.text)?.size||0)>=2))
+    .filter(line => line.text.length > 0 && !/^\d{1,4}$/.test(line.text) && !(line.margin && (repeated.get(line.text)?.size || 0) >= 2))
     .sort((a, b) => a.page - b.page || (a.order !== undefined && b.order !== undefined ? a.order - b.order : b.y - a.y));
   if (!lines.length) return [];
 
@@ -74,25 +112,25 @@ export function extractReferencesFromLines(input: ReferenceTextLine[]): Extracte
   let current: ExtractedReference | undefined;
   let sawReference = false;
   let numberedStyle = false;
-  let inBibliography=headingIndex<0;
-  const finish=()=>{if(current&&current.text.length>=12)collected.push(current);current=undefined;};
+  let inBibliography = headingIndex < 0;
+  const finish = () => { if (current && current.text.length >= 12) collected.push(current); current = undefined; };
   for (let i = start >= 0 ? start : 0; i < lines.length; i++) {
     const line = lines[i];
-    if(i===(start>=0?start:0))inBibliography=true;
-    if (isBibliographyHeading(line.text)) {inBibliography=true;continue;}
-    if (sawReference && SECTION_HEADING.test(line.text)) {finish();inBibliography=false;continue;}
-    if(!inBibliography)continue;
+    if (i === (start >= 0 ? start : 0)) inBibliography = true;
+    if (isBibliographyHeading(line.text)) { inBibliography = true; continue; }
+    if (sawReference && SECTION_HEADING.test(line.text)) { finish(); inBibliography = false; continue; }
+    if (!inBibliography) continue;
 
     const numbered = getNumber(line.text);
     const authorYear = (AUTHOR_YEAR_START.test(line.text) || AUTHOR_INITIALS_START.test(line.text)) &&
-      (!current || current.x===undefined || line.x===undefined || line.x<=current.x+4);
+      (!current || current.x === undefined || line.x === undefined || line.x <= current.x + 4);
     const referenceStart = numbered !== undefined || (headingIndex >= 0 && authorYear && !numberedStyle);
     if (referenceStart) {
       if (current && current.text.length >= 12) collected.push(current);
       const text = numbered !== undefined ? stripNumber(line.text) : line.text;
       current = { text, number: numbered, page: line.page, y: line.y, x: line.x };
       sawReference = true;
-      if(numbered!==undefined) numberedStyle=true;
+      if (numbered !== undefined) numberedStyle = true;
       continue;
     }
 
@@ -102,8 +140,7 @@ export function extractReferencesFromLines(input: ReferenceTextLine[]): Extracte
         collected.push(current);
         current = { text: line.text, page: line.page, y: line.y };
       } else if (!isHeading(line.text) && line.text.length > 1) {
-        // Preserve meaningful hyphens (spin-orbit); only join soft-hyphen runs in layout.
-        current.text = `${current.text}${current.text.endsWith("-") ? "" : " "}${line.text}`;
+        current.text = joinReferenceLines(current.text, line.text);
       }
       continue;
     }

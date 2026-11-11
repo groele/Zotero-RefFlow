@@ -5,7 +5,7 @@ const registry = Zotero as typeof Zotero & Record<string, Addon | undefined>;
 if (!registry[config.addonInstance]) {
   defineGlobal("window", () => Zotero.getMainWindow());
   defineGlobal("document", () => Zotero.getMainWindow().document);
-  defineGlobal("ZoteroPane", () => Zotero.getActiveZoteroPane());
+  defineGlobal("ZoteroPane", () => (Zotero.getMainWindow() as any)?.ZoteroPane || (Zotero as any).getActiveZoteroPane?.());
   defineGlobal("Zotero_Tabs", () => (Zotero.getMainWindow() as any).Zotero_Tabs);
   _globalThis.addon = new Addon();
   defineGlobal("ztoolkit", () => _globalThis.addon.data.ztoolkit);

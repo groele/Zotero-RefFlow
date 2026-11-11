@@ -209,14 +209,15 @@ export default class ConnectedPapers {
   }
 
   private async buildGraphData(items: Zotero.Item[], signal?: AbortSignal) {
+    const indexingLabel = getString("graph-indexing") || "Indexing";
     const popupWin = new ztoolkit.ProgressWindow("Connected Papers", { closeOtherProgressWindows: true, closeTime: -1 })
-      .createLine({ text: "Initializing", type: "connectedpapers" })
+      .createLine({ text: getString("graph-initializing") || "Initializing", type: "connectedpapers" })
       .show();
     const result = await buildConnectedPapersPipeline(items, {
       resolvePaperID: (item, requestSignal) => this.getPaperID(item, requestSignal),
       fetchGraph: (originKey, requestSignal) => buildGraphData(originKey, popupWin, 0, requestSignal),
       findLocalItem: (paper, libraryID) => this.views.utils.searchLibraryItem(this.paper2Info(paper), libraryID),
-      onProgress: (complete, total) => popupWin.changeLine({ text: `[${complete}/${total}] Indexing`, progress: total ? 100 * complete / total : 0 }),
+      onProgress: (complete, total) => popupWin.changeLine({ text: `[${complete}/${total}] ${indexingLabel}`, progress: total ? 100 * complete / total : 0 }),
     }, signal);
     if (result.status === "cancelled" || signal?.aborted) { popupWin.close(); return; }
     if (result.status === "origins-unavailable") {
@@ -228,7 +229,7 @@ export default class ConnectedPapers {
     const graphData = result.graph;
     if (!graphData) { popupWin.startCloseTimer(4000); return; }
     ztoolkit.log(graphData);
-    popupWin.changeLine({ text: `[${Object.keys(graphData.nodes).length}/${Object.keys(graphData.nodes).length}] Indexing`, type: "success" });
+    popupWin.changeLine({ text: `[${Object.keys(graphData.nodes).length}/${Object.keys(graphData.nodes).length}] ${indexingLabel}`, type: "success" });
     popupWin.startCloseTimer(3000);
     return { graphData, partialOrigins: result.origins.unresolvedItemIDs.length, source: result.source };
   }

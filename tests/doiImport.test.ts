@@ -135,3 +135,17 @@ test('already cancelled queued import never starts legacy migration',async()=>fi
  try{const controller=new AbortController();controller.abort();const result=await BatchImporter.importAll(c.parent,[row('10.1234/one')],{...opts,signal:controller.signal});assert.equal(result.cancelled,true);assert.equal(migrations,0);assert.equal(c.counts().writes,0);}
  finally{importer.migrateRecords=original;}
 }));
+
+test('resolveMissingDOI resolves federated DOI when DOI is missing and completes native import',async()=>fixture(async c=>{
+ (BatchImporter as any)._utils.API={
+  resolveWork:async(title:string)=>{
+   assert.equal(title,'Resolvable Title');
+   return {doi:'10.1234/one'};
+  }
+ };
+ const ref={title:'Resolvable Title',authors:['Author A'],identifiers:{}} as any;
+ const result=await BatchImporter.importAll(c.parent,[ref],{...opts,resolveMissingDOI:true});
+ assert.equal(result.importedCount,1);
+ assert.equal(ref.identifiers.DOI,'10.1234/one');
+ assert.equal(c.items[0].getField('title'),'Native full title');
+}));

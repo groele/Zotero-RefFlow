@@ -9,6 +9,8 @@ import {safeProviderAttempt} from './referenceSourceDetails';
 
 export interface BatchImportOptions {
   downloadOA?: boolean;
+  /** Automatically attempt federated resolution (Crossref/OpenAlex/SemanticScholar) for references without DOI. */
+  resolveMissingDOI?: boolean;
   /** Explicit opt-in for callers importing a reference that has no DOI. */
   allowMetadataWithoutDOI?:boolean;
   createSubCollection?: boolean;
@@ -129,7 +131,7 @@ export class BatchImporter {
     options={...options,collections:[...new Set(options.collections??parent.getCollections?.()??[])],relatedParents:options.relatedParents?[...options.relatedParents]:undefined};
     const controller=new AbortController(),stop=()=>controller.abort();options.signal?.addEventListener('abort',stop,{once:true});if(options.signal?.aborted)stop();
     const timer=globalThis.setTimeout(stop,Math.max(1,options.budgetMs??300000));this.sessions.set(controller,{parentID:parent.id,owner:options.owner});
-    const job=this.serial(parent.libraryID,()=>this.importBatch(parent,refs,{downloadOA:true,createSubCollection:true,createManifestNote:true,...options,signal:controller.signal})).then(result=>{refs.forEach((ref,index)=>{if(ref._item)originalRefs[index]._item=ref._item;});return result;}).finally(()=>{
+    const job=this.serial(parent.libraryID,()=>this.importBatch(parent,refs,{downloadOA:true,createSubCollection:true,createManifestNote:true,...options,signal:controller.signal})).then(result=>{refs.forEach((ref,index)=>{if(ref._item)originalRefs[index]._item=ref._item;if(ref.identifiers?.DOI&&!originalRefs[index].identifiers?.DOI){originalRefs[index].identifiers={...originalRefs[index].identifiers,DOI:ref.identifiers.DOI};}});return result;}).finally(()=>{
       globalThis.clearTimeout(timer);options.signal?.removeEventListener('abort',stop);this.sessions.delete(controller);this.jobs.delete(job);
     });this.jobs.add(job);return job;
   }
@@ -182,7 +184,7 @@ export class BatchImporter {
       const downloads=new Map<number,{url:string;item:Zotero.Item}>();
       for(let index=0;index<refs.length;index++) {
         this.checkStopped(options.signal);
-        const ref=refs[index];const doi=CitationVerifier.normalizeDOI(ref.identifiers?.DOI);
+        const ref=refs[index];let doi=CitationVerifier.normalizeDOI(ref.identifiers?.DOI);
         const identity=workIdentity(ref);
         progress.changeLine({text:`${index+1} / ${refs.length}`,progress:100*(index+1)/Math.max(1,refs.length)});
         try {
@@ -191,6 +193,23 @@ export class BatchImporter {
           let item=seen.get(identity) || await this.utils.searchLibraryItem({...ref,_item:undefined},parent.libraryID);
           let isNew=!item;
           if(!item) {
+            if(!doi && options.resolveMissingDOI && (ref.title || ref.text)?.trim()) {
+              const queryTitle = (ref.title || ref.text)!.trim();
+              if (queryTitle.length >= 6) {
+                try {
+                  const resolved = await this.utils.API?.resolveWork(queryTitle, ref.authors?.[0], ref.year, options.signal);
+                  const resolvedDoi = resolved?.doi || (resolved as any)?.DOI;
+                  if (resolvedDoi) {
+                    ref.identifiers = ref.identifiers || {};
+                    ref.identifiers.DOI = resolvedDoi;
+                    if (resolved && !ref.oaUrl && resolved.oaUrl) ref.oaUrl = resolved.oaUrl;
+                    doi = CitationVerifier.normalizeDOI(resolvedDoi);
+                  }
+                } catch (e: any) {
+                  if (e?.name === 'AbortError' || options.signal?.aborted) throw e;
+                }
+              }
+            }
             if(!doi&&!options.allowMetadataWithoutDOI)throw new ImportError('no-doi','No DOI available; this reference was not imported. Add its identifier in Zotero manually');
             if(!doi&&!(ref.title||ref.text)?.trim())throw new Error('Reference has no usable metadata');
             progress.changeLine({text:`${index+1} / ${refs.length} · DOI: ${doi||'metadata'}`});

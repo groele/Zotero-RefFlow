@@ -1,4 +1,5 @@
 import GBT7714Parser from "./parsers/gbt7714";
+import WesternCitationParser from "./parsers/westernCitation";
 import CitationVerifier from "./verifier";
 
 export class ReferenceParser {
@@ -27,6 +28,27 @@ export class ReferenceParser {
       identifiers.arXiv = arxivMatch[1];
     }
 
+    // 3. PMID 探测
+    const pmidMatch = text.match(/\b(?:PMID|pmid)[\s:：]+(\d{6,9})\b/);
+    if (pmidMatch) {
+      (identifiers as any).PMID = pmidMatch[1];
+    }
+
+    // 4. PMCID 探测
+    const pmcidMatch = text.match(/\b(PMC\d{6,8})\b/i);
+    if (pmcidMatch) {
+      (identifiers as any).PMCID = pmcidMatch[1].toUpperCase();
+    }
+
+    // 5. ISBN 探测
+    const isbnMatch = text.match(/\b(?:ISBN(?:-1[03])?[\s:：]?)?((?:97[89][-\s]?)?(?:\d[-\s]?){9}[\dXx])\b/);
+    if (isbnMatch) {
+      const cleanISBN = isbnMatch[1].replace(/[-\s]/g, "");
+      if (cleanISBN.length === 10 || cleanISBN.length === 13) {
+        (identifiers as any).ISBN = cleanISBN;
+      }
+    }
+
     return identifiers;
   }
 
@@ -37,7 +59,7 @@ export class ReferenceParser {
     }
   }
 
-  public static parseRefText(text: string): { year?: string, authors?: string[], title: string, publicationVenue?: String } {
+  public static parseRefText(text: string): { year?: string; authors?: string[]; title: string; publicationVenue?: string } {
     try {
       text = text.replace(/^\[\d+?\]/, "");
       text = text.replace(/\s+/g, " ");
@@ -115,58 +137,25 @@ export class ReferenceParser {
     }
   }
 
-  public static _parseRefText(text: string): { year: string, authors: string[], title: string } {
-    let year;
-    let _years = text.match(/[^\d]?(\d{4})[^\d]?/g) as string[];
-    if (_years) {
-      let years = _years
-        .map(y => Number(y.match(/\d{4}/)![0]))
-        .filter(y => y > 1900 && y < (new Date()).getFullYear());
-      if (years.length > 0) { year = String(years[0]); }
-    }
-    year = year as string;
-    if (this.isChinese(text)) {
-      let parts = text
-        .replace(/\[.+?\]/g, "")
-        .replace(/\s+/g, " ")
-        .split(/[\.,\uff0c\uff0e\uff3b\[\]]/)
-        .map(e => e.trim())
-        .filter(e => e);
-      let authors = [];
-      let titles = [];
-      for (let part of parts) {
-        if (part.length <= 3 && part.length >= 2) {
-          authors.push(part);
-        } else {
-          titles.push(part);
-        }
-      }
-      let title = titles.sort((a, b) => b.length - a.length)[0];
-      return { title, authors, year };
-    } else {
-      let authors: string[] = [];
-      text = text.replace(/[\u4e00-\u9fa5]/g, "");
-      const authorRegexs = [/[A-Za-z,\.\s]+?\.?[\.,;]/g, /[A-Z][a-z]+ et al.,/];
-      authorRegexs.forEach(regex => {
-        text.match(regex)?.forEach(author => {
-          authors.push(author.slice(0, -1));
-        });
-      });
-      let title = text
-        .split(/[,\.]\s/g)
-        .filter((e: string) => !e.includes("http"))
-        .sort((a, b) => b.length - a.length)[0];
-      return { title, authors, year };
-    }
+  public static _parseRefText(text: string): { year?: string; authors: string[]; title: string } {
+    const res = this.parseRefText(text);
+    return {
+      year: res.year,
+      authors: res.authors || [],
+      title: res.title
+    };
   }
 
   public static identifiers2URL(identifiers: ItemBaseInfo["identifiers"]) {
-    let url;
+    let url: string | undefined;
     if (identifiers.DOI) {
       url = `https://doi.org/${identifiers.DOI}`;
-    }
-    if (identifiers.arXiv) {
+    } else if (identifiers.arXiv) {
       url = `https://arxiv.org/abs/${identifiers.arXiv}`;
+    } else if ((identifiers as any).PMID) {
+      url = `https://pubmed.ncbi.nlm.nih.gov/${(identifiers as any).PMID}/`;
+    } else if ((identifiers as any).PMCID) {
+      url = `https://www.ncbi.nlm.nih.gov/pmc/articles/${(identifiers as any).PMCID}/`;
     }
     return url;
   }
@@ -174,7 +163,7 @@ export class ReferenceParser {
   public static refText2Info(text: string): ItemBaseInfo {
     let identifiers = this.getIdentifiers(text);
 
-    // 优先采用国标 GB/T 7714 确定性解析
+    // 1. 优先采用国标 GB/T 7714 确定性解析
     if (GBT7714Parser.isGBT7714(text)) {
       const gbt = GBT7714Parser.parse(text);
       if (gbt) {
@@ -195,11 +184,32 @@ export class ReferenceParser {
       }
     }
 
+    // 2. 尝试英文主流引文格式 (IEEE / APA / Vancouver / MLA) 确定性解析
+    const western = WesternCitationParser.parse(text);
+    if (western) {
+      if (western.doi && !identifiers.DOI) identifiers.DOI = western.doi;
+      return {
+        identifiers: identifiers,
+        url: this.extractURL(text) || this.identifiers2URL(identifiers),
+        authors: western.authors,
+        title: western.title,
+        year: western.year,
+        type: "journalArticle",
+        publicationVenue: western.publicationVenue,
+        volume: western.volume,
+        issue: western.issue,
+        pages: western.pages,
+        text: text
+      };
+    }
+
+    // 3. 通用启发式切分
+    const heuristic = this.parseRefText(text);
     return {
       identifiers: identifiers,
       url: this.extractURL(text) || this.identifiers2URL(identifiers),
-      authors: [],
-      ...this.parseRefText(text),
+      ...heuristic,
+      authors: heuristic.authors || [],
       type: (identifiers.arXiv ? "preprint" : "journalArticle")
     };
   }

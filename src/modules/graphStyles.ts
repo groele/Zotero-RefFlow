@@ -1,7 +1,7 @@
 import { config } from "../../package.json";
 
 /**
- * Injects citation graph stylesheets into the given document.
+ * Injects citation graph stylesheets into the given document with Dark Mode CSS variable support.
  */
 export function addGraphStyles(doc: Document): void {
   const id = `${config.addonRef}-related-container`;
@@ -20,30 +20,30 @@ export function addGraphStyles(doc: Document): void {
           cursor: pointer;
         }
         #${id} .button:hover, #${id} .item.hover {
-          background-color: #f5f5f5;
+          background-color: var(--material-mix-quinary, rgba(128, 128, 128, .12));
         }
         #${id} .item.selected {
-          background-color: #ebebeb;
+          background-color: var(--color-accent-10, rgba(60, 120, 200, .18));
         }
         #${id} .filter-button {
           display: inline-block;
           width: 50%;
-          border: 1px solid rgb(238, 238, 238);
+          border: 1px solid var(--material-border, rgb(238, 238, 238));
           text-align: center;
-          color: #005028;
+          color: var(--fill-primary, #005028);
         }
         #${id} .filter-button:hover {
-          background-color: #d9e5ec;
+          background-color: var(--material-mix-quaternary, #d9e5ec);
         }
         #${id} .filter-button.activate {
           color: #fff;
-          background-color: #045384;
+          background-color: var(--color-accent, #045384);
         }
         #${id} .item.highlight {
-          background-color: #d9f5f9;
+          background-color: color-mix(in srgb, var(--color-accent, #045384) 16%, transparent);
         }
         #${id} .item.highlight.hover {
-          background-color: #d0ecf0;
+          background-color: color-mix(in srgb, var(--color-accent, #045384) 24%, transparent);
         }
       `
       + (Zotero.isMac ? "" : `

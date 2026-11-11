@@ -3,6 +3,7 @@ import PDF from "./pdf";
 import ReferenceParser from "./referenceParser";
 import CitationVerifier from "./verifier";
 import {workIdentity,selectLibraryMatch} from './workIdentity';
+import LibraryMatchIndex from "./libraryIndex";
 
 class Utils {
   API: API;
@@ -12,8 +13,10 @@ class Utils {
   private itemCacheGeneration = 0;
   private libraryGenerations=new Map<number,number>();
   private itemFlights = new Map<string, Promise<Zotero.Item | undefined>>();
+  private matchIndex = new LibraryMatchIndex();
 
   public clearLibraryItemCache(libraryIDs?:Set<number>): void {
+    this.matchIndex.clear(libraryIDs);
     if(libraryIDs){
       for(const id of libraryIDs)this.libraryGenerations.set(id,(this.libraryGenerations.get(id)||0)+1);
       for(const key of this.itemCache.keys())if(libraryIDs.has(Number(key.split(':')[0])))this.itemCache.delete(key);
@@ -130,6 +133,11 @@ class Utils {
     // allowed to drop display hints, but must never turn an existing item into
     // a definitive miss immediately before an insert.
     if(fresh)return this.searchItem(info,libraryID);
+    const fast = this.matchIndex.findFastMatch(info, libraryID);
+    if (fast && !fast.deleted) {
+      info._item = fast;
+      return fast;
+    }
     const key = `${libraryID}:${workIdentity(info)}:library-item`;
     if (this.itemCache.has(key)) {
       const cached = this.itemCache.get(key);
@@ -173,6 +181,7 @@ class Utils {
 
     if (item) {
       info._item = item;
+      this.matchIndex.recordMatch(item, libraryID);
     }
 
     // 写入 LRU 缓存（包括未找到结果的 null，避免重复查询）

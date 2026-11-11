@@ -69,4 +69,20 @@ describe("Reference text extraction", () => {
     ]);
     assert.deepEqual(refs, []);
   });
+
+  test("repairs broken hyphenated words across lines while preserving compound word hyphens", () => {
+    const refs = extractReferencesFromLines([
+      { page: 1, y: 720, text: "References" },
+      { page: 1, y: 700, text: "1. Smith, J. Attention-based trans-" },
+      { page: 1, y: 680, text: "former models for language understanding. Nature, 2024." },
+      { page: 1, y: 660, text: "2. Brown, A. A study of spin-" },
+      { page: 1, y: 640, text: "orbit interactions in solids. Science, 2023." },
+      { page: 1, y: 620, text: "3. Davis, C. https://doi.org/10.1234/" },
+      { page: 1, y: 600, text: "sub-resource-identifier. 2022." },
+    ]);
+    assert.equal(refs.length, 3);
+    assert.ok(refs[0].text.includes("transformer"));
+    assert.ok(refs[1].text.includes("spin-orbit"));
+    assert.ok(refs[2].text.includes("https://doi.org/10.1234/sub-resource-identifier"));
+  });
 });

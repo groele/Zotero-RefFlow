@@ -4,8 +4,28 @@
   "capturedAt": "2026-11-06",
   "debtCleared": true,
   "note": "RefFlow source architecture fully compliant with §5.9. All 72 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "16.2.0",
+  "lastReleasedVersion": "16.3.0",
   "splitHistory": [
+    {
+      "version": "16.3.0",
+      "date": "2026-11-11",
+      "resolved": [
+        "Feature: Reader <-> Sidebar sync with in-text mention frequency badge and jump to PDF page/coordinates",
+        "Feature: Graph panel modernization and 100% Fluent i18n alignment (CSS variables, dark mode fix)",
+        "Feature: High-performance library match memory index (LibraryMatchIndex) and federated resolveMissingDOI batch import",
+        "Feature: Robust western citation parser (APA, IEEE, Vancouver, MLA) with PMID/PMCID/ISBN detection",
+        "Feature: Intelligent hyphenation joining and compound word preservation for multi-column PDF layouts",
+        "Architecture: All 82 source files in src/ strictly <= 360 lines; debtCleared=true preserved"
+      ]
+    },
+    {
+      "version": "16.2.0",
+      "date": "2026-11-08",
+      "resolved": [
+        "Feature: Per-paper JSON cache storage, configurable capacity and live usage dashboard",
+        "Architecture: Split out cache maintenance and retention policies into discrete modules"
+      ]
+    },
     {
       "version": "16.1.0",
       "date": "2026-11-06",

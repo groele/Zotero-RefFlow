@@ -8,10 +8,16 @@ export function referenceData(value: ItemBaseInfo): ItemBaseInfo {
   result.text = typeof result.text === "string" ? result.text : result.title;
   result.authors = Array.isArray(result.authors) ? result.authors.filter(author => typeof author === "string") : [];
   result.identifiers = result.identifiers && typeof result.identifiers === "object" && !Array.isArray(result.identifiers) ? result.identifiers : {};
-  for(const name of ["DOI","arXiv","CNKI","paperID"] as const)if(typeof result.identifiers[name]!=="string")delete result.identifiers[name];
+  for (const name of ["DOI", "arXiv", "CNKI", "paperID", "PMID", "PMCID", "ISBN"] as const) {
+    if (typeof (result.identifiers as any)[name] !== "string") delete (result.identifiers as any)[name];
+  }
   if (result.identifiers.DOI) result.identifiers.DOI = CitationVerifier.normalizeDOI(result.identifiers.DOI);
-  if (typeof result.year === "string" || typeof result.year === "number") result.year = String(result.year);else delete result.year;
+  if (typeof result.year === "string" || typeof result.year === "number") result.year = String(result.year); else delete result.year;
   if (!Number.isSafeInteger(result.number) || result.number! < 1) delete result.number;
+  if (!Number.isSafeInteger(result.page) || result.page! < 1) delete result.page;
+  if (!Number.isSafeInteger(result.mentionCount) || result.mentionCount! < 1) delete result.mentionCount;
+  if (typeof result.x !== "number" || !Number.isFinite(result.x)) delete result.x;
+  if (typeof result.y !== "number" || !Number.isFinite(result.y)) delete result.y;
   if (result.sources) result.sources = Array.isArray(result.sources) ? result.sources.filter(source => typeof source === "string") : [];
   return result;
 }

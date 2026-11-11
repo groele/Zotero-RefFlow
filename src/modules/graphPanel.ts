@@ -1,6 +1,12 @@
 import { config } from "../../package.json";
 import Views from "./views";
 import { graphColor } from "./graphModel";
+import { getString } from "../utils/locale";
+import {
+  GRAPH_ICON_ADD_ORIGIN,
+  GRAPH_ICON_REMOVE_ORIGIN,
+  GRAPH_ICON_BUILD
+} from "./graphIcons";
 
 export interface GraphPanelContext {
   doc: Document;
@@ -23,6 +29,34 @@ export interface GraphPanelContext {
  * and prior/derivative work toggles.
  */
 export function buildGraphRelatedPanel(box: XUL.Box, ctx: GraphPanelContext): HTMLDivElement {
+  const toggleSplitPane = (activeId: string, inactiveId: string, activeSelector: string, inactiveSelector: string, isLeft: boolean) => {
+    const activeBtn = relatedContainer.querySelector(activeId)!;
+    const inactiveBtn = relatedContainer.querySelector(inactiveId)!;
+    const activeList = relatedContainer.querySelector(activeSelector) as HTMLDivElement;
+    const inactiveList = relatedContainer.querySelector(inactiveSelector) as HTMLDivElement;
+    const normalList = relatedContainer.querySelector(".normal-items") as HTMLDivElement;
+    inactiveBtn.classList.remove("activate");
+    inactiveList.style.display = "none";
+    normalList.style.borderLeft = normalList.style.borderRight = activeList.style.borderLeft = activeList.style.borderRight = "none";
+    if (activeBtn?.classList.contains("activate")) {
+      activeBtn.classList.remove("activate");
+      activeList.style.display = "none";
+      normalList.style.width = "100%";
+    } else {
+      activeBtn.classList.add("activate");
+      activeList.style.display = "";
+      normalList.style.width = activeList.style.width = "50%";
+      const borderStyle = ".5px solid var(--material-border, #cecece)";
+      if (isLeft) {
+        normalList.style.borderLeft = borderStyle;
+        activeList.style.borderRight = borderStyle;
+      } else {
+        normalList.style.borderRight = borderStyle;
+        activeList.style.borderLeft = borderStyle;
+      }
+    }
+  };
+
   const relatedContainer = ztoolkit.UI.appendElement({
     id: `${config.addonRef}-related-container`,
     tag: "div",
@@ -33,23 +67,21 @@ export function buildGraphRelatedPanel(box: XUL.Box, ctx: GraphPanelContext): HT
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
-      height: "100%"
+      height: "100%",
+      color: "inherit"
     },
     children: [
       {
         tag: "div",
         id: "origin-items-container",
-        styles: {
-          display: "flex",
-          flexDirection: "column"
-        },
+        styles: { display: "flex", flexDirection: "column" },
         children: [
           {
             tag: "div",
             styles: {
               maxHeight: "8em",
               overflow: "auto",
-              borderTop: "1px solid #cecece",
+              borderTop: "1px solid var(--material-border, #cecece)",
             },
             classList: ["origin-items"]
           },
@@ -68,14 +100,12 @@ export function buildGraphRelatedPanel(box: XUL.Box, ctx: GraphPanelContext): HT
               {
                 tag: "div",
                 classList: ["icon"],
-                properties: {
-                  innerHTML: `<svg style="margin-right: .5em;" width="24" height="24" viewBox="0 0 24 24" fill="#7a306c" xmlns="http://www.w3.org/2000/svg" class="graph-action-icon mr-[6px]"><path d="M11 19V13H5V11H11V5H13V11H19V13H13V19H11Z"></path></svg>`
-                }
+                properties: { innerHTML: GRAPH_ICON_ADD_ORIGIN }
               },
               {
                 tag: "span",
                 styles: { lineHeight: "2em" },
-                properties: { innerText: "Add Origin" }
+                properties: { innerText: getString("graph-add-origin") || "Add Origin" }
               }
             ],
             listeners: [
@@ -86,7 +116,7 @@ export function buildGraphRelatedPanel(box: XUL.Box, ctx: GraphPanelContext): HT
                   if (!items || items.length === 0 || !items[0]) return;
                   const item = items[0];
                   const itemTitle = (item.getField("title") as string) || "Item";
-                  const popupWin = new ztoolkit.ProgressWindow("Add Origin", { closeTime: -1 })
+                  const popupWin = new ztoolkit.ProgressWindow(getString("graph-add-origin") || "Add Origin", { closeTime: -1 })
                     .createLine({ text: itemTitle, type: "connectedpapers" })
                     .show();
                   const info: ItemInfo = {
@@ -126,20 +156,18 @@ export function buildGraphRelatedPanel(box: XUL.Box, ctx: GraphPanelContext): HT
               alignContent: "center",
               cursor: "pointer",
               height: "2em",
-              backgroundColor: "#fff !important",
+              backgroundColor: "var(--material-background, transparent)",
             },
             children: [
               {
                 tag: "div",
                 classList: ["icon"],
-                properties: {
-                  innerHTML: `<svg style="margin-right: .5em;" width="24" height="24" viewBox="0 0 24 24" fill="#7a306c" xmlns="http://www.w3.org/2000/svg" class="graph-action-icon mr-[6px]"><path d="M19 13H5V11H19V13Z"></path></svg>`
-                }
+                properties: { innerHTML: GRAPH_ICON_REMOVE_ORIGIN }
               },
               {
                 tag: "span",
                 styles: { lineHeight: "2em" },
-                properties: { innerText: "Remove Origin" }
+                properties: { innerText: getString("graph-remove-origin") || "Remove Origin" }
               }
             ],
             listeners: [
@@ -153,9 +181,7 @@ export function buildGraphRelatedPanel(box: XUL.Box, ctx: GraphPanelContext): HT
                   ctx.invalidateGraph();
                   relatedContainer.querySelectorAll(".normal-items .item")?.forEach((e) => e.remove());
                   relatedContainer.querySelectorAll("#origin-items-container .origin-items .item").forEach((e) => {
-                    if (Number(e.getAttribute("zotero-item-id")) === itemID) {
-                      e.remove();
-                    }
+                    if (Number(e.getAttribute("zotero-item-id")) === itemID) e.remove();
                   });
                   ctx.updateAddOrRemove();
                 }
@@ -170,8 +196,8 @@ export function buildGraphRelatedPanel(box: XUL.Box, ctx: GraphPanelContext): HT
         classList: ["button"],
         styles: {
           width: "100%",
-          borderTop: "1px solid #eee",
-          borderBottom: "1px solid #eee",
+          borderTop: "1px solid var(--material-border, #eee)",
+          borderBottom: "1px solid var(--material-border, #eee)",
           display: "flex",
           flexDirection: "row",
           justifyContent: "center",
@@ -183,14 +209,12 @@ export function buildGraphRelatedPanel(box: XUL.Box, ctx: GraphPanelContext): HT
           {
             tag: "div",
             styles: { display: "flex", justifyContent: "center", alignContent: "center" },
-            properties: {
-              innerHTML: `<svg style="margin: auto 0; margin-right: .5em;" width="20" height="20" viewBox="-8 -5.5 35 35" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M16.1757 14.0888L13.9333 7.08338L14.5478 6.93021L16.7901 13.9356L16.1757 14.0888Z" fill="url(#paint0_linear_icon)"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M6.33333 15.1579L11.4 6.31579L11.9499 6.62914L6.88322 15.4712L6.33333 15.1579Z" fill="url(#paint1_linear_icon)"></path><path d="M19 13.8947C19 15.29 17.8658 16.4211 16.4667 16.4211C15.0675 16.4211 13.9333 15.29 13.9333 13.8947C13.9333 12.4995 15.0675 11.3684 16.4667 11.3684C17.8658 11.3684 19 12.4995 19 13.8947Z" fill="url(#paint2_linear_icon)"></path><path d="M10.1333 18.9474C10.1333 21.7379 7.86491 24 5.06667 24C2.26842 24 0 21.7379 0 18.9474C0 16.1569 2.26842 13.8947 5.06667 13.8947C7.86491 13.8947 10.1333 16.1569 10.1333 18.9474Z" fill="url(#paint3_linear_icon)"></path><path d="M16.9731 3.78947C16.9731 5.88234 15.2718 7.57895 13.1731 7.57895C11.0744 7.57895 9.37312 5.88234 9.37312 3.78947C9.37312 1.69661 11.0744 0 13.1731 0C15.2718 0 16.9731 1.69661 16.9731 3.78947Z" fill="url(#paint4_linear_icon)"></path><defs><linearGradient id="paint0_linear_icon" x1="1.9" y1="24" x2="26.4917" y2="-24.0554" gradientUnits="userSpaceOnUse"><stop stop-color="#239092"></stop><stop offset="0.624978" stop-color="#97C8C9"></stop></linearGradient><linearGradient id="paint1_linear_icon" x1="1.9" y1="24" x2="26.4917" y2="-24.0554" gradientUnits="userSpaceOnUse"><stop stop-color="#239092"></stop><stop offset="0.624978" stop-color="#97C8C9"></stop></linearGradient><linearGradient id="paint2_linear_icon" x1="1.9" y1="24" x2="26.4917" y2="-24.0554" gradientUnits="userSpaceOnUse"><stop stop-color="#239092"></stop><stop offset="0.624978" stop-color="#97C8C9"></stop></linearGradient><linearGradient id="paint3_linear_icon" x1="1.9" y1="24" x2="26.4917" y2="-24.0554" gradientUnits="userSpaceOnUse"><stop stop-color="#239092"></stop><stop offset="0.624978" stop-color="#97C8C9"></stop></linearGradient><linearGradient id="paint4_linear_icon" x1="1.9" y1="24" x2="26.4917" y2="-24.0554" gradientUnits="userSpaceOnUse"><stop stop-color="#239092"></stop><stop offset="0.624978" stop-color="#97C8C9"></stop></linearGradient></defs></svg>`
-            }
+            properties: { innerHTML: GRAPH_ICON_BUILD }
           },
           {
             tag: "span",
             styles: { lineHeight: "2em" },
-            properties: { innerText: "Build Graph" }
+            properties: { innerText: getString("graph-build-graph") || "Build Graph" }
           }
         ],
         listeners: [
@@ -200,7 +224,7 @@ export function buildGraphRelatedPanel(box: XUL.Box, ctx: GraphPanelContext): HT
               const itemIDs = ctx.getItemIDs();
               if (itemIDs.length === 0) {
                 new ztoolkit.ProgressWindow("Connected Papers")
-                  .createLine({ text: "Please select a Zotero Item and click Add Origin first, then click Build Graph.", type: "connectedpapers" })
+                  .createLine({ text: getString("graph-select-origin-prompt") || "Please select a Zotero Item and click Add Origin first, then click Build Graph.", type: "connectedpapers" })
                   .show();
                 return;
               }
@@ -242,29 +266,12 @@ export function buildGraphRelatedPanel(box: XUL.Box, ctx: GraphPanelContext): HT
       },
       {
         tag: "div",
-        styles: {
-          flexGrow: "1",
-          overflowY: "auto",
-          display: "flex",
-          flexDirection: "row",
-        },
+        styles: { flexGrow: "1", overflowY: "auto", display: "flex", flexDirection: "row" },
         classList: ["items-container"],
         children: [
-          {
-            tag: "div",
-            classList: ["prior-items"],
-            styles: { display: "none", overflowY: "auto" }
-          },
-          {
-            tag: "div",
-            classList: ["normal-items"],
-            styles: { overflowY: "auto" }
-          },
-          {
-            tag: "div",
-            classList: ["deriv-items"],
-            styles: { display: "none", overflowY: "auto" }
-          }
+          { tag: "div", classList: ["prior-items"], styles: { display: "none", overflowY: "auto" } },
+          { tag: "div", classList: ["normal-items"], styles: { overflowY: "auto" } },
+          { tag: "div", classList: ["deriv-items"], styles: { display: "none", overflowY: "auto" } }
         ]
       },
       {
@@ -275,68 +282,16 @@ export function buildGraphRelatedPanel(box: XUL.Box, ctx: GraphPanelContext): HT
             tag: "div",
             id: "prior-works",
             classList: ["filter-button"],
-            properties: { innerText: "Prior Works" },
-            listeners: [
-              {
-                type: "click",
-                listener: () => {
-                  const w1 = relatedContainer.querySelector("#prior-works")!;
-                  const w2 = relatedContainer.querySelector("#deriv-works")!;
-                  const i1 = relatedContainer.querySelector(".prior-items") as HTMLDivElement;
-                  const i2 = relatedContainer.querySelector(".deriv-items") as HTMLDivElement;
-                  const i0 = relatedContainer.querySelector(".normal-items") as HTMLDivElement;
-                  w2.classList.remove("activate");
-                  i2.style.display = "none";
-                  i0.style.borderLeft = i0.style.borderRight = i1.style.borderLeft = i1.style.borderRight = "none";
-                  if (w1?.classList.contains("activate")) {
-                    w1.classList.remove("activate");
-                    i1.style.display = "none";
-                    i1.style.borderLeft = "none";
-                    i0.style.borderRight = "none";
-                    i0.style.width = "100%";
-                  } else {
-                    w1.classList.add("activate");
-                    i1.style.display = "";
-                    i0.style.width = i1.style.width = "50%";
-                    i0.style.borderLeft = ".5px solid #cecece";
-                    i1.style.borderRight = ".5px solid #cecece";
-                  }
-                }
-              }
-            ]
+            properties: { innerText: getString("graph-prior-works") || "Prior Works" },
+            listeners: [{ type: "click", listener: () => toggleSplitPane("#prior-works", "#deriv-works", ".prior-items", ".deriv-items", true) }]
           },
           {
             tag: "div",
             id: "deriv-works",
             classList: ["filter-button"],
             attributes: { activate: "false" },
-            properties: { innerText: "Derivative Works" },
-            listeners: [
-              {
-                type: "click",
-                listener: () => {
-                  const w2 = relatedContainer.querySelector("#prior-works")!;
-                  const w1 = relatedContainer.querySelector("#deriv-works")!;
-                  const i2 = relatedContainer.querySelector(".prior-items") as HTMLDivElement;
-                  const i1 = relatedContainer.querySelector(".deriv-items") as HTMLDivElement;
-                  const i0 = relatedContainer.querySelector(".normal-items") as HTMLDivElement;
-                  w2.classList.remove("activate");
-                  i2.style.display = "none";
-                  i0.style.borderLeft = i0.style.borderRight = i1.style.borderLeft = i1.style.borderRight = "none";
-                  if (w1?.classList.contains("activate")) {
-                    w1.classList.remove("activate");
-                    i1.style.display = "none";
-                    i0.style.width = "100%";
-                  } else {
-                    w1.classList.add("activate");
-                    i1.style.display = "";
-                    i0.style.width = i1.style.width = "50%";
-                    i0.style.borderRight = ".5px solid #cecece";
-                    i1.style.borderLeft = ".5px solid #cecece";
-                  }
-                }
-              }
-            ]
+            properties: { innerText: getString("graph-derivative-works") || "Derivative Works" },
+            listeners: [{ type: "click", listener: () => toggleSplitPane("#deriv-works", "#prior-works", ".deriv-items", ".prior-items", false) }]
           }
         ]
       }
