@@ -249,6 +249,37 @@
   margin-block: 6px;
 }
 
+#zotero-prefpane-refflow .refflow-pref-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 20px;
+  row-gap: 8px;
+  margin-block: 6px;
+}
+
+#zotero-prefpane-refflow .refflow-grid-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
+#zotero-prefpane-refflow .refflow-grid-item > label {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--flow-pref-text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+#zotero-prefpane-refflow .refflow-grid-item > input[type="number"] {
+  flex: 0 0 5.5em;
+  width: 5.5em;
+  min-height: 30px;
+  text-align: right;
+}
+
 #zotero-prefpane-refflow .refflow-setting-input-row > span {
   color: var(--flow-pref-text);
   font-size: 14px;
@@ -378,6 +409,13 @@
 
 .refflow-pref-footer a:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 580px) {
+  #zotero-prefpane-refflow .refflow-pref-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 }
 
 @media (max-width: 520px) {

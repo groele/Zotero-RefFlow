@@ -47,30 +47,34 @@
           preference="extensions.zotero.__addonRef__.savePDFReferences" />
         <checkbox native="true" id="__addonRef__-save-api-references" data-l10n-id="saveAPIReferences"
           preference="extensions.zotero.__addonRef__.saveAPIReferences" />
-        <html:div class="refflow-setting-input-row refflow-indented-pref">
-          <html:label for="__addonRef__-referenceDays" data-l10n-id="cache-referenceDays"></html:label>
-          <html:input id="__addonRef__-referenceDays" data-cache-duration="referenceDays" type="number" min="0" max="3650" step="1" />
-        </html:div>
-        <html:div class="refflow-setting-input-row refflow-indented-pref">
-          <html:label for="__addonRef__-neighborhoodDays" data-l10n-id="cache-neighborhoodDays"></html:label>
-          <html:input id="__addonRef__-neighborhoodDays" data-cache-duration="neighborhoodDays" type="number" min="0" max="3650" step="1" />
-        </html:div>
-        <html:div class="refflow-setting-input-row refflow-indented-pref">
-          <html:label for="__addonRef__-pdfDays" data-l10n-id="cache-pdfDays"></html:label>
-          <html:input id="__addonRef__-pdfDays" data-cache-duration="pdfDays" type="number" min="0" max="3650" step="1" />
-        </html:div>
-        <html:div class="refflow-setting-input-row refflow-indented-pref">
-          <html:label for="__addonRef__-partialMinutes" data-l10n-id="cache-partialMinutes"></html:label>
-          <html:input id="__addonRef__-partialMinutes" data-cache-duration="partialMinutes" type="number" min="1" max="10080" step="1" />
+        <html:div class="refflow-pref-grid-2col refflow-indented-pref">
+          <html:div class="refflow-grid-item">
+            <html:label for="__addonRef__-referenceDays" data-l10n-id="cache-referenceDays"></html:label>
+            <html:input id="__addonRef__-referenceDays" data-cache-duration="referenceDays" type="number" min="0" max="3650" step="1" />
+          </html:div>
+          <html:div class="refflow-grid-item">
+            <html:label for="__addonRef__-neighborhoodDays" data-l10n-id="cache-neighborhoodDays"></html:label>
+            <html:input id="__addonRef__-neighborhoodDays" data-cache-duration="neighborhoodDays" type="number" min="0" max="3650" step="1" />
+          </html:div>
+          <html:div class="refflow-grid-item">
+            <html:label for="__addonRef__-pdfDays" data-l10n-id="cache-pdfDays"></html:label>
+            <html:input id="__addonRef__-pdfDays" data-cache-duration="pdfDays" type="number" min="0" max="3650" step="1" />
+          </html:div>
+          <html:div class="refflow-grid-item">
+            <html:label for="__addonRef__-partialMinutes" data-l10n-id="cache-partialMinutes"></html:label>
+            <html:input id="__addonRef__-partialMinutes" data-cache-duration="partialMinutes" type="number" min="1" max="10080" step="1" />
+          </html:div>
         </html:div>
         <html:p class="refflow-pref-description" data-l10n-id="cache-duration-help"></html:p>
-        <html:div class="refflow-setting-input-row refflow-indented-pref">
-          <html:label for="__addonRef__-cacheMaxMiB" data-l10n-id="cache-max-mib"></html:label>
-          <html:input id="__addonRef__-cacheMaxMiB" data-cache-capacity="cacheMaxMiB" type="number" min="1" max="64" step="1" />
-        </html:div>
-        <html:div class="refflow-setting-input-row refflow-indented-pref">
-          <html:label for="__addonRef__-cacheMaxItems" data-l10n-id="cache-max-items"></html:label>
-          <html:input id="__addonRef__-cacheMaxItems" data-cache-capacity="cacheMaxItems" type="number" min="10" max="10000" step="1" />
+        <html:div class="refflow-pref-grid-2col refflow-indented-pref">
+          <html:div class="refflow-grid-item">
+            <html:label for="__addonRef__-cacheMaxMiB" data-l10n-id="cache-max-mib"></html:label>
+            <html:input id="__addonRef__-cacheMaxMiB" data-cache-capacity="cacheMaxMiB" type="number" min="1" max="64" step="1" />
+          </html:div>
+          <html:div class="refflow-grid-item">
+            <html:label for="__addonRef__-cacheMaxItems" data-l10n-id="cache-max-items"></html:label>
+            <html:input id="__addonRef__-cacheMaxItems" data-cache-capacity="cacheMaxItems" type="number" min="10" max="10000" step="1" />
+          </html:div>
         </html:div>
         <html:p class="refflow-pref-description" data-l10n-id="cache-capacity-help"></html:p>
         <html:p id="__addonRef__-cache-usage" class="refflow-pref-description" role="status" aria-live="polite" data-l10n-id="cache-usage-loading"></html:p>
