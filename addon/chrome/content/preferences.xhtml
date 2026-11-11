@@ -22,8 +22,8 @@
             <menupopup>
               <menuitem value="Auto" data-l10n-id="source-auto"></menuitem>
               <menuitem value="Web" data-l10n-id="source-web"></menuitem>
-              <menuitem value="PDF" label="PDF"></menuitem>
-              <menuitem value="API" label="API"></menuitem>
+              <menuitem value="PDF" data-l10n-id="source-pdf"></menuitem>
+              <menuitem value="API" data-l10n-id="source-api"></menuitem>
             </menupopup>
           </menulist>
           <html:span data-l10n-id="prioritySource-end"></html:span>
@@ -33,8 +33,9 @@
       <html:div class="refflow-setting-subgroup">
         <checkbox native="true" id="__addonRef__-auto-refresh" data-l10n-id="autoRefresh"
           preference="extensions.zotero.__addonRef__.autoRefresh" />
-        <html:div class="refflow-setting-input-row refflow-setting-input-row-wide refflow-indented-input">
+        <html:div class="refflow-setting-input-row refflow-indented-pref">
           <html:input type="text" id="__addonRef__-not-auto-refresh-item-types"
+            class="refflow-compact-text-input"
             preference="extensions.zotero.__addonRef__.notAutoRefreshItemTypes">
           </html:input>
         </html:div>
@@ -42,51 +43,79 @@
 
       <html:div class="refflow-setting-subgroup">
         <html:h3 data-l10n-id="caption-save"></html:h3>
-        <checkbox native="true" id="__addonRef__-cacheEnabled" data-l10n-id="cache-enabled" preference="extensions.zotero.__addonRef__.cacheEnabled" />
-        <checkbox native="true" id="__addonRef__-save-pdf-references" data-l10n-id="savePDFReferences"
-          preference="extensions.zotero.__addonRef__.savePDFReferences" />
-        <checkbox native="true" id="__addonRef__-save-api-references" data-l10n-id="saveAPIReferences"
-          preference="extensions.zotero.__addonRef__.saveAPIReferences" />
-        <html:div class="refflow-pref-grid-2col refflow-indented-pref">
-          <html:div class="refflow-grid-item">
-            <html:label for="__addonRef__-referenceDays" data-l10n-id="cache-referenceDays"></html:label>
-            <html:input id="__addonRef__-referenceDays" data-cache-duration="referenceDays" type="number" min="0" max="3650" step="1" />
+        <checkbox native="true" id="__addonRef__-cacheEnabled" data-l10n-id="cache-enabled"
+          preference="extensions.zotero.__addonRef__.cacheEnabled" />
+        <html:div class="refflow-child-checkboxes refflow-indented-pref">
+          <checkbox native="true" id="__addonRef__-save-pdf-references" data-l10n-id="savePDFReferences"
+            preference="extensions.zotero.__addonRef__.savePDFReferences" />
+          <checkbox native="true" id="__addonRef__-save-api-references" data-l10n-id="saveAPIReferences"
+            preference="extensions.zotero.__addonRef__.saveAPIReferences" />
+        </html:div>
+
+        <!-- 嵌套卡片 1：缓存有效期策略 -->
+        <html:div class="refflow-subcard refflow-indented-pref">
+          <html:div class="refflow-subcard-header">
+            <html:span class="refflow-subcard-title" data-l10n-id="cache-policy-heading"></html:span>
           </html:div>
-          <html:div class="refflow-grid-item">
-            <html:label for="__addonRef__-neighborhoodDays" data-l10n-id="cache-neighborhoodDays"></html:label>
-            <html:input id="__addonRef__-neighborhoodDays" data-cache-duration="neighborhoodDays" type="number" min="0" max="3650" step="1" />
-          </html:div>
-          <html:div class="refflow-grid-item">
-            <html:label for="__addonRef__-pdfDays" data-l10n-id="cache-pdfDays"></html:label>
-            <html:input id="__addonRef__-pdfDays" data-cache-duration="pdfDays" type="number" min="0" max="3650" step="1" />
-          </html:div>
-          <html:div class="refflow-grid-item">
-            <html:label for="__addonRef__-partialMinutes" data-l10n-id="cache-partialMinutes"></html:label>
-            <html:input id="__addonRef__-partialMinutes" data-cache-duration="partialMinutes" type="number" min="1" max="10080" step="1" />
+          <html:p class="refflow-subcard-desc" data-l10n-id="cache-duration-help"></html:p>
+          <html:div class="refflow-grid-cards">
+            <html:div class="refflow-field-card">
+              <html:label for="__addonRef__-referenceDays" data-l10n-id="cache-referenceDays"></html:label>
+              <html:input id="__addonRef__-referenceDays" data-cache-duration="referenceDays" type="number" min="0" max="3650" step="1" />
+            </html:div>
+            <html:div class="refflow-field-card">
+              <html:label for="__addonRef__-neighborhoodDays" data-l10n-id="cache-neighborhoodDays"></html:label>
+              <html:input id="__addonRef__-neighborhoodDays" data-cache-duration="neighborhoodDays" type="number" min="0" max="3650" step="1" />
+            </html:div>
+            <html:div class="refflow-field-card">
+              <html:label for="__addonRef__-pdfDays" data-l10n-id="cache-pdfDays"></html:label>
+              <html:input id="__addonRef__-pdfDays" data-cache-duration="pdfDays" type="number" min="0" max="3650" step="1" />
+            </html:div>
+            <html:div class="refflow-field-card">
+              <html:label for="__addonRef__-partialMinutes" data-l10n-id="cache-partialMinutes"></html:label>
+              <html:input id="__addonRef__-partialMinutes" data-cache-duration="partialMinutes" type="number" min="1" max="10080" step="1" />
+            </html:div>
           </html:div>
         </html:div>
-        <html:p class="refflow-pref-description" data-l10n-id="cache-duration-help"></html:p>
-        <html:div class="refflow-pref-grid-2col refflow-indented-pref">
-          <html:div class="refflow-grid-item">
-            <html:label for="__addonRef__-cacheMaxMiB" data-l10n-id="cache-max-mib"></html:label>
-            <html:input id="__addonRef__-cacheMaxMiB" data-cache-capacity="cacheMaxMiB" type="number" min="1" max="64" step="1" />
+
+        <!-- 嵌套卡片 2：配额上限与存储监控 -->
+        <html:div class="refflow-subcard refflow-indented-pref">
+          <html:div class="refflow-subcard-header">
+            <html:span class="refflow-subcard-title" data-l10n-id="cache-capacity-heading"></html:span>
           </html:div>
-          <html:div class="refflow-grid-item">
-            <html:label for="__addonRef__-cacheMaxItems" data-l10n-id="cache-max-items"></html:label>
-            <html:input id="__addonRef__-cacheMaxItems" data-cache-capacity="cacheMaxItems" type="number" min="10" max="10000" step="1" />
+          <html:p class="refflow-subcard-desc" data-l10n-id="cache-capacity-help"></html:p>
+          <html:div class="refflow-grid-cards">
+            <html:div class="refflow-field-card">
+              <html:label for="__addonRef__-cacheMaxMiB" data-l10n-id="cache-max-mib"></html:label>
+              <html:input id="__addonRef__-cacheMaxMiB" data-cache-capacity="cacheMaxMiB" type="number" min="1" max="64" step="1" />
+            </html:div>
+            <html:div class="refflow-field-card">
+              <html:label for="__addonRef__-cacheMaxItems" data-l10n-id="cache-max-items"></html:label>
+              <html:input id="__addonRef__-cacheMaxItems" data-cache-capacity="cacheMaxItems" type="number" min="10" max="10000" step="1" />
+            </html:div>
+          </html:div>
+
+          <!-- 状态监控仪表盘 -->
+          <html:div class="refflow-status-dashboard">
+            <html:div class="refflow-status-header">
+              <html:span class="refflow-status-indicator"></html:span>
+              <html:span class="refflow-status-title" data-l10n-id="cache-status-heading"></html:span>
+            </html:div>
+            <html:p id="__addonRef__-cache-usage" class="refflow-status-metrics" role="status" aria-live="polite" data-l10n-id="cache-usage-loading"></html:p>
+            <html:p class="refflow-status-hint" data-l10n-id="cache-cleanup-help"></html:p>
+            <html:div class="refflow-status-actions">
+              <html:button type="button" id="__addonRef__-cache-clean" class="refflow-btn-secondary" data-l10n-id="cache-clean-expired"></html:button>
+            </html:div>
+          </html:div>
+
+          <!-- 缓存文件夹路径 -->
+          <html:div class="refflow-cache-location-row">
+            <html:label for="__addonRef__-cache-path" data-l10n-id="cache-file-path"></html:label>
+            <html:input type="text" id="__addonRef__-cache-path" readonly="readonly" />
+            <html:button type="button" id="__addonRef__-cache-folder" class="refflow-btn-secondary" data-l10n-id="cache-open-folder" disabled="disabled"></html:button>
           </html:div>
         </html:div>
-        <html:p class="refflow-pref-description" data-l10n-id="cache-capacity-help"></html:p>
-        <html:p id="__addonRef__-cache-usage" class="refflow-pref-description" role="status" aria-live="polite" data-l10n-id="cache-usage-loading"></html:p>
-        <html:div class="refflow-setting-input-row refflow-indented-pref">
-          <html:button type="button" id="__addonRef__-cache-clean" data-l10n-id="cache-clean-expired"></html:button>
-        </html:div>
-        <html:p class="refflow-pref-description" data-l10n-id="cache-cleanup-help"></html:p>
-        <html:div class="refflow-setting-input-row refflow-cache-location">
-          <html:label for="__addonRef__-cache-path" data-l10n-id="cache-file-path"></html:label>
-          <html:input type="text" id="__addonRef__-cache-path" readonly="readonly" />
-          <html:button type="button" id="__addonRef__-cache-folder" data-l10n-id="cache-open-folder" disabled="disabled"></html:button>
-        </html:div>
+
         <checkbox native="true" id="__addonRef__-show-source-details" data-l10n-id="showSourceDetails"
           preference="extensions.zotero.__addonRef__.showSourceDetails" />
       </html:div>
@@ -100,11 +129,10 @@
       <html:div class="refflow-setting-subgroup">
         <html:h3 data-l10n-id="caption-match"></html:h3>
         <hbox class="refflow-setting-input-row refflow-range-row">
-          <html:span data-l10n-id="notInLibarayOpacity-start"></html:span>
+          <html:label for="__addonRef__-not-in-library-opacity" data-l10n-id="notInLibraryOpacity"></html:label>
           <html:input type="range" min="0" max="1" step="0.01" id="__addonRef__-not-in-library-opacity"
             preference="extensions.zotero.__addonRef__.notInLibarayOpacity">
           </html:input>
-          <html:span data-l10n-id="notInLibarayOpacity-end"></html:span>
         </hbox>
       </html:div>
 
@@ -220,7 +248,7 @@
       <html:div class="refflow-setting-subgroup" id="__addonRef__-about">
         <html:p data-l10n-id="about-maintainer"></html:p>
         <html:p data-l10n-id="about-origin"></html:p>
-        <html:p data-l10n-id="about-updates"></html:p>
+        <html:p data-l10n-id="about-updates" data-l10n-args='{"minVersion": "__minVersion__", "maxVersion": "__maxVersion__"}'></html:p>
         <html:p class="refflow-about-build"><html:span data-l10n-id="about-build-date"></html:span> <html:span>__buildTime__</html:span></html:p>
         <html:div class="refflow-about-links">
           <html:a id="__addonRef__-project-link" href="__homepage__" data-l10n-id="about-project"></html:a>

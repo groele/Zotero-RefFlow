@@ -1,4 +1,4 @@
-> **16.4.0** — 2-column responsive grid layout for cache preferences; reader-sidebar sync with PDF mention jump, modernized graph dark mode and western citation parsing. [Release notes](docs/releases/v16.4.0.md).
+> **16.5.0** — Settings panel spatial layout modernization with nested subcards and storage health dashboard; comprehensive P0 compliance resolution (dynamic version injection, zero hardcoded UI strings, Unpaywall OA discovery pipeline, full i18n alignment, and module guard). [Release notes](docs/releases/v16.5.0.md).
 
 
 
@@ -14,7 +14,7 @@ Discover references, citing works, and related research.
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![Release](https://img.shields.io/badge/version-16.4.0-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v16.4.0) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v16.4.0/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
+[![Release](https://img.shields.io/badge/version-16.5.0-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v16.5.0) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v16.5.0/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
 
 [Overview](#overview) · [Installation and updates](#installation) · [Quick start](#quick-start) · [Key features](#features) · [Settings](#settings) · [Data, sync, and services](#data) · [Compatibility and validation](#compatibility) · [Troubleshooting](#troubleshooting) · [Development and documentation](#development) · [The Flow series](#series) · [Origin and license](#license)
 
@@ -30,7 +30,7 @@ Install this add-on independently and combine it with other Flow products as nee
 
 ## Installation and updates
 
-1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v16.4.0/zotero-refflow.xpi) (add-on version **16.4.0**). Do not install the Source code ZIP.
+1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v16.5.0/zotero-refflow.xpi) (add-on version **16.5.0**). Do not install the Source code ZIP.
 2. In Zotero, open **Tools → Plugins/Add-ons**, then choose **Install Add-on From File** from the gear menu.
 3. Select the XPI, complete installation, and restart if requested.
 
@@ -72,7 +72,7 @@ Seven sidebar quick-action switches control copy, open, import and rollback entr
 
 ## Data, sync, and services
 
-- Online sources include Crossref, OpenAlex, and Semantic Scholar; coverage, rate limits, and ordering depend on each provider.
+- Online sources include Crossref, OpenAlex, Semantic Scholar, and Unpaywall (for open-access full-text discovery); coverage, rate limits, and ordering depend on each provider.
 - Snapshots and cache are not guarantees of a complete original bibliography. Scanned PDFs may need OCR. Import creates Zotero items.
 
 <a id="compatibility"></a>
@@ -81,9 +81,9 @@ Seven sidebar quick-action switches control copy, open, import and rollback entr
 
 | Item | Scope |
 |---|---|
-| Current add-on version | 16.4.0 |
+| Current add-on version | 16.5.0 |
 | Declared Zotero range | `10.0` through `12.*` |
-| Evidence boundary | All 359 unit tests passed 100% across 39 suites (0 failures); 8 architecture guard rules passed; all 72 source modules strictly comply with §5.9 360-line ceiling (0 debt declared); fully compatible with modern Zotero 10 ~ 12 Gecko architecture. |
+| Evidence boundary | All 379 unit tests passed 100% across 43 suites (0 failures); 9 architecture guard rules passed; all 82 source modules strictly comply with §5.9 360-line ceiling (0 debt declared); fully compatible with modern Zotero 10 ~ 12 Gecko architecture. |
 
 Add-on and Zotero versions are separate. Declared compatibility does not establish testing on every host, operating system or service. This patch validates the targeted behaviors listed above, not all plugin workflows or main-profile installation.
 

@@ -40,7 +40,7 @@ pane-sidenav =
 cards-kept-results = Risultati precedenti conservati
 cards-refresh-empty-kept = Nessun nuovo elenco; risultati precedenti conservati
 cards-resolving-doi = Ricerca del DOI…
-cards-context-changed = The item or document changed. Refresh to retrieve its references.
+cards-context-changed = L'elemento o il documento è cambiato. Aggiorna per recuperare i suoi riferimenti.
 
 cards-list-name = Elenco riferimenti
 cards-rollback-retained = Conservati { $count } elementi riutilizzati o modificati.

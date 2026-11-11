@@ -316,31 +316,8 @@ export default class Requests {
   /**
    * 规范化 DOI 解析路径，保留斜杠并在必要时对特殊字符编码
    */
-  private formatDOIPath(doi: string): string {
+  formatDOIPath(doi: string): string {
     const cleanDOI = doi.trim().replace(/^https?:\/\/doi\.org\//i, "").replace(/^doi:\s*/i, "");
     return cleanDOI.split("/").map(seg => encodeURIComponent(seg)).join("/");
-  }
-
-  /**
-   * RFC 5854 官方 DOI 内容协商 (Direct DOI Content Negotiation)
-   * 由 DOI 官方解析至出版商服务器返回原生 BibTeX
-   */
-  async getBibTeXByDOI(doi: string): Promise<string | undefined> {
-    const path = this.formatDOIPath(doi);
-    const url = `https://doi.org/${path}`;
-    return await this.get(url, "text", {
-      "Accept": "application/x-bibtex; charset=utf-8"
-    });
-  }
-
-  /**
-   * RFC 5854 官方 DOI 获取标准 CSL-JSON
-   */
-  async getCSLJSONByDOI(doi: string): Promise<any | undefined> {
-    const path = this.formatDOIPath(doi);
-    const url = `https://doi.org/${path}`;
-    return await this.get(url, "json", {
-      "Accept": "application/vnd.citationstyles.csl+json"
-    });
   }
 }

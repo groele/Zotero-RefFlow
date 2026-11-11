@@ -6,8 +6,25 @@ const svg=document.querySelector<SVGSVGElement>('#graph')!;
 const status=document.querySelector<HTMLElement>('#status')!;
 const empty=document.querySelector<HTMLElement>('#empty')!;
 const detail=document.querySelector<HTMLElement>('#detail')!;
-const zh=navigator.language.toLowerCase().startsWith('zh');
-if(zh){document.documentElement.lang='zh-CN';document.querySelector('header strong span')!.textContent='文献关系图';document.querySelector('#reset')!.textContent='适应视图';document.querySelector('footer small')!.textContent='连线表示研究相似性；红色节点表示已有 Zotero 条目。';svg.setAttribute('aria-label','研究相似性关系图');}
+const lang=navigator.language.toLowerCase();
+const zh=lang.startsWith('zh'),it=lang.startsWith('it');
+const i18n={
+  title:zh?'文献关系图':it?'Grafo della ricerca':'Research graph',
+  fitView:zh?'适应视图':it?'Adatta vista':'Fit view',
+  zoomIn:zh?'放大':it?'Ingrandisci':'Zoom in',
+  zoomOut:zh?'缩小':it?'Rimpicciolisci':'Zoom out',
+  ariaLabel:zh?'研究相似性关系图':it?'Grafo di somiglianza della ricerca':'Research similarity graph',
+  legend:zh?'连线表示研究相似性；红色节点表示已有 Zotero 条目。':it?'I collegamenti indicano somiglianza. I nodi rossi sono nella biblioteca Zotero.':'Links indicate research similarity. Red nodes are in your Zotero library.',
+  emptyPrompt:zh?'先添加起始文献，再构建关系图。':it?'Aggiungi un elemento di origine, quindi crea il grafo.':'Add a paper as an origin, then build its graph.',
+  notLoaded:zh?'尚未加载关系图':it?'Nessun grafo caricato':'No graph loaded',
+};
+document.documentElement.lang=zh?'zh-CN':it?'it-IT':'en-US';
+document.querySelector('header strong span')!.textContent=i18n.title;
+document.querySelector('#reset')!.textContent=i18n.fitView;
+document.querySelector('#zoom-in')!.setAttribute('aria-label',i18n.zoomIn);
+document.querySelector('#zoom-out')!.setAttribute('aria-label',i18n.zoomOut);
+document.querySelector('footer small')!.textContent=i18n.legend;
+svg.setAttribute('aria-label',i18n.ariaLabel);
 let data:any={nodes:{},edges:[]},selected='',hover='',scale=1,panX=0,panY=0;
 const layer=document.createElementNS(ns,'g');svg.append(layer);
 const circles=new Map<string,SVGCircleElement>();
@@ -28,8 +45,8 @@ function setState(state:{selected?:string;hover?:string}){
   const node=Object.values(data.nodes).find((row:any)=>row.paperId===(hover||selected)) as any;
   detail.textContent=node?[node.title,node.year,(node.authors||[]).slice(0,3).map((a:any)=>a.name).join(' / ')].filter(Boolean).join(' · '):'';
 }
-function clear(message=zh?'先添加起始文献，再构建关系图。':'Add a paper as an origin, then build its graph.'){
-  data={nodes:{},edges:[]};layer.replaceChildren();circles.clear();selected=hover='';empty.hidden=false;empty.textContent=message;detail.textContent='';status.textContent=zh?'尚未加载关系图':'No graph loaded';reset();
+function clear(message=i18n.emptyPrompt){
+  data={nodes:{},edges:[]};layer.replaceChildren();circles.clear();selected=hover='';empty.hidden=false;empty.textContent=message;detail.textContent='';status.textContent=i18n.notLoaded;reset();
 }
 function setGraph(raw:any,options:{origins?:string[];retrievedAt?:string;partialOrigins?:number;source?:string}={}){
   const next=validateGraph(raw);data=next;layer.replaceChildren();circles.clear();reset();
@@ -58,7 +75,7 @@ function setGraph(raw:any,options:{origins?:string[];retrievedAt?:string;partial
       else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();const step=['ArrowLeft','ArrowUp'].includes(event.key)?-1:1;const id=(entries[(index+step+entries.length)%entries.length][1] as any).paperId;circles.get(id)?.focus();}
     });nodes.append(circle);circles.set(node.paperId,circle);
   });
-  empty.hidden=entries.length>0;status.textContent=formatGraphStatus(entries.length,next.edges.length,{...options,language:zh?'zh-CN':'en-US'});
+  empty.hidden=entries.length>0;status.textContent=formatGraphStatus(entries.length,next.edges.length,{...options,language:zh?'zh-CN':it?'it-IT':'en-US'});
   setState({selected:'',hover:''});
 }
 const bridge={version:1,setGraph,setState,clear,get graphdata(){return data;}};

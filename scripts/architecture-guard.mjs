@@ -133,6 +133,10 @@ test('§3 preferences.xhtml has zero hardcoded UI strings (100% Fluent driven)',
   const rawChinese = [...xhtml.matchAll(/>([^<]*[\u4e00-\u9fa5]+[^<]*)</g)].map((m) => m[1].trim());
   assert.deepEqual(rawChinese, [], `raw Chinese text detected in preferences.xhtml: ${rawChinese.join(', ')}`);
 
+  // Check for static label="..." attributes that bypass Fluent
+  const staticLabels = [...xhtml.matchAll(/<[^>]+\slabel="([^"]+)"[^>]*>/g)].map(m => m[0]);
+  assert.deepEqual(staticLabels, [], `static label="..." attributes detected in preferences.xhtml: ${staticLabels.join(', ')}`);
+
   // Verify all summary elements have data-l10n-id
   const summaries = [...xhtml.matchAll(/<html:summary[^>]*>([\s\S]*?)<\/html:summary>/g)];
   const missingL10n = summaries.filter((s) => !s[0].includes('data-l10n-id=')).map((s) => s[0]);
@@ -141,7 +145,16 @@ test('§3 preferences.xhtml has zero hardcoded UI strings (100% Fluent driven)',
   // Verify details cards: exactly first card is open
   const openCount = (xhtml.match(/<html:details[^>]*open/g) || []).length;
   assert.equal(openCount, 1, `exactly one details card must be open by default, found ${openCount}`);
-  t.diagnostic('preferences.xhtml confirmed 100% Fluent driven with first-card open rule');
+
+  // Verify no hardcoded versions or empty placeholders in FTL catalogues across 3 languages
+  for (const lang of ['en-US', 'zh-CN', 'it-IT']) {
+    const ftl = read(`addon/locale/${lang}/preferences.ftl`);
+    const versionMatches = ftl.match(/10\.\d+|11\.\*|12\.\*/g) || [];
+    assert.deepEqual(versionMatches, [], `hardcoded versions detected in ${lang}/preferences.ftl: ${versionMatches.join(', ')}`);
+    assert.equal(ftl.includes('{ "" }'), false, `empty placeholder { "" } found in ${lang}/preferences.ftl`);
+  }
+
+  t.diagnostic('preferences.xhtml confirmed 100% Fluent driven with first-card open rule and zero hardcoded versions');
 });
 
 test('§3 source filenames carry no version numbers or transient prefixes', () => {
@@ -206,4 +219,12 @@ test('§9 update feeds point at valid released HTTPS URLs and complete SHA-512 h
   assert.equal(entry.applications?.zotero?.strict_min_version, '10.0');
   assert.equal(entry.applications?.zotero?.strict_max_version, '12.*');
   t.diagnostic('update.json validated with compliant hash and release URL');
+});
+
+test('§10 documentation metrics are dynamically synchronized with source count', (t) => {
+  const sourceCount = walk('src', ['.ts', '.tsx']).length;
+  assert.ok(baseline.note.includes(`All ${sourceCount} source files`), `architecture-baseline.json note mismatch (expected ${sourceCount})`);
+  assert.ok(read('README.md').includes(`全仓 ${sourceCount} 个源码模块`), `README.md source module count mismatch (expected ${sourceCount})`);
+  assert.ok(read('README.en.md').includes(`all ${sourceCount} source modules`), `README.en.md source module count mismatch (expected ${sourceCount})`);
+  t.diagnostic(`documentation metrics synchronized at ${sourceCount} source modules`);
 });

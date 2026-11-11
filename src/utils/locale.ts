@@ -67,34 +67,6 @@ function getString(...inputs: any[]) {
   }
 }
 
-const DEFAULT_STRINGS: Record<string, string> = {
-  "relatedbox-search-placeholder": "搜索",
-  "cards-source-details": "参考文献数据源与证据",
-  "relatedbox-number-label": "条参考文献：",
-  "relatedbox-fetch-label": "获取参考文献",
-  "relatedbox-loading": "正在获取参考文献…",
-  "relatedbox-cancelled": "已取消获取",
-  "relatedbox-empty": "未找到参考文献，请检查文本层或换用另一来源",
-  "relatedbox-timeout": "获取超时，请重试或换用另一来源",
-  "relatedbox-fetch-error": "获取失败，请重试",
-  "cards-list-name": "参考文献",
-  "cards-copy-text": "复制参考文献文本",
-  "cards-copy-doi": "复制 DOI",
-  "cards-copy-url": "复制链接",
-  "cards-open": "在 Zotero 或浏览器中打开",
-  "cards-import-selected": "按 DOI 添加选中文献",
-  "cards-import-all": "按 DOI 添加全部文献",
-  "cards-cached-offline": "网络不可用，显示缓存",
-  "cards-kept-results": "保留上次结果",
-  "cards-no-search-results": "没有匹配的参考文献，按 Esc 清除搜索",
-  "cards-context-changed": "上下文已改变",
-  "cards-refresh-empty-kept": "刷新无结果，保留上次结果",
-  "cards-in-library": "在 Zotero 文库中",
-  "cards-cited": "被引",
-  "cards-show-library": "在文库中显示",
-  "cards-import": "按 DOI 添加到 Zotero",
-};
-
 function _getString(
   localeString: string,
   options: { branch?: string | undefined; args?: Record<string, unknown> } = {},
@@ -144,5 +116,5 @@ function _getString(
   } catch {
     // ignore
   }
-  return DEFAULT_STRINGS[localeString] || localStringWithPrefix;
+  return localStringWithPrefix;
 }

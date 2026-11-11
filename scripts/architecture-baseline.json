@@ -3,9 +3,24 @@
   "maxSourceLines": 360,
   "capturedAt": "2026-11-06",
   "debtCleared": true,
-  "note": "RefFlow source architecture fully compliant with §5.9. All 72 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "16.4.0",
+  "note": "RefFlow source architecture fully compliant with §5.9. All 82 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
+  "lastReleasedVersion": "16.5.0",
   "splitHistory": [
+    {
+      "version": "16.5.0",
+      "date": "2026-11-11",
+      "resolved": [
+        "UI/UX: Complete spatial layout modernization of settings pane with §5.2 40px golden baseline compliance",
+        "UI/UX: Redesigned cache expiration policy and storage quotas into structured nested subcards and micro-cards",
+        "UI/UX: Resolved awkward text wrapping and jagged heights with dedicated title headers and responsive grid",
+        "UI/UX: Integrated Storage Health Dashboard with live usage metrics, clean cache action, and directory launcher",
+        "P0 Compliance: Injected dynamic min/max version in preferences.xhtml data-l10n-args, eliminating hardcoded FTL versions",
+        "P0 Compliance: 100% Fluent-driven UI in preferences.xhtml with zero static labels and symmetrical trilingual FTL",
+        "P0 Feature: Wired Unpaywall OA PDF discovery pipeline (getOAFromUnpaywall) into resolveWork federated resolver",
+        "P0 Localization: Complete it-IT translation, fixed notInLibraryOpacity typo/placeholder, added i18n bundle to graph panel",
+        "P0 Documentation: Dynamic module count synchronization in build pipeline and architecture guard (locked at 82 source modules)"
+      ]
+    },
     {
       "version": "16.4.0",
       "date": "2026-11-11",

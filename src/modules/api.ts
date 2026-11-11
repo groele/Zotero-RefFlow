@@ -45,8 +45,21 @@ class API {
     this.BaseInfo = mappers.BaseInfo;
   }
 
-  async getDOIBaseInfo(DOI:string,signal?:AbortSignal):Promise<ItemBaseInfo|undefined> {
-    return this.getDOIInfoBySemanticscholar(DOI,signal);
+  /**
+   * 通过 Unpaywall 开放获取服务解析 DOI 的合法 OA 全文 PDF 地址
+   */
+  async getOAFromUnpaywall(doi: string, signal?: AbortSignal): Promise<string | undefined> {
+    const clean = CitationVerifier.normalizeDOI(doi);
+    if (!clean || signal?.aborted) return undefined;
+    const doiPath = clean.split("/").map(seg => encodeURIComponent(seg)).join("/");
+    const url = `https://api.unpaywall.org/v2/${doiPath}?email=refflow@groele.github.io`;
+    try {
+      const res = await this.requests.get(url, "json", {}, signal);
+      const mapped = this.Info.unpaywall(res);
+      return mapped?.oaUrl || undefined;
+    } catch {
+      return undefined;
+    }
   }
 
   async getDOIInfoBySemanticscholar(DOI:string,signal?:AbortSignal):Promise<ItemInfo|undefined> {
@@ -286,7 +299,7 @@ class API {
   async resolveWork(title: string, author?: string, year?: string,signal?:AbortSignal): Promise<{ doi?: string; oaUrl?: string; info?: ItemInfo } | undefined> {
     if (!title || signal?.aborted) return undefined;
 
-    const providers = [
+    const providers: Array<{ name: string; run: () => Promise<{ doi?: string; oaUrl?: string; info?: ItemInfo } | undefined> }> = [
       {name:"Crossref",run:async()=>{const info=await this.getTitleInfoByCrossref(title,author,year,signal);return info?{doi:info.identifiers.DOI,info}:undefined;}},
       {name:"OpenAlex",run:async()=>{const work=await this.openAlex.searchWorkByTitle(title,author,year,signal);return work?{doi:work.doi,oaUrl:work.oaUrl}:undefined;}},
       {name:"Semantic Scholar",run:async()=>{const paper=await this.semanticScholar.byTitle(title,author,year,signal);if(!paper)return;const info=this.semanticScholar.toInfo(paper);return {doi:info.identifiers.DOI,oaUrl:info.oaUrl,info};}}
@@ -297,7 +310,11 @@ class API {
         const result=await provider.run();
         if(signal?.aborted)return;
         const doi=CitationVerifier.normalizeDOI(result?.doi);
-        if(doi)return {...result!,doi};
+        if(doi){
+          let oaUrl=result?.oaUrl;
+          if(!oaUrl && !signal?.aborted) oaUrl = await this.getOAFromUnpaywall(doi, signal);
+          return {...result!,doi,oaUrl};
+        }
       }catch(error:any){
         if(error?.name==="AbortError"||signal?.aborted)throw error;
         ztoolkit.log(`${provider.name} title lookup failed; trying next provider`,error);

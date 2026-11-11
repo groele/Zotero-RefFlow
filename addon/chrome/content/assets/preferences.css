@@ -249,6 +249,221 @@
   margin-block: 6px;
 }
 
+#zotero-prefpane-refflow .refflow-compact-text-input {
+  max-width: 380px;
+  width: 100%;
+  min-height: 30px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  background: Field;
+  color: inherit;
+}
+
+#zotero-prefpane-refflow .refflow-child-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin-block: 6px 10px;
+}
+
+#zotero-prefpane-refflow .refflow-subcard {
+  margin-block: 8px 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, currentColor 11%, transparent);
+  background-color: color-mix(in srgb, currentColor 1.8%, transparent);
+  box-sizing: border-box;
+}
+
+#zotero-prefpane-refflow .refflow-subcard-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+#zotero-prefpane-refflow .refflow-subcard-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--flow-pref-text);
+  line-height: 1.4;
+}
+
+#zotero-prefpane-refflow .refflow-subcard-desc {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--flow-pref-muted);
+}
+
+#zotero-prefpane-refflow .refflow-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin-block: 8px 6px;
+  min-width: 0;
+}
+
+@media (max-width: 580px) {
+  #zotero-prefpane-refflow .refflow-grid-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+#zotero-prefpane-refflow .refflow-field-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  background-color: color-mix(in srgb, currentColor 2.5%, transparent);
+  min-width: 0;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+#zotero-prefpane-refflow .refflow-field-card:hover {
+  background-color: color-mix(in srgb, currentColor 4.5%, transparent);
+  border-color: color-mix(in srgb, currentColor 22%, transparent);
+}
+
+#zotero-prefpane-refflow .refflow-field-card:focus-within {
+  border-color: var(--flow-pref-accent);
+  background-color: color-mix(in srgb, currentColor 4%, transparent);
+}
+
+#zotero-prefpane-refflow .refflow-field-card > label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--flow-pref-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#zotero-prefpane-refflow .refflow-field-card > input[type="number"] {
+  width: 100%;
+  min-height: 28px;
+  text-align: right;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  background-color: Field;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  box-sizing: border-box;
+}
+
+#zotero-prefpane-refflow .refflow-status-dashboard {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  border: 1px solid color-mix(in srgb, var(--flow-pref-accent) 25%, transparent);
+  background-color: color-mix(in srgb, var(--flow-pref-accent) 3.5%, transparent);
+  box-sizing: border-box;
+}
+
+#zotero-prefpane-refflow .refflow-status-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+#zotero-prefpane-refflow .refflow-status-indicator {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--flow-pref-accent);
+}
+
+#zotero-prefpane-refflow .refflow-status-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--flow-pref-accent);
+}
+
+#zotero-prefpane-refflow .refflow-status-metrics {
+  margin: 0 0 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--flow-pref-text);
+}
+
+#zotero-prefpane-refflow .refflow-status-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--flow-pref-muted);
+}
+
+#zotero-prefpane-refflow .refflow-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#zotero-prefpane-refflow .refflow-btn-secondary {
+  min-height: 28px;
+  padding: 4px 12px;
+  border-radius: 5px;
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  background: color-mix(in srgb, currentColor 3%, transparent);
+  color: var(--flow-pref-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+#zotero-prefpane-refflow .refflow-btn-secondary:hover:not(:disabled) {
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  border-color: color-mix(in srgb, currentColor 30%, transparent);
+}
+
+#zotero-prefpane-refflow .refflow-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#zotero-prefpane-refflow .refflow-cache-location-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  min-width: 0;
+}
+
+#zotero-prefpane-refflow .refflow-cache-location-row > label {
+  flex: 0 0 auto;
+  font-size: 13px;
+  color: var(--flow-pref-muted);
+}
+
+#zotero-prefpane-refflow .refflow-cache-location-row > input[type="text"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 28px;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  background: color-mix(in srgb, currentColor 2%, transparent);
+  color: var(--flow-pref-muted);
+}
+
 #zotero-prefpane-refflow .refflow-pref-grid-2col {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
