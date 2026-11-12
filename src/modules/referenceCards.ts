@@ -6,14 +6,13 @@ import type TipUI from "./tip";
 import BatchImporter from "./batchImporter";
 import BatchResults from "./batchResults";
 import JournalStatus from "./journalStatus";
-import { JournalCommitPendingError, JournalUnavailableError } from "./batchJournal";
 import { ListIndices } from "./listIndices";
 import { referenceIdentity } from "./referenceIdentity";
 import { cleanupSync } from "../utils/lifecycle";
-import { importFailureText, importErrorText, importSummaryText } from "./importErrors";
 import { openReferenceCardMenu, CardFilterMode } from "./referenceCardMenu";
 import { executeCardSettingsAction } from "./cardSettingsActions";
-import { navigateToPdfReference } from "./readerNavigation";
+import { createReferenceCardRow, CardRowContext } from "./referenceCardRow";
+import { remountVirtualWindow } from "./referenceCardsVirtual";
 
 /** Compact reference cards and selection behavior aligned with the supplied XPI. */
 export default class ReferenceCards {
@@ -47,6 +46,7 @@ export default class ReferenceCards {
   private indices = new ListIndices();
   private searchIndex = new WeakMap<ItemBaseInfo, string>();
   private filterMode: CardFilterMode = "all";
+  private scrollRaf = 0;
 
   constructor(private views: Views, private body: HTMLElement, private grid: HTMLElement, private search: HTMLInputElement, listLabel = "Reference list") {
     this.batchResults = new BatchResults(views, body, grid);
@@ -59,16 +59,24 @@ export default class ReferenceCards {
     grid.setAttribute("role", "listbox"); grid.setAttribute("aria-multiselectable", "true");
     grid.addEventListener("contextmenu", onContextMenu);
     grid.setAttribute("aria-label", listLabel);
+    const win = body.ownerDocument?.defaultView || globalThis;
     const onScroll = () => {
       if (!this.virtual || !this.listCurrent?.()) return;
-      const start = Math.min(Math.max(0, Math.floor(grid.scrollTop / this.rowHeight) - 8), Math.max(0, this.virtualCount - 60));
-      if (Math.abs(start - this.windowStart) < 8) return;
-      this.windowStart = start; void this.render(this.refs, this.listCurrent);
+      if (this.scrollRaf) return;
+      this.scrollRaf = win.requestAnimationFrame(() => {
+        this.scrollRaf = 0;
+        if (!this.virtual || !this.listCurrent?.()) return;
+        const start = Math.min(Math.max(0, Math.floor(grid.scrollTop / this.rowHeight) - 8), Math.max(0, this.virtualCount - 60));
+        if (Math.abs(start - this.windowStart) < 8) return;
+        this.windowStart = start;
+        void remountVirtualWindow(this.asVirtualHost(), this.listCurrent);
+      });
     };
     grid.addEventListener("scroll", onScroll, { passive: true });
-    this.cleanup.push(() => grid.removeEventListener("scroll", onScroll));
+    this.cleanup.push(() => { if (this.scrollRaf) win.cancelAnimationFrame(this.scrollRaf); grid.removeEventListener("scroll", onScroll); });
     this.cleanup.push(() => search.removeEventListener("input", onInput), () => search.removeEventListener("keydown", onKeyDown), () => grid.removeEventListener("contextmenu", onContextMenu));
   }
+
   dispose() { if (this.disposed) return; this.disposed = true; this.cleanup.forEach(cleanupSync); this.cleanup = []; for (const menu of this.menus) cleanupSync(() => menu.remove()); this.menus.clear(); globalThis.clearTimeout(this.searchTimer); this.clear(); }
   clear(preserveResults = false) { if (!preserveResults) { this.indices = new ListIndices(); this.batchResults.clear(); this.journalStatus.clear(); } this.generation++; this.matchGeneration++; this.matchCurrent = undefined; this.listCurrent = undefined; this.windowStart = 0; this.virtualCount = 0; this.observer?.disconnect(); this.matchQueue = []; globalThis.clearTimeout(this.searchTimer); globalThis.clearTimeout(this.hoverTimer); this.clearTip(); this.selected.clear(); this.refs = []; this.rows = []; this.empty?.remove(); this.empty = undefined; this.grid.replaceChildren(); this.search.value = ""; }
   private clearTip() { const tip = this.tip; this.tip = undefined; if (tip) { globalThis.clearTimeout(tip.tipTimer); tip.clear(); } }
@@ -132,6 +140,7 @@ export default class ReferenceCards {
   private updateSelection() { for (const row of this.rows) { const selected = this.selected.has((row as any).reference); row.classList.toggle("selected", selected); row.setAttribute("aria-selected", String(selected)); } }
   private select(index: number, event: MouseEvent | KeyboardEvent) {
     const ref = this.refs[index];
+    if (!ref) return;
     if (event.shiftKey) { if (!event.ctrlKey && !event.metaKey) this.selected.clear(); for (let i = Math.min(index, this.anchor); i <= Math.max(index, this.anchor); i++) if (this.matches(this.refs[i])) this.selected.add(this.refs[i]); }
     else if (event.ctrlKey || event.metaKey) { if (this.selected.has(ref)) this.selected.delete(ref); else this.selected.add(ref); this.anchor = index; }
     else { this.selected.clear(); this.selected.add(ref); this.anchor = index; }
@@ -144,6 +153,44 @@ export default class ReferenceCards {
     this.updateSelection(); this.label().textContent = `${visible.length} / ${this.rows.length} · ${this.body.getAttribute("data-refflow-result-source") || ""}`;
     if (this.empty) this.empty.hidden = this.visible().length > 0 || this.rows.length === 0;
   }
+
+  private rowContext(): CardRowContext {
+    return {
+      views: this.views,
+      body: this.body,
+      virtual: this.virtual,
+      rowHeight: this.rowHeight,
+      batchResults: this.batchResults,
+      selected: this.selected,
+      rows: this.rows,
+      refs: this.refs,
+      getTip: () => this.tip,
+      setTip: (tip) => { this.tip = tip; },
+      clearTip: () => this.clearTip(),
+      setHoverTimer: (timer) => { this.hoverTimer = timer; },
+      getHoverTimer: () => this.hoverTimer,
+      select: (index, event) => this.select(index, event),
+      open: (ref) => this.open(ref),
+      filtered: () => this.filtered(),
+      visible: () => this.visible(),
+      updateSelection: () => this.updateSelection(),
+      showJournal: () => { void this.journalStatus.show(); },
+      label: () => this.label(),
+      invalidateLibraryMatches: () => this.invalidateLibraryMatches(),
+      parent: () => this.parent(),
+      onVirtualJump: (refNext, focus) => {
+        if (!this.listCurrent) return;
+        this.windowStart = Math.max(0, this.filtered().indexOf(refNext) - 8);
+        this.grid.scrollTop = this.windowStart * this.rowHeight;
+        void remountVirtualWindow(this.asVirtualHost(), this.listCurrent).then(focus);
+      },
+    };
+  }
+
+  private asVirtualHost() {
+    return this as unknown as import("./referenceCardsVirtual").VirtualWindowHost;
+  }
+
   async render(refs: ItemBaseInfo[], current: () => boolean) {
     if (this.disposed) return;
     const parent = this.parent();
@@ -163,7 +210,7 @@ export default class ReferenceCards {
     const scrollTop = this.grid.scrollTop;
     this.virtual = refs.length > 200;
     if (this.virtual) { const fontSize = parseFloat(this.body.ownerDocument.defaultView?.getComputedStyle(this.grid)?.fontSize || "13") || 13; this.rowHeight = Math.max(144, Math.ceil(fontSize * 10.5 + 24)); }
-    const { indices, numbers, width } = this.indices.forList(refs, (this.body as any).references || refs, this.virtual ? query : "", ref => this.matches(ref));
+    const { indices, numbers, width } = this.indices.forList(refs, (this.body as any).references || refs, this.virtual ? query : "", ref => this.matches(ref), this.filterMode);
     const start = this.virtual ? Math.min(this.windowStart, Math.max(0, indices.length - 60)) : 0;
     const displayIndices = this.virtual ? indices.slice(start, start + 60) : indices;
     this.clear(true); this.search.value = query; this.refs = refs;
@@ -181,85 +228,11 @@ export default class ReferenceCards {
       this.drainMatches();
     }, { rootMargin: "80px" });
 
+    const ctx = this.rowContext();
     for (const [offset, index] of displayIndices.entries()) {
-      const ref = refs[index], doc = this.body.ownerDocument;
-      const row = doc.createElement("div"); row.className = "reference-item"; row.tabIndex = 0; row.setAttribute("role", "option"); row.setAttribute("aria-selected", "false"); (row as any).reference = ref;
-      if (this.virtual) { row.style.height = `${this.rowHeight}px`; row.style.flexShrink = "0"; row.style.boxSizing = "border-box"; row.style.overflow = "hidden"; }
-      row.setAttribute("aria-posinset", String(this.virtual ? start + offset + 1 : index + 1)); row.setAttribute("aria-setsize", String(this.virtual ? indices.length : refs.length));
-      const citation = doc.createElement("div"); citation.className = "reference-citation";
-      const marker = doc.createElement("div"); marker.className = "reference-marker";
-      const number = doc.createElement("span"); number.className = "reference-number"; number.textContent = `${numbers[index]}.`;
-      number.title = ref.page ? getString("cards-locate-in-pdf", { args: { page: ref.page } }) : `${getString("cards-number-label")} ${numbers[index]}`;
-      if (ref.page) {
-        number.style.cursor = "pointer";
-        number.addEventListener("click", ev => { ev.stopPropagation(); void navigateToPdfReference(this.views, parent, ref, this.body.ownerDocument.defaultView!); });
-      }
-      row.dataset.referenceNumber = String(numbers[index]); row.setAttribute("aria-label", `${number.title}: ${ref.title || ref.text || ""}`);
-      const dot = doc.createElement("span"); dot.className = "reference-state";
-      const age = Math.max(0, new Date().getFullYear() - Number(ref.year || 2000)); dot.style.backgroundColor = ref._item ? "var(--color-accent, #3678b5)" : `hsl(210 30% ${Math.min(85, 40 + age * 2)}%)`; dot.title = ref._item ? getString("cards-in-library") : String(ref.year || "");
-      const content = doc.createElement("div"); content.className = "reference-description";
-      const heading = doc.createElement("div"); heading.className = "reference-heading";
-      const text = doc.createElement("span"); text.className = "reference-text"; text.textContent = ref.text || ref.title || ""; text.title = text.textContent || "";
-      const title = doc.createElement("strong"); title.className = "reference-title"; title.textContent = ref.title || ref.text || ""; title.title = title.textContent || "";
-      if (this.virtual) { title.style.display = "-webkit-box"; title.style.setProperty("-webkit-box-orient", "vertical"); title.style.setProperty("-webkit-line-clamp", "2"); title.style.overflow = "hidden"; }
-      const about = doc.createElement("span"); about.className = "reference-about";
-      const mentionsText = ref.mentionCount ? getString("cards-mentions-badge", { args: { count: ref.mentionCount } }) : "";
-      about.textContent = [(ref.authors || []).slice(0, 3).join(" / "), ref.year, ref.publicationVenue, (ref as any).citationCount !== undefined ? `${getString("cards-cited")} ${(ref as any).citationCount}` : "", mentionsText].filter(Boolean).join(" · ");
-      about.title = about.textContent;
-      if (this.virtual) { about.style.display = "-webkit-box"; about.style.setProperty("-webkit-box-orient", "vertical"); about.style.setProperty("-webkit-line-clamp", "2"); about.style.overflow = "hidden"; }
-      const metadata = doc.createElement("div"); metadata.className = "reference-metadata"; metadata.append(about); metadata.hidden = !about.textContent;
-      if (ref.retraction?.isRetracted) { const warning = doc.createElement("span"); warning.className = "reference-retracted"; warning.textContent = getString("relatedbox-retracted-badge"); warning.title = ref.retraction.reason || ""; content.append(warning); }
-      const editable = Boolean(parent && !parent.deleted && (typeof parent.isEditable !== "function" || parent.isEditable()) && (Zotero as any).Libraries.get(parent.libraryID)?.editable !== false);
-      const action = doc.createElement("button"); action.type = "button"; action.className = "reference-action"; actionIcon(action, ref._item ? "open" : "add", getString(ref._item ? "cards-show-library" : (editable ? "cards-import" : "cards-library-readonly"))); if (!ref._item && !editable) action.disabled = true;
-      action.addEventListener("dblclick", event => event.stopPropagation());
-      action.addEventListener("click", async event => {
-        event.stopPropagation(); if (action.disabled || !current() || !row.isConnected) return;
-        const parent = this.parent(); if (!parent || parent.deleted) return;
-        const collections = this.views.utils.importCollections(parent, this.body.ownerDocument.defaultView!);
-        const active = () => current() && row.isConnected && this.parent()?.id === parent.id;
-        action.disabled = true; action.setAttribute("aria-busy", "true"); row.dataset.importRevision = String(Number(row.dataset.importRevision || 0) + 1);
-        actionIcon(action, "busy", getString("cards-importing-doi"));
-        try {
-          const found = await this.views.utils.searchLibraryItem({ ...ref, _item: undefined }, parent.libraryID);
-          if (!active()) return;
-          if (found) { ref._item = found; await this.views.utils.selectItemInLibrary(found, this.body.ownerDocument.defaultView!); }
-          else {
-            const result = await this.batchResults.run(parent, [ref], { owner: this.body, collections, downloadOA: false, createSubCollection: false, createManifestNote: false, resolveMissingDOI: true }, [index + 1]);
-            if (result.cancelled) throw new Error(getString("cards-import-cancelled"));
-            if (result.failedCount) throw new Error(importFailureText(result.failures[0]));
-            if (active()) this.label().textContent = importSummaryText(result);
-          }
-          if (active() && ref._item) { actionIcon(action, "open", getString("cards-show-library")); dot.style.backgroundColor = "var(--color-accent, #3678b5)"; dot.title = getString("cards-in-library"); row.style.opacity = "1"; this.invalidateLibraryMatches(); }
-        } catch (error) { if (error instanceof JournalCommitPendingError || error instanceof JournalUnavailableError) void this.journalStatus.show(); if (active()) { const message = importErrorText(error); this.label().textContent = message; actionIcon(action, "error", message); } ztoolkit.log(error); } finally { row.dataset.importRevision = String(Number(row.dataset.importRevision || 0) + 1); action.disabled = false; action.removeAttribute("aria-busy"); }
-      });
-      action.setAttribute("aria-label", action.title);
-      row.style.opacity = ref._item ? "1" : String(Zotero.Prefs.get(`${config.addonRef}.notInLibarayOpacity`) || "1");
-      title.addEventListener("mouseenter", () => { if (!Zotero.Prefs.get(`${config.addonRef}.isShowTip`)) return; globalThis.clearTimeout(this.hoverTimer); this.hoverTimer = globalThis.setTimeout(() => { if (!current() || !row.isConnected) return; this.clearTip(); this.tip = this.views.showTipUI(title.getBoundingClientRect() as any, { ...ref, primaryVenue: ref.publicationVenue, identifiers: ref.identifiers || {} } as any, "left", ref.identifiers?.DOI, true, this.body.ownerDocument.defaultView!); }, Math.max(100, Math.min(2000, Number(Zotero.Prefs.get(`${config.addonRef}.showTipAfterMillisecond`)) || 233))); });
-      title.addEventListener("mouseleave", () => { globalThis.clearTimeout(this.hoverTimer); if (this.tip) { const tip = this.tip; globalThis.clearTimeout(tip.tipTimer); tip.tipTimer = globalThis.setTimeout(() => { if (this.tip === tip) this.clearTip(); }, tip.removeTipAfterMillisecond); } });
-      marker.append(number); citation.append(marker, text); heading.append(dot, title, action); content.append(heading, metadata); row.append(citation, content);
-      row.addEventListener("click", event => this.select(index, event));
-      row.addEventListener("dblclick", () => this.open(ref));
-      row.addEventListener("contextmenu", event => { if (!this.selected.has(ref)) this.select(index, event); });
-      row.addEventListener("keydown", event => {
-        if (event.target !== row) return;
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "a") { event.preventDefault(); for (const item of this.filtered()) this.selected.add(item); this.updateSelection(); }
-        else if (event.key === "Enter") { event.preventDefault(); this.open(ref); }
-        else if (event.key === "Escape") { event.preventDefault(); this.selected.clear(); this.updateSelection(); }
-        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c") { event.preventDefault(); this.views.utils.copyText(this.subset().map(ref => ref.text || ref.title).join("\n"), false); }
-        else if (event.key === " ") { event.preventDefault(); this.select(index, event); }
-        else if (["ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"].includes(event.key)) {
-          event.preventDefault(); const visible = this.virtual ? this.filtered() : this.visible().map(node => (node as any).reference);
-          const viewport = Math.min(this.grid.clientHeight, (this.grid.ownerDocument.defaultView?.innerHeight || this.grid.clientHeight) * 0.65);
-          const height = this.virtual ? this.rowHeight : Math.max(1, row.getBoundingClientRect().height);
-          const position = visible.indexOf(ref), page = Math.max(1, Math.floor(viewport / height));
-          const target = event.key === "Home" ? 0 : event.key === "End" ? visible.length - 1 : position + (event.key === "PageDown" ? page : event.key === "PageUp" ? -page : event.key === "ArrowDown" ? 1 : -1);
-          const refNext = visible[Math.max(0, Math.min(visible.length - 1, target))];
-          if (!refNext) return;
-          const focus = () => { const next = this.rows.find(node => (node as any).reference === refNext); if (next) { next.focus({ preventScroll: true }); next.scrollIntoView({ block: "nearest" }); this.select(this.refs.indexOf(refNext), event); } };
-          if (this.virtual && !this.rows.some(node => (node as any).reference === refNext) && this.listCurrent) { this.windowStart = Math.max(0, visible.indexOf(refNext) - 8); this.grid.scrollTop = this.windowStart * this.rowHeight; void this.render(this.refs, this.listCurrent).then(focus); } else focus();
-        }
-      });
-      this.rows.push(row); fragment.append(row);
+      const row = createReferenceCardRow(ctx, refs[index], numbers[index], this.virtual ? start + offset + 1 : index + 1, this.virtual ? indices.length : refs.length, current);
+      this.rows.push(row);
+      fragment.append(row);
       if (!this.virtual && index % 40 === 39) { await Zotero.Promise.delay(0); if (!current() || this.disposed) return; }
     }
     if (current() && !this.disposed) {

@@ -87,15 +87,15 @@ export function parseJATS(document:Document,expectedDOI:string):ItemBaseInfo[] {
 
 export default class PublisherReferences {
   // One worker and a bounded queue also serialize PMC requests across rapid item switches.
-  private requests=new Requests({timeoutMs:8000,budgetMs:10000,maxConcurrent:1,maxQueued:8});
+  // cacheTTL:0 keeps HTML/XML bodies out of memory while preserving in-flight dedupe and shared cooldowns.
+  private requests=new Requests({timeoutMs:8000,budgetMs:10000,maxConcurrent:1,maxQueued:8,cacheTTL:0});
   private pmcTail:Promise<any>=Promise.resolve();
   private pmcLast=0;
   private pending=0;
   private disposed=false;
   private misses=new Map<string,number>();
   private async request(url:string,type="json",headers:Record<string,string>={},signal?:AbortSignal) {
-    // Persist parsed references in the pane cache, not hundreds of full HTML/XML bodies.
-    try{return await this.requests.get(url,type as any,headers,signal);}finally{this.requests.clearCache();}
+    return this.requests.get(url,type as any,headers,signal);
   }
   clearCache(){this.requests.clearCache();this.misses.clear();}
   dispose(){this.disposed=true;this.requests.dispose();this.misses.clear();}

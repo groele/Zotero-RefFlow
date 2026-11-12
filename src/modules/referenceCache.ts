@@ -33,10 +33,32 @@ export function readCachedReferenceResult(value: any, signature: string, now = D
 }
 
 export function preferCachedReferences(result: ReferenceResult, previous: ReferenceResult | undefined, offlineLabel: string): ReferenceResult {
-  if(!previous?.references.length)return result;
-  const next=normalizeReferenceResult(result),old=normalizeReferenceResult(previous);
-  const downgrade=next.partial&&(!old.partial||next.references.length<old.references.length);
-  if(next.references.length&&!downgrade)return result;
-  return {...old,source:next.references.length?old.source:`${old.source} · ${offlineLabel}`,retained:true,
-    latestAttempt:{source:next.source,count:next.references.length,partial:Boolean(next.partial),expected:next.expected},attempts:result.attempts};
+  const next = normalizeReferenceResult(result);
+  if (!previous) return next;
+  const old = normalizeReferenceResult(previous);
+  // Keep a confirmed empty bibliography across transient provider outages.
+  if (!old.references.length && old.status === "empty" && !next.references.length && next.status === "unavailable") {
+    return {
+      ...old,
+      source: `${old.source} · ${offlineLabel}`,
+      retained: true,
+      latestAttempt: { source: next.source, count: 0, partial: true, expected: next.expected },
+      attempts: next.attempts || result.attempts,
+    };
+  }
+  if (!old.references.length) return next;
+  const downgrade = next.partial && (!old.partial || next.references.length < old.references.length);
+  if (next.references.length && !downgrade) return next;
+  return {
+    ...old,
+    source: next.references.length ? old.source : `${old.source} · ${offlineLabel}`,
+    retained: true,
+    latestAttempt: {
+      source: next.source,
+      count: next.references.length,
+      partial: Boolean(next.partial),
+      expected: next.expected,
+    },
+    attempts: result.attempts,
+  };
 }

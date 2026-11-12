@@ -85,8 +85,12 @@ export class BatchJournal {
     const entry=this.draft!.entries.find(row=>row.batchID===batchID&&row.record.libraryID===parent.libraryID);
     if(!entry)return;
     if(entry.record.parentID!==parent.id||entry.parentKey!==parent.key)throw new Error("Batch ownership does not match this parent item");
-    for(const id of this.itemIDs(entry.record)){
-      const item=await Zotero.Items.getAsync(id);
+    const ids=[...this.itemIDs(entry.record)];
+    const loaded=await Zotero.Items.getAsync(ids);
+    const items=Array.isArray(loaded)?loaded:[loaded];
+    const byId=new Map(items.filter(Boolean).map((item:Zotero.Item)=>[item.id,item]));
+    for(const id of ids){
+      const item=byId.get(id);
       if(item&&(item.libraryID!==parent.libraryID||!entry.itemKeys[id]||item.key!==entry.itemKeys[id]))throw new Error("Batch item identity changed or is incomplete; refusing rollback");
     }
     return clone(entry.record);

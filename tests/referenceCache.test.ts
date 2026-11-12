@@ -21,6 +21,26 @@ test("cached reference metadata drops live Zotero objects and returns fresh iden
   assert.equal(first[0]._item,undefined);
 });
 
+test("confirmed empty snapshots survive transient unavailable provider replies", async () => {
+  const { preferCachedReferences } = await import("../src/modules/referenceCache");
+  const kept = preferCachedReferences(
+    { references: [], source: "Crossref", status: "unavailable", attempts: ["Crossref: timeout"] },
+    { references: [], source: "OpenAlex", status: "empty" },
+    "cached offline",
+  );
+  assert.equal(kept.status, "empty");
+  assert.equal(kept.retained, true);
+  assert.match(kept.source, /cached offline/);
+  assert.equal(kept.latestAttempt?.source, "Crossref");
+  const fresh = preferCachedReferences(
+    { references: [{ title: "New", identifiers: {} }], source: "OpenAlex" },
+    { references: [], source: "OpenAlex", status: "empty" },
+    "cached offline",
+  );
+  assert.equal(fresh.references.length, 1);
+  assert.notEqual(fresh.retained, true);
+});
+
 test("source and global switches gate snapshot reads, with separate complete and partial lifetimes", async () => {
   const {cacheReferenceResult, readCachedReferenceResult} = await import("../src/modules/referenceCache");
   const original = Zotero.Prefs.get;

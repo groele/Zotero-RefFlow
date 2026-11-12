@@ -3,9 +3,20 @@
   "maxSourceLines": 360,
   "capturedAt": "2026-11-06",
   "debtCleared": true,
-  "note": "RefFlow source architecture fully compliant with §5.9. All 84 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "16.6.0",
+  "note": "RefFlow source architecture fully compliant with §5.9. All 87 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
+  "lastReleasedVersion": "16.6.1",
   "splitHistory": [
+    {
+      "version": "16.6.1",
+      "date": "2026-11-12",
+      "resolved": [
+        "Bugfix: Virtual list filter modes (unimported/imported/OA/retracted) now apply with an empty search box",
+        "Performance: rAF-coalesced virtual window updates reuse stable card DOM and preserve library matches",
+        "Performance: publisher requests use cacheTTL:0 instead of clearCache(); BatchJournal.get batches getAsync([...ids])",
+        "Reliability: confirmed-empty reference snapshots use short retention and survive transient unavailable replies",
+        "Architecture: Extracted referenceCardRow.ts, referenceCardRebind.ts, referenceCardsVirtual.ts; debtCleared=true"
+      ]
+    },
     {
       "version": "16.6.0",
       "date": "2026-11-12",

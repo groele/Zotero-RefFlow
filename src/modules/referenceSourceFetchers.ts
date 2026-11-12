@@ -112,7 +112,7 @@ export async function fetchPdfReferences(
     partial = Boolean(result.partial);
     resultSource = views.referenceDescription(result);
     sourceEvidence = { source: result.source, count: result.references.length, expected: result.expected, partial: Boolean(result.partial), retained: result.retained, attempts: result.attempts, status: result.status, latestAttempt: result.latestAttempt };
-    if (references.length && !result.retained && signature && !fromCurrentPage && views.mayPersist(result)) {
+    if ((references.length || result.status === "empty") && !result.retained && signature && !fromCurrentPage && views.mayPersist(result)) {
       await views.storage.set(item, key, cacheReferenceResult(result, signature));
     }
   }
