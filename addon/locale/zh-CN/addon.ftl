@@ -202,4 +202,8 @@ cards-filter-oa = 筛选：仅看开放获取 (OA)
 cards-filter-retracted = 筛选：仅看撤稿预警
 cards-locate-in-pdf = 在 PDF 中定位（第 { $page } 页）
 cards-mentions-badge = 正文提及 { $count } 次
+pdf-done-title = [完成] PDF
+pdf-empty-title = [无参考文献] PDF
+pdf-extracted-count = 已提取 { $count } 条参考文献
+pdf-no-section = PDF 文本层中未检测到参考文献章节
 

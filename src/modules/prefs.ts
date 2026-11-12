@@ -18,7 +18,52 @@ export async function registerPrefs() {
 
 const activeCachePanes = new WeakSet<Element>();
 
-function bindCachePreferences(win: Window) {
+const RESETTABLE_PREFS: ReadonlyArray<readonly [string, boolean | number | string]> = [
+  ["enable", true],
+  ["prioritySource", "Auto"],
+  ["autoRefresh", false],
+  ["notAutoRefreshItemTypes", "book, letter, note"],
+  ["isShowTip", true],
+  ["ctrlClickTranslate", true],
+  ["showTipAfterMillisecond", 233],
+  ["shadeMillisecond", 233],
+  ["removeTipAfterMillisecond", 500],
+  ["tipBackgroundColor", "#ffffff"],
+  ["tipTitleColor", "#2270d9"],
+  ["cacheEnabled", true],
+  ["referenceDays", 30],
+  ["pdfDays", 30],
+  ["neighborhoodDays", 30],
+  ["partialMinutes", 15],
+  ["cacheMaxMiB", 8],
+  ["cacheMaxItems", 250],
+  ["savePDFReferences", true],
+  ["saveAPIReferences", true],
+  ["notInLibarayOpacity", "1"],
+  ["graphView.enable", false],
+  ["graphView.height", "400px"],
+  ["sortBy", "Original"],
+  ["type", "References"],
+  ["downloadOA", false],
+  ["showSourceDetails", true],
+  ["quickAction.copy-text", true],
+  ["quickAction.copy-doi", true],
+  ["quickAction.copy-url", true],
+  ["quickAction.open", true],
+  ["quickAction.import-selected", true],
+  ["quickAction.import-all", true],
+  ["quickAction.rollback", true],
+];
+
+function setControlDisabled(el: Element | null, disabled: boolean) {
+  if (!el) return;
+  el.toggleAttribute("disabled", disabled);
+  if ("disabled" in el) {
+    (el as HTMLInputElement).disabled = disabled;
+  }
+}
+
+export function bindCachePreferences(win: Window) {
   const root = win.document.getElementById("zotero-prefpane-" + config.addonRef);
   if (!root || activeCachePanes.has(root)) return;
   activeCachePanes.add(root);
@@ -57,19 +102,42 @@ function bindCachePreferences(win: Window) {
       try { if(storage?.directory)Zotero.launchFile(storage.directory); }
       catch (error) { Zotero.logError(error as Error); }
     }, {signal: controller.signal});
+  const byId = <T extends Element = HTMLElement>(suffix: string) =>
+    root?.querySelector<T>(`#${config.addonRef}-${suffix}`) ?? win.document.getElementById(`${config.addonRef}-${suffix}`) as T | null;
+  const autoRefreshChild = byId<HTMLInputElement>("not-auto-refresh-item-types");
+  const graphHeightInput = byId<HTMLInputElement>("graph-view-height");
+  const tipChildIds = [
+    "show-tip-after-millisecond",
+    "ctrl-click-translate",
+    "tip-background-color-picker",
+    "tip-background-color",
+    "tip-title-color-picker",
+    "tip-title-color",
+    "shade-millisecond",
+    "remove-tip-after-millisecond",
+  ];
+
   function updateDependencies() {
     const enabled = Zotero.Prefs.get(key("cacheEnabled")) !== false;
     const pdf = enabled && Zotero.Prefs.get(key("savePDFReferences")) !== false;
     const online = enabled && Zotero.Prefs.get(key("saveAPIReferences")) !== false;
-    for (const control of switches) control?.toggleAttribute("disabled", !enabled);
+    for (const control of switches) setControlDisabled(control, !enabled);
     for (const input of capacityInputs) {
-      input.value=String(cacheSetting(input.dataset.cacheCapacity as keyof typeof cacheSettings));
-      input.disabled=!enabled;
+      input.value = String(cacheSetting(input.dataset.cacheCapacity as keyof typeof cacheSettings));
+      input.disabled = !enabled;
     }
     for (const input of inputs) {
       const name = input.dataset.cacheDuration!;
       input.value = String(Zotero.Prefs.get(key(name)));
       input.disabled = !(name === "partialMinutes" ? pdf || online : name === "pdfDays" ? pdf : online);
+    }
+
+    setControlDisabled(autoRefreshChild, Zotero.Prefs.get(key("autoRefresh")) !== true);
+    setControlDisabled(graphHeightInput, Zotero.Prefs.get(key("graphView.enable")) !== true);
+
+    const tipEnabled = Zotero.Prefs.get(key("isShowTip")) !== false;
+    for (const id of tipChildIds) {
+      setControlDisabled(byId(id), !tipEnabled);
     }
   }
   for (const input of inputs) input.addEventListener("change", () => {
@@ -82,9 +150,35 @@ function bindCachePreferences(win: Window) {
     if(!input.disabled && input.validity.valid && Number.isInteger(input.valueAsNumber))Zotero.Prefs.set(key(input.dataset.cacheCapacity!),input.valueAsNumber);
     updateDependencies();
   },{signal:controller.signal});
-  const observers = ["cacheEnabled","savePDFReferences","saveAPIReferences",...inputs.map(el=>el.dataset.cacheDuration!),...capacityInputs.map(el=>el.dataset.cacheCapacity!)].map(
-    name => Zotero.Prefs.registerObserver(key(name), updateDependencies)
-  );
+  const parentCheckboxes: ReadonlyArray<readonly [string, string]> = [
+    ["cacheEnabled", "cacheEnabled"],
+    ["save-pdf-references", "savePDFReferences"],
+    ["save-api-references", "saveAPIReferences"],
+    ["auto-refresh", "autoRefresh"],
+    ["graph-view-enable", "graphView.enable"],
+    ["is-show-tip", "isShowTip"],
+  ];
+  for (const [elId, prefName] of parentCheckboxes) {
+    const checkbox = byId<HTMLInputElement>(elId);
+    const onToggle = () => {
+      if (checkbox && typeof checkbox.checked === "boolean") {
+        Zotero.Prefs.set(key(prefName), checkbox.checked);
+      }
+      updateDependencies();
+    };
+    checkbox?.addEventListener("command", onToggle, { signal: controller.signal });
+    checkbox?.addEventListener("change", onToggle, { signal: controller.signal });
+  }
+  const observers = [
+    "cacheEnabled",
+    "savePDFReferences",
+    "saveAPIReferences",
+    "autoRefresh",
+    "isShowTip",
+    "graphView.enable",
+    ...inputs.map(el => el.dataset.cacheDuration!),
+    ...capacityInputs.map(el => el.dataset.cacheCapacity!),
+  ].map(name => Zotero.Prefs.registerObserver(key(name), updateDependencies));
   const dispose = () => {
     controller.abort();
     unsubscribe?.();
@@ -100,12 +194,17 @@ function bindCachePreferences(win: Window) {
   updateLocation();
 
   // 实时回显未在文库条目的透明度滑块数值
-  const opacityInput = root.querySelector<HTMLInputElement>("#refflow-not-in-library-opacity");
-  const opacityOutput = root.querySelector<HTMLOutputElement>("#refflow-not-in-library-opacity-val");
+  const opacityInput = byId<HTMLInputElement>("not-in-library-opacity");
+  const opacityOutput = byId<HTMLOutputElement>("not-in-library-opacity-val");
   function updateOpacityDisplay() {
     if (opacityInput && opacityOutput) {
       const val = Number(opacityInput.value || 1);
-      opacityOutput.textContent = `${Math.round(val * 100)}%`;
+      const percent = Math.round(val * 100);
+      opacityOutput.setAttribute("data-l10n-id", `${config.addonRef}-range-percent`);
+      opacityOutput.setAttribute("data-l10n-args", JSON.stringify({ percent }));
+      if (!(win.document as any).l10n) {
+        opacityOutput.textContent = `${percent}%`;
+      }
     }
   }
   opacityInput?.addEventListener("input", updateOpacityDisplay, { signal: controller.signal });
@@ -113,6 +212,7 @@ function bindCachePreferences(win: Window) {
   updateOpacityDisplay();
 
   // 颜色选择器与文本框双向同步
+  const colorSyncCallbacks: Array<() => void> = [];
   function bindColorPair(textId: string, pickerId: string) {
     const textInput = root?.querySelector<HTMLInputElement>(textId);
     const pickerInput = root?.querySelector<HTMLInputElement>(pickerId);
@@ -128,13 +228,45 @@ function bindCachePreferences(win: Window) {
       textInput.dispatchEvent(new Event("change", { bubbles: true }));
     };
     syncToPicker();
+    colorSyncCallbacks.push(syncToPicker);
     textInput.addEventListener("input", syncToPicker, { signal: controller.signal });
     textInput.addEventListener("change", syncToPicker, { signal: controller.signal });
     pickerInput.addEventListener("input", syncToText, { signal: controller.signal });
     pickerInput.addEventListener("change", syncToText, { signal: controller.signal });
   }
-  bindColorPair("#refflow-tip-background-color", "#refflow-tip-background-color-picker");
-  bindColorPair("#refflow-tip-title-color", "#refflow-tip-title-color-picker");
+  bindColorPair(`#${config.addonRef}-tip-background-color`, `#${config.addonRef}-tip-background-color-picker`);
+  bindColorPair(`#${config.addonRef}-tip-title-color`, `#${config.addonRef}-tip-title-color-picker`);
+
+  const resetBtn = byId<HTMLButtonElement>("reset-defaults");
+  const resetStatus = byId<HTMLElement>("reset-status");
+  resetBtn?.addEventListener("click", () => {
+    for (const [name, defaultValue] of RESETTABLE_PREFS) {
+      Zotero.Prefs.set(key(name), defaultValue);
+      const controls = Array.from(root.querySelectorAll(`[preference="extensions.zotero.${config.addonRef}.${name}"]`) as unknown as Iterable<HTMLElement>);
+      for (const control of controls) {
+        if (!control) continue;
+        const tag = control.tagName?.toLowerCase();
+        if (tag === "checkbox" || (control as HTMLInputElement).type === "checkbox") {
+          (control as HTMLInputElement).checked = Boolean(defaultValue);
+          control.toggleAttribute("checked", Boolean(defaultValue));
+        } else if (tag === "input" && (control as HTMLInputElement).type === "number" && typeof defaultValue === "string") {
+          const parsed = Number.parseInt(defaultValue, 10);
+          (control as HTMLInputElement).value = Number.isFinite(parsed) ? String(parsed) : defaultValue;
+        } else if ("value" in control) {
+          (control as HTMLInputElement).value = String(defaultValue);
+        }
+      }
+    }
+    for (const syncColor of colorSyncCallbacks) syncColor();
+    updateOpacityDisplay();
+    updateDependencies();
+    if (resetStatus) {
+      resetStatus.setAttribute("data-l10n-id", `${config.addonRef}-reset-done`);
+      if (!(win.document as any).l10n) {
+        resetStatus.textContent = "reset-done";
+      }
+    }
+  }, { signal: controller.signal });
 
   void storage?.lock.promise.then(()=>{if(!controller.signal.aborted){updateUsage();updateLocation();}});
 }

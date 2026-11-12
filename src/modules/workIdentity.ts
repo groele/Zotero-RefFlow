@@ -1,6 +1,48 @@
 import CitationVerifier from './verifier';
 import {selectUniqueTitle} from './titleResolution';
 
+export function getItemDOI(item?: Zotero.Item): string|undefined {
+  if(!item)return undefined;
+  const direct=CitationVerifier.normalizeDOI(String(item.getField('DOI')||''));
+  if(direct)return direct;
+  const extra=String(item.getField('extra')||'');
+  const match=extra.match(/^DOI:\s*(.+)$/im);
+  return match?CitationVerifier.normalizeDOI(match[1]):undefined;
+}
+
+export function applyItemDOI(item: Zotero.Item, rawDOI?: string): boolean {
+  const doi=CitationVerifier.normalizeDOI(rawDOI);
+  if(!item||!doi)return false;
+  const native=Zotero as any;
+  const fieldID=native.ItemFields?.getID?.('DOI');
+  if(fieldID&&native.ItemFields?.isValidForType?.(fieldID,item.itemTypeID)){
+    if(CitationVerifier.normalizeDOI(String(item.getField('DOI')||''))!==doi){
+      item.setField('DOI',doi);
+      return true;
+    }
+    return false;
+  }
+  const extra=String(item.getField('extra')||'');
+  const eol=extra.includes('\r\n')?'\r\n':'\n';
+  const lines=extra?extra.split(/\r?\n/):[];
+  const idx=lines.findIndex(line=>/^DOI:\s*/i.test(line));
+  if(idx>=0){
+    const existing=CitationVerifier.normalizeDOI(lines[idx].replace(/^DOI:\s*/i,''));
+    if(existing)return false;
+    lines[idx]=`DOI: ${doi}`;
+  }else{
+    lines.push(`DOI: ${doi}`);
+  }
+  item.setField('extra',lines.join(eol));
+  return true;
+}
+
+export function isRegularLibraryItem(item: any): boolean {
+  if(!item||item.deleted)return false;
+  if(typeof item.isRegularItem==='function')return Boolean(item.isRegularItem());
+  return !item.isAttachment?.()&&!item.isNote?.();
+}
+
 export function arxivIdentity(value?:string):string|undefined {
   return value?.trim().toLowerCase().replace(/^https?:\/\/arxiv\.org\/(?:abs|pdf)\//,'').replace(/\.pdf$/,'').replace(/v\d+$/,'')||undefined;
 }
@@ -20,12 +62,15 @@ export function workIdentity(ref:ItemBaseInfo):string {
 
 export function selectLibraryMatch(ref:ItemBaseInfo,items:Zotero.Item[]):Zotero.Item|undefined {
   const doi=CitationVerifier.normalizeDOI(ref.identifiers?.DOI);
+  const hasEvidence=Boolean(ref.authors?.some(a=>a&&a.trim())||String(ref.year??'').match(/\b(19\d\d|20\d\d)\b/));
   const candidates=items.filter(item=>{
-    if(item.deleted||!item.isRegularItem())return false;
-    const other=CitationVerifier.normalizeDOI(String(item.getField('DOI')));
-    return !doi||!other||other===doi;
+    if(!isRegularLibraryItem(item))return false;
+    const other=getItemDOI(item);
+    if(doi&&other&&other!==doi)return false;
+    if(Boolean(doi)!==Boolean(other)&&!hasEvidence)return false;
+    return true;
   });
-  if(doi){const exact=candidates.find(item=>CitationVerifier.normalizeDOI(String(item.getField('DOI')))===doi);if(exact)return exact;}
+  if(doi){const exact=candidates.find(item=>getItemDOI(item)===doi);if(exact)return exact;}
   const arxiv=arxivIdentity(ref.identifiers?.arXiv),cnki=cnkiIdentity(ref.identifiers?.CNKI);
   if(arxiv||cnki){
     const exact=candidates.filter(item=>{
@@ -35,9 +80,14 @@ export function selectLibraryMatch(ref:ItemBaseInfo,items:Zotero.Item[]):Zotero.
     if(exact.length===1)return exact[0];
     if(exact.length>1)return;
   }
-  return selectUniqueTitle({title:ref.title||ref.text||'',author:ref.authors?.[0],year:ref.year},candidates.filter(item=>{
-    const other=CitationVerifier.normalizeDOI(String(item.getField('DOI')));
-    return !doi||!other||other===doi;
-  }).map(item=>({value:item,id:String(item.id),work:{title:String(item.getField('title')||''),doi:CitationVerifier.normalizeDOI(String(item.getField('DOI'))),
-    year:String(item.getField('date')||''),authors:item.getCreators().map((author:any)=>author.name||[author.firstName,author.lastName].filter(Boolean).join(' '))}})));
+  return selectUniqueTitle({title:ref.title||ref.text||'',author:ref.authors?.[0],year:ref.year},candidates.map(item=>({
+    value:item,
+    id:String(item.id),
+    work:{
+      title:String(item.getField('title')||''),
+      doi:getItemDOI(item),
+      year:String(item.getField('date')||''),
+      authors:(typeof item.getCreators==='function'?item.getCreators():[]).map((author:any)=>author.name||[author.firstName,author.lastName].filter(Boolean).join(' '))
+    }
+  })));
 }

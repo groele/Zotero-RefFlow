@@ -1,4 +1,5 @@
 import CitationVerifier from "./verifier";
+import { getItemDOI, isRegularLibraryItem, selectLibraryMatch } from "./workIdentity";
 
 export interface FastLibraryIndex {
   byDOI: Map<string, Zotero.Item>;
@@ -37,10 +38,10 @@ export class LibraryMatchIndex {
   }
 
   public recordMatch(item: Zotero.Item, libraryID: number): void {
-    if (!item || item.deleted) return;
+    if (!isRegularLibraryItem(item)) return;
     const index = this.getOrCreateIndex(libraryID);
 
-    const doi = CitationVerifier.normalizeDOI(item.getField("DOI") as string);
+    const doi = getItemDOI(item);
     if (doi && !index.byDOI.has(doi)) {
       index.byDOI.set(doi, item);
     }
@@ -63,25 +64,25 @@ export class LibraryMatchIndex {
     const doi = CitationVerifier.normalizeDOI(info.identifiers?.DOI);
     if (doi && index.byDOI.has(doi)) {
       const match = index.byDOI.get(doi);
-      if (match && !match.deleted) return match;
-      if (match?.deleted) index.byDOI.delete(doi);
+      if (match && isRegularLibraryItem(match) && getItemDOI(match) === doi) return match;
+      index.byDOI.delete(doi);
     }
 
     const titleCandidate = info.title || info.text || "";
     const cleanTitle = CitationVerifier.cleanTitle(titleCandidate);
     if (cleanTitle && cleanTitle.length >= 8 && index.byTitle.has(cleanTitle)) {
       const candidates = index.byTitle.get(cleanTitle)!;
+      const alive: Zotero.Item[] = [];
       for (let i = candidates.length - 1; i >= 0; i--) {
         const item = candidates[i];
-        if (item.deleted) {
+        if (!isRegularLibraryItem(item)) {
           candidates.splice(i, 1);
           continue;
         }
-        const sim = CitationVerifier.tokenJaccard(titleCandidate, (item.getField("title") as string) || "");
-        if (sim >= (doi ? 0.85 : 0.70)) {
-          return item;
-        }
+        alive.push(item);
       }
+      if (!alive.length) return undefined;
+      return selectLibraryMatch(info, alive);
     }
 
     return undefined;

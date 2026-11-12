@@ -255,7 +255,9 @@ export async function performReferences(
 
   if (!references) references = [];
   references = references.map(referenceData);
-  if (!references.length && (panel as any).references?.length) {
+  const keepPrevious = !references.length && Boolean((panel as any).references?.length) &&
+    (sourceEvidence?.status === "unavailable" || (sourceEvidence?.status !== "empty" && Boolean(sourceEvidence?.partial)));
+  if (keepPrevious) {
     label.textContent = `${(panel as any).references.length} · ${getString("cards-refresh-empty-kept")}`;
     return;
   }
@@ -273,6 +275,8 @@ export async function performReferences(
   }
 
   if (referenceNum === 0) {
+    (panel as any)._cards?.clear();
+    (panel as any)._setL10nArgs?.(JSON.stringify({ count: 0 }));
     label.textContent = `${getString(["Auto", "Web", "PDF"].includes(source) ? "cards-auto-empty" : "relatedbox-empty")} [${currentSource}]`;
     return;
   }

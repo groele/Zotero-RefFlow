@@ -4,8 +4,19 @@
   "capturedAt": "2026-11-06",
   "debtCleared": true,
   "note": "RefFlow source architecture fully compliant with §5.9. All 87 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "16.7.0",
+  "lastReleasedVersion": "16.7.1",
   "splitHistory": [
+    {
+      "version": "16.7.1",
+      "date": "2026-11-12",
+      "resolved": [
+        "Bugfix: LibraryMatchIndex, searchLibraryItem, and BatchImporter now validate DOI consistency, require year/author evidence on one-sided DOI matches, index Extra DOIs, and backfill missing DOIs onto existing library items",
+        "Bugfix: PDF extraction errors and missing attachments mark status=unavailable instead of caching failure as empty",
+        "Bugfix: performReferences clears stale rendered references on confirmed-empty snapshots while preserving previous list only on unavailable/partial",
+        "Bugfix: makeItem preserves DOI in Extra field when the target item type lacks a native DOI field",
+        "UI/l10n: Added autoRefresh/graphView.enable/isShowTip parent-child preference linkages, behavioral reset defaults button (preserving API keys & CNKI creds), and localized remaining literals in preferences.xhtml and PDF.getReferences"
+      ]
+    },
     {
       "version": "16.7.0",
       "date": "2026-11-12",

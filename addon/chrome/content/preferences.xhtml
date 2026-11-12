@@ -133,7 +133,7 @@
           <html:input type="range" min="0" max="1" step="0.01" id="__addonRef__-not-in-library-opacity"
             preference="extensions.zotero.__addonRef__.notInLibarayOpacity">
           </html:input>
-          <html:output id="__addonRef__-not-in-library-opacity-val" class="refflow-range-badge">100%</html:output>
+          <html:output id="__addonRef__-not-in-library-opacity-val" class="refflow-range-badge" data-l10n-id="range-percent" data-l10n-args='{"percent": 100}'></html:output>
         </hbox>
       </html:div>
 
@@ -147,7 +147,7 @@
             class="refflow-number-input"
             preference="extensions.zotero.__addonRef__.graphView.height">
           </html:input>
-          <html:span class="refflow-unit-badge">px</html:span>
+          <html:span class="refflow-unit-badge" data-l10n-id="unit-px"></html:span>
         </html:div>
       </html:div>
     </html:div>
@@ -241,7 +241,7 @@
     <html:div class="refflow-setting-group-body">
       <html:div class="refflow-service-card">
         <html:div class="refflow-service-header">
-          <html:span class="refflow-service-badge">API</html:span>
+          <html:span class="refflow-service-badge" data-l10n-id="service-badge-api"></html:span>
           <html:label data-l10n-id="openAlexKey-label" for="__addonRef__-openalex-key" class="refflow-service-name"></html:label>
         </html:div>
         <html:input type="password" id="__addonRef__-openalex-key" class="refflow-service-input" preference="extensions.zotero.__addonRef__.openAlexKey" autocomplete="off" />
@@ -253,7 +253,7 @@
 
       <html:div class="refflow-service-card">
         <html:div class="refflow-service-header">
-          <html:span class="refflow-service-badge">API</html:span>
+          <html:span class="refflow-service-badge" data-l10n-id="service-badge-api"></html:span>
           <html:label data-l10n-id="semanticScholarKey-label" for="__addonRef__-semanticscholar-key" class="refflow-service-name"></html:label>
         </html:div>
         <html:input type="password" id="__addonRef__-semanticscholar-key" class="refflow-service-input" preference="extensions.zotero.__addonRef__.semanticScholarKey" autocomplete="off" />
@@ -265,7 +265,7 @@
 
       <html:div class="refflow-service-card">
         <html:div class="refflow-service-header">
-          <html:span class="refflow-service-badge">API</html:span>
+          <html:span class="refflow-service-badge" data-l10n-id="service-badge-api"></html:span>
           <html:label data-l10n-id="connectedPapersKey-label" for="__addonRef__-connectedpapers-key" class="refflow-service-name"></html:label>
         </html:div>
         <html:input type="password" id="__addonRef__-connectedpapers-key" class="refflow-service-input" preference="extensions.zotero.__addonRef__.connectedPapersKey" autocomplete="off" />
@@ -292,6 +292,15 @@
           <html:a href="__upstreamURL__" data-l10n-id="about-upstream"></html:a>
           <html:a id="__addonRef__-release-notes-link" href="__releaseNotesURL__" data-l10n-id="about-release-notes"></html:a>
           <html:a id="__addonRef__-download-link" href="__downloadURL__" data-l10n-id="about-download"></html:a>
+        </html:div>
+      </html:div>
+
+      <html:div class="refflow-setting-subgroup" id="__addonRef__-reset-group">
+        <html:h3 data-l10n-id="reset-heading"></html:h3>
+        <html:p class="refflow-pref-description" data-l10n-id="reset-description"></html:p>
+        <html:div class="refflow-status-actions">
+          <html:button type="button" id="__addonRef__-reset-defaults" class="refflow-btn-secondary" data-l10n-id="reset-defaults"></html:button>
+          <html:span id="__addonRef__-reset-status" class="refflow-status-hint" role="status" aria-live="polite"></html:span>
         </html:div>
       </html:div>
     </html:div>

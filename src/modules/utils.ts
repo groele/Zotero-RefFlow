@@ -2,7 +2,7 @@ import API from "./api"
 import PDF from "./pdf";
 import ReferenceParser from "./referenceParser";
 import CitationVerifier from "./verifier";
-import {workIdentity,selectLibraryMatch} from './workIdentity';
+import {workIdentity,selectLibraryMatch,getItemDOI} from './workIdentity';
 import LibraryMatchIndex from "./libraryIndex";
 
 class Utils {
@@ -89,6 +89,7 @@ class Utils {
       const cleanDOI = CitationVerifier.normalizeDOI(info.identifiers.DOI) || info.identifiers.DOI.trim();
       s.addCondition("DOI", "is", cleanDOI);
       s.addCondition("DOI", "contains", cleanDOI);
+      s.addCondition("extra", "contains", cleanDOI);
       hasCondition = true;
     }
     const titleCandidate = info.title || (info.text ? this.refText2Info(info.text)?.title : undefined);
@@ -167,7 +168,7 @@ class Utils {
       const itemTitle = (item.getField("title") as string) || "";
       const searchTitle = info.title || info.text || "";
       const requestedDOI=CitationVerifier.normalizeDOI(info.identifiers?.DOI);
-      const candidateDOI=CitationVerifier.normalizeDOI(item.getField("DOI") as string);
+      const candidateDOI=getItemDOI(item);
       if(requestedDOI && candidateDOI && requestedDOI!==candidateDOI) item=undefined;
       // 若无 DOI 则进行 Token 校验
       if (item && (!requestedDOI || candidateDOI!==requestedDOI) && searchTitle) {

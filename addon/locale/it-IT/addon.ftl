@@ -182,4 +182,8 @@ cards-filter-oa = Filtra: Solo Open Access
 cards-filter-retracted = Filtra: Solo ritirati
 cards-locate-in-pdf = Individua nel PDF (p. { $page })
 cards-mentions-badge = Citato { $count }× nel testo
+pdf-done-title = [Completato] PDF
+pdf-empty-title = [Nessun riferimento] PDF
+pdf-extracted-count = { $count } riferimenti estratti
+pdf-no-section = Nessuna sezione bibliografica trovata nel testo del PDF
 

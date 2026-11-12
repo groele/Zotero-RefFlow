@@ -40,7 +40,14 @@ export async function fetchNeighborhoodReferences(
 
   if (local && previous) {
     references = previous;
-    sourceEvidence = { source: cached?.snapshot?.source || "OpenAlex", count: references.length, expected: cached?.snapshot?.total, partial: Boolean(cached?.snapshot?.truncated) };
+    const status = cached?.snapshot?.status;
+    sourceEvidence = {
+      source: cached?.snapshot?.source || "OpenAlex",
+      count: references.length,
+      expected: cached?.snapshot?.total,
+      partial: status === "empty" ? false : Boolean(cached?.snapshot?.truncated),
+      status
+    };
     resultSource = describe(sourceEvidence);
     return { references, resultSource, sourceEvidence };
   }

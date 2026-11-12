@@ -202,4 +202,8 @@ cards-filter-oa = Filter: Open Access only
 cards-filter-retracted = Filter: Retracted only
 cards-locate-in-pdf = Locate in PDF (p. { $page })
 cards-mentions-badge = Cited { $count }× in text
+pdf-done-title = [Done] PDF
+pdf-empty-title = [No references] PDF
+pdf-extracted-count = { $count } references extracted
+pdf-no-section = No reference section found in the PDF text layer
 

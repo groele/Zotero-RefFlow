@@ -2,7 +2,7 @@ import batchJournal,{JournalCommitPendingError} from "./batchJournal";
 import BatchRollback from "./batchRollback";
 import CitationVerifier from "./verifier";
 import Utils from "./utils";
-import {workIdentity} from './workIdentity';
+import {workIdentity,getItemDOI,applyItemDOI} from './workIdentity';
 import {BatchRecord,metadataFingerprint,usesItem,needsRelation,needsMembership,validateBatchRecord,collectionState,sameCollectionState} from './batchOwnership';
 import {ImportError, ImportErrorCode, importText, importSummaryText} from './importErrors';
 import {safeProviderAttempt} from './referenceSourceDetails';
@@ -118,7 +118,7 @@ export class BatchImporter {
       if(fieldID && native.ItemFields.isValidForType(fieldID,item.itemTypeID)) item.setField(field as any,String(value));
     }
     if(!item.getField("title")) item.setField("title",ref.title||ref.text||"Untitled");
-    if(doi && native.ItemFields.isValidForType(native.ItemFields.getID("DOI"),item.itemTypeID)) item.setField("DOI",doi);
+    if(doi) applyItemDOI(item,doi);
     const creators=Array.isArray(metadata?.creators)?metadata.creators:(ref.authors||[]).map(name=>this.utils.splitCreator(name));
     if(creators.length)item.setCreators(creators);
     return item;
@@ -231,6 +231,7 @@ export class BatchImporter {
                 if(existing){target=existing;isNew=false;}}
               this.checkStopped(options.signal);
               if(target.deleted||target.libraryID!==record.libraryID)throw new ImportError('destination','Matched item is no longer available in the target library');
+              if(!isNew&&doi){const existingDOI=getItemDOI(target);if(existingDOI&&existingDOI!==doi)throw new ImportError('identity','Matched local item has a conflicting DOI');if(!existingDOI)applyItemDOI(target,doi);}
               await initialize();
               if(isNew){await target.save({skipSelect:true});record.createdIDs.push(target.id);}
               for(const colID of collections) {

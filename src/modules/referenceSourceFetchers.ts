@@ -72,7 +72,8 @@ export async function fetchPdfReferences(
   const key = "References-PDF";
   const cached = await views.storage.getAsync(item, key);
   let partial = Boolean(cached?.snapshot?.partial);
-  let references = local && cacheEnabled("PDF") && !fromCurrentPage && signature ? (readCachedReferences(cached, signature, retentionMs("pdf",partial)) as any) : undefined;
+  const empty = cached?.snapshot?.status === "empty";
+  let references = local && cacheEnabled("PDF") && !fromCurrentPage && signature ? (readCachedReferences(cached, signature, retentionMs("pdf", partial || empty)) as any) : undefined;
   if (!task.isCurrent()) return undefined;
 
   let resultSource = "PDF";
@@ -80,12 +81,16 @@ export async function fetchPdfReferences(
 
   if (references) {
     if (partial) resultSource += ` · ${getString("relatedbox-scan-limited")}`;
-    sourceEvidence = { source: "PDF", count: references.length, partial };
+    sourceEvidence = { source: "PDF", count: references.length, partial, status: empty ? "empty" : partial ? "partial" : "success" };
   } else {
     const attachment = await views.pdfAttachment(item, reader);
     if (!task.isCurrent()) return undefined;
+    let pdfUnavailable = false;
+    let pdfAttempt: string | undefined;
     if (!attachment) {
       references = [];
+      pdfUnavailable = true;
+      pdfAttempt = "PDF: unavailable";
     } else {
       try {
         references = await views.utils.PDF.getReferences(attachment, fromCurrentPage, {
@@ -99,12 +104,20 @@ export async function fetchPdfReferences(
       } catch (error: any) {
         if (error?.name === "AbortError" || fromCurrentPage) throw error;
         references = [];
-        ztoolkit.log("PDF failed; trying structured sources", safeProviderAttempt(String(error?.message || error)));
+        pdfUnavailable = true;
+        const message = safeProviderAttempt(String(error?.message || error));
+        pdfAttempt = `PDF: ${message}`;
+        ztoolkit.log("PDF failed; trying structured sources", message);
       }
     }
     if (!task.isCurrent()) return undefined;
     const result = preferCachedReferences(
-      normalizeReferenceResult({ references, source: "PDF", partial: Boolean(attachment && views.utils.PDF.getDiagnostics(attachment)?.scanLimited) }),
+      normalizeReferenceResult({
+        references,
+        source: "PDF",
+        partial: Boolean(attachment && views.utils.PDF.getDiagnostics(attachment)?.scanLimited),
+        ...(pdfUnavailable ? { status: "unavailable" as const, attempts: pdfAttempt ? [pdfAttempt] : undefined } : {})
+      }),
       fromCurrentPage ? undefined : readCachedReferenceResult(cached, signature),
       getString("cards-cached-offline")
     );

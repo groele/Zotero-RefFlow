@@ -1,3 +1,5 @@
+import { config } from "../../package.json";
+import { getString } from "../utils/locale";
 import Utils from "./utils";
 import { extractReferencesFromLines, isBibliographyHeading, ReferenceTextLine } from "./referenceExtractor";
 import { structuredPageToLines } from "./structuredPDF";
@@ -54,8 +56,18 @@ export default class PDF {
         if (index % 25 === 24) await Zotero.Promise.delay(0);
       }
       if (options.notify !== false) {
-        new ztoolkit.ProgressWindow(references.length ? "[Done] PDF" : "[No references] PDF")
-          .createLine({ text: references.length ? `${references.length} references extracted` : "No reference section found in the PDF text layer", type: references.length ? "success" : "fail" }).show();
+        const l10nText = (key: string, fallback: string, args?: Record<string, unknown>) => {
+          const val = args ? getString(key, { args }) : getString(key);
+          return val && val !== `${config.addonRef}-${key}` ? val : fallback;
+        };
+        const title = references.length
+          ? l10nText("pdf-done-title", "[Done] PDF")
+          : l10nText("pdf-empty-title", "[No references] PDF");
+        const body = references.length
+          ? l10nText("pdf-extracted-count", `${references.length} references extracted`, { count: references.length })
+          : l10nText("pdf-no-section", "No reference section found in the PDF text layer");
+        new ztoolkit.ProgressWindow(title)
+          .createLine({ text: body, type: references.length ? "success" : "fail" }).show();
       }
       return references;
     } finally {
