@@ -7,6 +7,16 @@
   "lastReleasedVersion": "16.5.0",
   "splitHistory": [
     {
+      "version": "16.6.0",
+      "date": "2026-11-12",
+      "resolved": [
+        "UI/UX: Modernized preferences cards 2-5 with live slider percentage badge, px unit input, native color picker sync, 2-column quick action grid, and structured API service cards",
+        "Architecture: Extracted graphCardImport.ts (graphCard.ts 346 -> 254 lines) and cardSettingsActions.ts (referenceCards.ts 345 -> 325 lines); all 84 modules strictly <= 340 lines",
+        "Robustness: Expanded Unicode ligature (ft/st), mathematical minus, and ideographic space cleaning in referenceExtractor.ts",
+        "Automation: Extracted scripts/sync-metrics.mjs and wired dynamic source count sync into guard and build scripts"
+      ]
+    },
+    {
       "version": "16.5.0",
       "date": "2026-11-11",
       "resolved": [

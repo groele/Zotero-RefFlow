@@ -1,4 +1,4 @@
-> **16.5.0** — Settings panel spatial layout modernization with nested subcards and storage health dashboard; comprehensive P0 compliance resolution (dynamic version injection, zero hardcoded UI strings, Unpaywall OA discovery pipeline, full i18n alignment, and module guard). [Release notes](docs/releases/v16.5.0.md).
+> **16.6.0 (Unreleased / Candidate)** — Modernized preferences cards 2–5 (live opacity percentage badge, bidirectional native color pickers, 2-column quick action grid, structured API service cards), decoupled high-watermark modules across 84 source files (all <= 340 lines), expanded PDF Unicode normalization, and automated metrics synchronization. [Candidate release notes](docs/releases/v16.6.0.md) · Latest published release remains [16.5.0](docs/releases/v16.5.0.md).
 
 
 
