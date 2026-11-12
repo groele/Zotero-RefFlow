@@ -122,10 +122,21 @@ test('import lookup bypasses display caches and stale-generation miss handling',
  utils.itemCache=new Map([['1:doi:10.1234/one:library-item',null]]);utils.searchItem=async()=>{lookups++;return target;};
  assert.equal(await utils.searchLibraryItem(row('10.1234/one'),1,true),target);assert.equal(lookups,1);
 });
-test('import destinations use same-window same-library collection snapshots',()=>{
- const utils:any=Object.create(Utils.prototype);const parent:any={libraryID:2,getCollections:()=>[8,9]};
- const win:any={ZoteroPane:{getSelectedCollections:()=>[{id:3,libraryID:1},{id:4,libraryID:2},{id:4,libraryID:2},{id:5,libraryID:2,deleted:true}]}};
- assert.deepEqual(utils.importCollections(parent,win),[4]);win.ZoteroPane.getSelectedCollections=()=>[{id:3,libraryID:1}];assert.deepEqual(utils.importCollections(parent,win),[8,9]);
+test('import destinations follow the parent item collections instead of unrelated ZoteroPane selection',()=>{
+ const utils:any=Object.create(Utils.prototype);
+ const parent:any={libraryID:2,isRegularItem:()=>true,getCollections:()=>[8,9,8]};
+ const win:any={ZoteroPane:{getSelectedCollections:()=>[{id:3,libraryID:1},{id:4,libraryID:2},{id:5,libraryID:2,deleted:true}]}};
+ assert.deepEqual(utils.importCollections(parent,win),[8,9]);
+ const unfiled:any={libraryID:2,isRegularItem:()=>true,getCollections:()=>[]};
+ assert.deepEqual(utils.importCollections(unfiled,win),[]);
+ const z:any=Zotero,savedCollections=z.Collections;
+ try{
+  z.Collections={get:(id:number)=>({8:{id:8,libraryID:2,deleted:false},9:{id:9,libraryID:2,deleted:true},10:{id:10,libraryID:1,deleted:false}}[id])};
+  const mixed:any={libraryID:2,isRegularItem:()=>true,getCollections:()=>[8,9,10,-1,NaN]};
+  assert.deepEqual(utils.importCollections(mixed,win),[8]);
+  const attachment:any={libraryID:2,isRegularItem:()=>false,parentItem:mixed,getCollections:()=>[]};
+  assert.deepEqual(utils.importCollections(attachment,win),[8]);
+ }finally{z.Collections=savedCollections;}
 });
 
 

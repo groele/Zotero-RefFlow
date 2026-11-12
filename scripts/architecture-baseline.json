@@ -4,8 +4,15 @@
   "capturedAt": "2026-11-06",
   "debtCleared": true,
   "note": "RefFlow source architecture fully compliant with §5.9. All 87 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "16.7.1",
+  "lastReleasedVersion": "16.8.0",
   "splitHistory": [
+    {
+      "version": "16.8.0",
+      "date": "2026-11-12",
+      "resolved": [
+        "Feature/Fix: Utils.importCollections() now resolves the parent item's collections (including subcollections) instead of letting unrelated or background ZoteroPane collection selection override import destinations"
+      ]
+    },
     {
       "version": "16.7.1",
       "date": "2026-11-12",

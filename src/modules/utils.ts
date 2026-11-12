@@ -201,12 +201,22 @@ class Utils {
     return (win as any).ZoteroPane.selectItem(item.id);
   }
 
-  /** Snapshot only collections in the operation's owning window and library. */
-  public importCollections(parent: Zotero.Item, win: Window): number[] {
-    const selected=(win as any).ZoteroPane?.getSelectedCollections?.() || [];
-    const ids=selected.filter((col:any)=>col&&!col.deleted&&col.libraryID===parent.libraryID)
-      .map((col:any)=>Number(col.id)).filter((id:number)=>Number.isSafeInteger(id)&&id>0);
-    return [...new Set<number>(ids.length?ids:parent.getCollections())];
+  /** Snapshot valid collection IDs containing the parent item in its library. */
+  public importCollections(parent: Zotero.Item, _win?: Window): number[] {
+    const owner = typeof parent?.isRegularItem === "function" && !parent.isRegularItem() && (parent as any).parentItem
+      ? (parent as any).parentItem
+      : parent;
+    const raw = typeof owner?.getCollections === "function" ? owner.getCollections() : [];
+    const ids = (Array.isArray(raw) ? raw : [])
+      .map((id: any) => Number(id))
+      .filter((id: number) => {
+        if (!Number.isSafeInteger(id) || id <= 0) return false;
+        const col = typeof (Zotero as any)?.Collections?.get === "function"
+          ? (Zotero as any).Collections.get(id)
+          : undefined;
+        return !col || (!col.deleted && (!owner.libraryID || col.libraryID === owner.libraryID));
+      });
+    return [...new Set<number>(ids)];
   }
 
   public getItemType(item: Zotero.Item): string | undefined {
