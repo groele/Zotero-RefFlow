@@ -17,7 +17,7 @@
   "repository": "https://github.com/groele/Zotero-RefFlow",
   "addonID": "refflow@groele.github.io",
   "version": "16.6.0",
-  "releaseStatus": "unreleased",
+  "releaseStatus": "released",
   "license": "AGPL-3.0-or-later",
   "releaseTag": "v16.6.0",
   "releaseNotesURL": "https://github.com/groele/Zotero-RefFlow/blob/main/docs/releases/v16.6.0.md"

@@ -4,7 +4,7 @@
   "capturedAt": "2026-11-06",
   "debtCleared": true,
   "note": "RefFlow source architecture fully compliant with §5.9. All 84 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "16.5.0",
+  "lastReleasedVersion": "16.6.0",
   "splitHistory": [
     {
       "version": "16.6.0",
