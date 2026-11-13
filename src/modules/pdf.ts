@@ -1,7 +1,7 @@
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
 import Utils from "./utils";
-import { extractReferencesFromLines, isBibliographyHeading, ReferenceTextLine } from "./referenceExtractor";
+import { extractReferencesFromLines, isBibliographyHeading, type ReferenceTextLine } from "./referenceExtractor";
 import { structuredPageToLines } from "./structuredPDF";
 import { countInTextMentions } from "./readerNavigation";
 

@@ -1,7 +1,7 @@
 import batchJournal from "./batchJournal";
 import Utils from "./utils";
 import {
-  BatchRecord,
+  type BatchRecord,
   metadataFingerprint,
   usesItem,
   needsRelation,

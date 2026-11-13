@@ -5,6 +5,19 @@ import CitationVerifier from "./verifier";
 import {workIdentity,selectLibraryMatch,getItemDOI} from './workIdentity';
 import LibraryMatchIndex from "./libraryIndex";
 
+interface LibrarySearch {
+  libraryID: number;
+  addCondition(condition: "joinMode", operator: "any" | "all"): number;
+  addCondition(condition: "resultLevel", operator: "item" | "all"): number;
+  addCondition(
+    condition: _ZoteroTypes.Search.Conditions,
+    operator: _ZoteroTypes.Search.Operator,
+    value: string | number,
+    required?: boolean,
+  ): number;
+  search(): Promise<number[]>;
+}
+
 class Utils {
   API: API;
   PDF: PDF;
@@ -76,13 +89,12 @@ class Utils {
 
   public async searchItem(info: ItemBaseInfo, libraryID?: number) {
     if (!info) { return; }
-    let s = new (Zotero as any).Search();
     const resolvedLibrary=libraryID || this.resolveLibraryID();
     if(!resolvedLibrary)return;
+    const s = new (Zotero.Search as unknown as new () => LibrarySearch)();
     s.libraryID = resolvedLibrary;
-    // @ts-ignore
     s.addCondition("joinMode", "any");
-      s.addCondition("resultLevel", "item");
+    s.addCondition("resultLevel", "item");
 
     let hasCondition = false;
     if (info.identifiers?.DOI) {

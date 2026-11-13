@@ -147,3 +147,22 @@ test("architecture guard: views and connectedpapers retain backwards-compatible 
   assert.equal(typeof cpProto.buildRelatedPanel, "function");
   assert.equal(typeof cpProto.addItem, "function");
 });
+
+test("architecture guard: zero @ts-ignore or @ts-nocheck directives in src/", () => {
+  const rootDir = findRepoRoot();
+  const hits: string[] = [];
+  function walk(dir: string) {
+    const fullDir = path.join(rootDir, dir);
+    if (!fs.existsSync(fullDir)) return;
+    for (const entry of fs.readdirSync(fullDir, { withFileTypes: true })) {
+      const rel = path.posix.join(dir, entry.name);
+      if (entry.isDirectory()) walk(rel);
+      else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+        const content = fs.readFileSync(path.join(rootDir, rel), "utf8");
+        if (/@ts-(?:ignore|nocheck)\b/.test(content)) hits.push(rel);
+      }
+    }
+  }
+  walk("src");
+  assert.deepEqual(hits, [], `Disallowed TypeScript suppression directives found in: ${hits.join(", ")}`);
+});

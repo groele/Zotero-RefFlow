@@ -50,7 +50,7 @@ export class WesternCitationParser {
     if (!quoteMatch) return null;
 
     const authorStr = quoteMatch[1].trim();
-    let title = quoteMatch[2].trim().replace(/[,.]$/, "");
+    const title = quoteMatch[2].trim().replace(/[,.]$/, "");
     const rest = quoteMatch[3].trim();
 
     if (!authorStr || !title || title.length < 3) return null;

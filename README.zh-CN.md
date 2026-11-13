@@ -1,4 +1,4 @@
-> **16.8.4** 深度修复侧栏参考文献提取不全问题（修正双栏右栏位于左栏标题上方被截断、居中标题跨栏、上下标基线错序、`viewRect` 偏移、隔字标题与年份误断、长附录超 80 页回溯以及 OpenAlex 孤立小结果误判完整等根因），并修复关系图谱高度设置缺少 `px` 单位问题。[版本说明](docs/releases/v16.8.4.md)。
+> **17.0.0** 升级 TypeScript 编译配置至 Zotero Flow 现代标准（`ES2023`、`ESNext`、`bundler`、`isolatedModules`、`verbatimModuleSyntax`），清除 `utils.ts` 中 `@ts-ignore` 债务并补齐图谱错误日志脱敏与工具栏事件 `AbortController` 生命周期收口。[版本说明](docs/releases/v17.0.0.md)。
 
 [简体中文](README.md) · [English](README.en.md)
 

@@ -9,9 +9,9 @@ import JournalStatus from "./journalStatus";
 import { ListIndices } from "./listIndices";
 import { referenceIdentity } from "./referenceIdentity";
 import { cleanupSync } from "../utils/lifecycle";
-import { openReferenceCardMenu, CardFilterMode } from "./referenceCardMenu";
+import { openReferenceCardMenu, type CardFilterMode } from "./referenceCardMenu";
 import { executeCardSettingsAction } from "./cardSettingsActions";
-import { createReferenceCardRow, CardRowContext } from "./referenceCardRow";
+import { createReferenceCardRow, type CardRowContext } from "./referenceCardRow";
 import { remountVirtualWindow, measureAverageRowHeight } from "./referenceCardsVirtual";
 
 /** Compact reference cards and selection behavior aligned with the supplied XPI. */

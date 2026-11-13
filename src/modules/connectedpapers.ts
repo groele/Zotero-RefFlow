@@ -25,6 +25,7 @@ export default class ConnectedPapers {
   private zoteroColor: boolean = true;
   private cleanup: Array<() => void> = [];
   private disposed = false;
+  private buttonController?: AbortController;
   private graphController?: AbortController;
   private graphSelectedID = "";
   private graphEventCleanup?: () => void;
@@ -57,6 +58,7 @@ export default class ConnectedPapers {
     if (this.disposed) return;
     this.disposed = true;
     cleanupSync(() => BatchImporter.cancelImports(undefined, this));
+    cleanupSync(() => this.buttonController?.abort());
     cleanupSync(() => this.graphController?.abort());
     cleanupSync(() => this.graphEventCleanup?.());
     cleanupSync(() => this.requests?.dispose());
@@ -100,6 +102,9 @@ export default class ConnectedPapers {
     newNode.setAttribute("tooltiptext", getString("graph-toggle-tooltip") || (Zotero.locale?.startsWith("zh") ? "显示 / 隐藏文献关系图" : "Show / hide citation graph"));
     newNode.setAttribute("aria-label", newNode.getAttribute("tooltiptext")!);
     newNode.setAttribute("tabindex", "0");
+    this.buttonController?.abort();
+    const Controller = this.win.AbortController || globalThis.AbortController;
+    const buttonController = this.buttonController = new Controller() as AbortController;
     newNode.addEventListener("click", async () => {
       const node = this.graphContainer;
       if (!node) return;
@@ -113,7 +118,7 @@ export default class ConnectedPapers {
         this.syncRelatedPane(false);
         Zotero.Prefs.set(`${config.addonRef}.graphView.enable`, false);
       }
-    });
+    }, { signal: buttonController.signal });
     newNode.style.listStyleImage = `url(chrome://${config.addonRef}/content/icons/connectedpapers.png)`;
     toolbar.insertBefore(newNode, this.doc.getElementById("zotero-tb-search"));
   }

@@ -1,4 +1,4 @@
-import {BatchRecord,validateBatchRecord} from "./batchOwnership";
+import { type BatchRecord, validateBatchRecord } from "./batchOwnership";
 
 interface JournalEntry {batchID:string;parentKey:string;record:BatchRecord;itemKeys:Record<string,string>;}
 interface JournalFile {version:1;pending:boolean;entries:JournalEntry[];}

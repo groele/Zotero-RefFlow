@@ -1,9 +1,9 @@
 import {cacheEnabled, retentionMs} from "./cachePolicy";
 import { getString } from "../utils/locale";
-import { safeProviderAttempt, ReferenceSourceEvidence } from "./referenceSourceDetails";
+import { safeProviderAttempt, type ReferenceSourceEvidence } from "./referenceSourceDetails";
 import { normalizeReferenceResult } from "./referenceRetrieval";
 import { preferCachedReferences, cacheReferences, readCachedReferences } from "./referenceCache";
-import { ReferenceTaskContext } from "./referenceTasks";
+import type { ReferenceTaskContext } from "./referenceTasks";
 import Views from "./views";
 
 export interface NeighborhoodResult {

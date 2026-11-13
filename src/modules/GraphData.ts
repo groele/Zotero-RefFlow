@@ -2,6 +2,7 @@ import { config } from "../../package.json";
 import { ProgressWindowHelper } from "zotero-plugin-toolkit";
 import { pollGraph } from "./graphTransport";
 import { getString } from "../utils/locale";
+import { safeProviderAttempt } from "./referenceSourceDetails";
 
 const GraphResponseStatuses = {
   BAD_ID: "BAD_ID",
@@ -117,5 +118,5 @@ export default async function buildGraphData(id: string, popupWin: ProgressWindo
     const graphData = temp.graph_json
     return graphData
   }
-  } catch(error:any){if(error?.name!=="AbortError"){ztoolkit.log("Graph fetch failed",error);popupWin.changeLine({text:String(error),type:"fail"});}}
+  } catch(error:any){if(error?.name!=="AbortError"){const message=safeProviderAttempt(String(error?.message||error));ztoolkit.log("Graph fetch failed",message);popupWin.changeLine({text:message,type:"fail"});}}
 }

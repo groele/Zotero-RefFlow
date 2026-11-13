@@ -1,4 +1,4 @@
-import { isBibliographyHeading, isReferenceStart, ReferenceTextLine } from "./referenceExtractor";
+import { isBibliographyHeading, isReferenceStart, type ReferenceTextLine } from "./referenceExtractor";
 
 /** Reconstruct column-aware reading order without joining adjacent columns. */
 export function textItemsToLines(items: any[], page: number, pageWidth = 612, pageHeight=792): ReferenceTextLine[] {

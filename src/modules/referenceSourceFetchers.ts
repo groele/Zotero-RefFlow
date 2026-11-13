@@ -2,7 +2,7 @@ import {cacheEnabled, retentionMs} from "./cachePolicy";
 import { getString } from "../utils/locale";
 import { safeProviderAttempt } from "./referenceSourceDetails";
 import {
-  ReferenceResult,
+  type ReferenceResult,
   retrieveReferenceList,
   normalizeReferenceResult
 } from "./referenceRetrieval";
@@ -12,7 +12,7 @@ import {
   readCachedReferenceResult,
   readCachedReferences
 } from "./referenceCache";
-import { ReferenceTaskContext } from "./referenceTasks";
+import type { ReferenceTaskContext } from "./referenceTasks";
 import Views from "./views";
 
 export interface SourceFetcherResult {

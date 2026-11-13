@@ -1,5 +1,4 @@
-import { ColumnOptions } from "zotero-plugin-toolkit";
-import { DialogHelper } from "zotero-plugin-toolkit";
+import type { ColumnOptions, DialogHelper } from "zotero-plugin-toolkit";
 import hooks from "./hooks";
 import { createZToolkit } from "./utils/ztoolkit";
 import type Views from "./modules/views";

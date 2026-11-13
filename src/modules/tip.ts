@@ -1,7 +1,7 @@
 import { config } from "../../package.json";
 import Utils from "./utils";
 import TipView from "./tipView";
-import TipDOM, { TipTag } from "./tipDOM";
+import TipDOM, { type TipTag } from "./tipDOM";
 
 export default class TipUI {
   private utils: Utils;

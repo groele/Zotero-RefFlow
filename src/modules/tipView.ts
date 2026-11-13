@@ -1,6 +1,6 @@
 import { config } from "../../package.json";
-import TipDOM, { TipTag, TipOptionConfig } from "./tipDOM";
-export { TipTag, TipOptionConfig };
+import TipDOM, { type TipTag, type TipOptionConfig } from "./tipDOM";
+export type { TipTag, TipOptionConfig };
 
 export class TipView {
   public static place(container: HTMLDivElement, refRect: Rect, position: string, doc: Document) {

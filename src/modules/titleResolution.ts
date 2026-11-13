@@ -1,4 +1,4 @@
-import CitationVerifier, { CandidateWork } from "./verifier";
+import CitationVerifier, { type CandidateWork } from "./verifier";
 
 export interface TitleQuery { title: string; author?: string; year?: string | number; }
 export interface TitleCandidate<T> { value: T; work: CandidateWork; id?: string; }

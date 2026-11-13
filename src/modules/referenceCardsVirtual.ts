@@ -1,5 +1,5 @@
 import { ListIndices } from "./listIndices";
-import { createReferenceCardRow, CardRowContext } from "./referenceCardRow";
+import { createReferenceCardRow, type CardRowContext } from "./referenceCardRow";
 import { rebindReferenceCardRow } from "./referenceCardRebind";
 
 export interface VirtualWindowHost {

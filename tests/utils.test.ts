@@ -114,4 +114,44 @@ describe("Utils Suite", () => {
       assert.strictEqual(utils.Html2Text(""), "");
     });
   });
+
+  describe("searchItem", () => {
+    test("configures joinMode/resultLevel and normalizes DOI search conditions", async () => {
+      const z = Zotero as any;
+      const originalSearch = z.Search;
+      const originalGetAsync = z.Items.getAsync;
+      const recorded: Array<{ field: string; op: string; val: unknown }> = [];
+      const candidateItem = {
+        id: 501,
+        libraryID: 1,
+        deleted: false,
+        isRegularItem: () => true,
+        getField: (field: string) => (field === "DOI" ? "10.1234/example" : "Example Paper"),
+      };
+      z.Search = class {
+        libraryID = 0;
+        addCondition(field: string, op: string, val?: unknown) {
+          recorded.push({ field, op, val });
+        }
+        async search() {
+          return [501];
+        }
+      };
+      z.Items.getAsync = async () => [candidateItem];
+      try {
+        const matched = await utils.searchItem({
+          title: "Example Paper",
+          authors: ["Alice"],
+          identifiers: { DOI: "https://doi.org/10.1234/EXAMPLE" },
+        }, 1);
+        assert.strictEqual(matched, candidateItem);
+        assert.ok(recorded.some((c) => c.field === "joinMode" && c.op === "any" && c.val === undefined));
+        assert.ok(recorded.some((c) => c.field === "resultLevel" && c.op === "item" && c.val === undefined));
+        assert.ok(recorded.some((c) => c.field === "DOI" && c.op === "is" && c.val === "10.1234/example"));
+      } finally {
+        z.Search = originalSearch;
+        z.Items.getAsync = originalGetAsync;
+      }
+    });
+  });
 });

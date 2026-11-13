@@ -1,7 +1,7 @@
 import {cacheEnabled, retentionMs} from "./cachePolicy";
 const SCHEMA = 4;
 import { referenceData, tryReferenceData } from "./referenceData";
-import { normalizeReferenceResult, ReferenceResult } from "./referenceRetrieval";
+import { normalizeReferenceResult, type ReferenceResult } from "./referenceRetrieval";
 
 /** Runtime Zotero item objects must never be serialized as reference metadata. */
 export function cacheReferences(references: ItemBaseInfo[], signature: string, now = Date.now()) {

@@ -3,8 +3,8 @@ import BatchRollback from "./batchRollback";
 import CitationVerifier from "./verifier";
 import Utils from "./utils";
 import {workIdentity,getItemDOI,applyItemDOI} from './workIdentity';
-import {BatchRecord,metadataFingerprint,usesItem,needsRelation,needsMembership,validateBatchRecord,collectionState,sameCollectionState} from './batchOwnership';
-import {ImportError, ImportErrorCode, importText, importSummaryText} from './importErrors';
+import { type BatchRecord, metadataFingerprint, usesItem, needsRelation, needsMembership, validateBatchRecord, collectionState, sameCollectionState } from './batchOwnership';
+import { ImportError, type ImportErrorCode, importText, importSummaryText } from './importErrors';
 import {safeProviderAttempt} from './referenceSourceDetails';
 
 export interface BatchImportOptions {

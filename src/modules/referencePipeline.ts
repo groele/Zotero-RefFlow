@@ -2,12 +2,12 @@ import {cacheEnabled, markFresh} from "./cachePolicy";
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
 import CitationVerifier from "./verifier";
-import { safeProviderAttempt, ReferenceSourceEvidence } from "./referenceSourceDetails";
+import { safeProviderAttempt, type ReferenceSourceEvidence } from "./referenceSourceDetails";
 import { referenceData } from "./referenceData";
-import { ReferenceTaskContext } from "./referenceTasks";
+import type { ReferenceTaskContext } from "./referenceTasks";
 import {
-  ReferenceResult,
-  ReferenceProvider,
+  type ReferenceResult,
+  type ReferenceProvider,
   retrieveReferenceList
 } from "./referenceRetrieval";
 import { renderReferenceSourceDetails } from "./referenceSourceDetails";
