@@ -115,10 +115,11 @@ export default class PDF {
     const pageIndex = options.pageIndex ?? attachment.getAttachmentLastPageIndex();
     const activePage = Math.min(pageCount, Math.max(1, Number.isInteger(pageIndex) ? Number(pageIndex) + 1 : 1));
     const end = fromCurrentPage ? activePage : pageCount;
-    const first = Math.max(1, end - Math.max(1, Math.min(200, options.maxPages ?? 60)) + 1);
+    const windowPages = Math.max(1, Math.min(200, options.maxPages ?? 80));
+    const first = Math.max(1, end - windowPages + 1);
     const pages: ReferenceTextLine[][] = [];
     let startFound = false;
-    for (let pageNumber = end; pageNumber >= first; pageNumber--) {
+    const scanPage = async (pageNumber: number) => {
       if (attachment.deleted) throw this.error("AbortError", "PDF attachment was deleted");
       const blocks: any = await this.bounded(pack.getPageBlocks(pageNumber - 1), deadline, options.signal);
       const lines = structuredPageToLines(blocks, pageNumber - 1, catalog.pages[pageNumber - 1].viewRect);
@@ -127,21 +128,29 @@ export default class PDF {
       if (lines.some(line => isBibliographyHeading(line.text))) {
         stats.headingFound = true;
         // A continued/methods list may begin at 51; keep scanning for the main list.
-        // Also if a trailing supplementary reference list on the final page has only 1-2 items
-        // while more pages precede it, scan at least one extra preceding page to avoid missing the main bibliography.
+        // Also if a trailing Methods/Supplementary reference list has fewer than 10 items
+        // while preceding pages remain, continue scanning so the main bibliography is not skipped.
         const extractedOnPage = extractReferencesFromLines(lines);
         const firstReference = extractedOnPage[0];
-        if (firstReference && (firstReference.number === undefined || firstReference.number === 1)) {
-          const totalCollectedSoFar = pages.reduce((acc, p) => acc + extractReferencesFromLines(p).length, 0);
-          if (totalCollectedSoFar >= 3 || pageNumber === first) {
-            startFound = true;
-            break;
-          }
+        if (firstReference && (firstReference.number === undefined || firstReference.number <= 3)) {
+          startFound = true;
+          const totalCollectedSoFar = extractReferencesFromLines([...pages].reverse().flat()).length;
+          if (totalCollectedSoFar >= 10 || pageNumber === 1) return true;
         }
       }
       await this.bounded(Zotero.Promise.delay(0), deadline, options.signal);
+      return false;
+    };
+    for (let pageNumber = end; pageNumber >= first; pageNumber--) {
+      if (await scanPage(pageNumber)) break;
     }
-    stats.scanLimited = !startFound && first > 1;
+    if (!startFound && first > 1 && options.maxPages === undefined) {
+      const extendedFirst = Math.max(1, end - 199);
+      for (let pageNumber = first - 1; pageNumber >= extendedFirst; pageNumber--) {
+        if (await scanPage(pageNumber)) break;
+      }
+    }
+    stats.scanLimited = !startFound && (options.maxPages !== undefined ? first > 1 : end > 200);
     return pages.reverse().flat();
   }
 }

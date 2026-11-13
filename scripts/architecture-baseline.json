@@ -4,8 +4,17 @@
   "capturedAt": "2026-11-06",
   "debtCleared": true,
   "note": "RefFlow source architecture fully compliant with §5.9. All 87 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "16.8.3",
+  "lastReleasedVersion": "16.8.4",
   "splitHistory": [
+    {
+      "version": "16.8.4",
+      "date": "2026-11-13",
+      "resolved": [
+        "Bugfix: Fixed two-column right-column reference truncation above lower-left headings, centered spanning headings, superscript/subscript line order and spacing, non-zero PDF viewRect origins, and letterspaced/variant bibliography headings across pdfLayout.ts/structuredPDF.ts/referenceExtractor.ts/pdf.ts",
+        "Bugfix: Tightened headingless PDF validation and year false-positive splitting; extended PDF backwards scan beyond 80 trailing supplementary pages when heading/ref start is not yet found",
+        "Bugfix: Prevented uncorroborated tiny OpenAlex results from marking online lookups complete when Semantic Scholar returns 0 references (api.ts), widened Auto PDF suspiciously-few fallback threshold (referencePipeline.ts), and normalized raw numeric graphView.height CSS units in graphViewer.ts/connectedpapers.ts"
+      ]
+    },
     {
       "version": "16.8.3",
       "date": "2026-11-13",

@@ -131,7 +131,8 @@ export default class ConnectedPapers {
     boxAfter.style.overflow = "hidden";
     boxAfter.style.backgroundColor = "var(--material-background, #ffffff)";
     body.append(boxAfter);
-    boxAfter.style.height = (Zotero.Prefs.get(`${config.addonRef}.graphView.height`) as string) || "400px";
+    const parsedHeight = Number.parseInt(String(Zotero.Prefs.get(`${config.addonRef}.graphView.height`) || ""), 10);
+    boxAfter.style.height = `${Number.isFinite(parsedHeight) ? Math.min(1600, Math.max(200, parsedHeight)) : 400}px`;
     (boxAfter.style as any)["padding-top"] = "0";
     this.buildRelatedPanel(boxAfter);
   }

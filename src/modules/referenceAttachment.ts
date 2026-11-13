@@ -54,7 +54,7 @@ export async function getPdfCacheSignature(item: Zotero.Item, reader?: any): Pro
   if (!path) return "";
   const file = Zotero.File.pathToFile(path);
   if (!file.exists()) return "";
-  return `pdf-sdt-v3:${attachment.libraryID}:${attachment.key}:${file.fileSize}:${file.lastModifiedTime}`;
+  return `pdf-sdt-v5:${attachment.libraryID}:${attachment.key}:${file.fileSize}:${file.lastModifiedTime}`;
 }
 
 /**

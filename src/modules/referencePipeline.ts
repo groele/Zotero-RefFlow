@@ -74,8 +74,21 @@ export async function onlineReferences(
     const creator = item.getCreators()[0] as any;
     doi = (await api.resolveWork(title, creator?.name || creator?.lastName, String(item.getField("date")), task.signal))?.doi || "";
   }
-  if (!doi || !task.isCurrent()) return;
-  return api.getReferenceList(doi, url, title, task.signal);
+  const extra = typeof item.getField === "function" ? String(item.getField("extra") || "") : "";
+  const arxivId = views.utils.matchArXiv?.(url) || views.utils.matchArXiv?.(extra) || views.utils.matchArXiv?.(doi) || (doi.match(/^10\.48550\/arXiv\.(.+)$/i)?.[1]);
+  if (!doi || !task.isCurrent()) {
+    if (arxivId && task.isCurrent() && typeof api.semanticScholar?.neighborhood === "function") {
+      const s2 = await api.semanticScholar.neighborhood(`ARXIV:${arxivId}`, "References", task.signal);
+      if (s2?.references?.length) return s2;
+    }
+    return;
+  }
+  const result = await api.getReferenceList(doi, url, title, task.signal);
+  if ((!result.references.length || result.partial) && arxivId && task.isCurrent() && typeof api.semanticScholar?.neighborhood === "function") {
+    const s2 = await api.semanticScholar.neighborhood(`ARXIV:${arxivId}`, "References", task.signal);
+    if (s2?.references?.length && s2.references.length > result.references.length) return s2;
+  }
+  return result;
 }
 
 export async function smartReferences(
@@ -115,7 +128,9 @@ export async function smartReferences(
             if (task.isCurrent()) label.textContent = `${getString("relatedbox-loading")} PDF · ${pages} ${getString("relatedbox-pages-label")}`;
           }
         });
-        return { references, source: "PDF", partial: views.utils.PDF.getDiagnostics(attachment)?.scanLimited };
+        const diagnostics = views.utils.PDF.getDiagnostics(attachment);
+        const suspiciouslyFew = !fromCurrentPage && references.length > 0 && (references.length <= 7 || (!diagnostics?.headingFound && references.length < 10));
+        return { references, source: "PDF", partial: Boolean(diagnostics?.scanLimited || suspiciouslyFew) };
       }
     });
   }
@@ -189,7 +204,7 @@ export async function performReferences(
   const signature = source === "PDF"
     ? await views.pdfCacheSignature(item, reader)
     : JSON.stringify([
-        "retrieval-v6",
+        "retrieval-v8",
         item.getField("DOI"),
         item.getField("url"),
         item.getField("title"),

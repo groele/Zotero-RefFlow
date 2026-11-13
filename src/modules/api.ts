@@ -83,7 +83,7 @@ class API {
     const crossrefUrl = `https://api.crossref.org/works/${doiPath}`;
     const [crossrefRes, openalexRes] = await Promise.allSettled([
       this.requests.get(crossrefUrl,"json",{},signal),
-      this.optional(child=>this.openAlex.getWorkByDOI(cleanDOI,child),5000,undefined,signal)
+      this.optional(child=>this.openAlex.getWorkByDOI(cleanDOI,child),8000,undefined,signal)
     ]);
     if(signal?.aborted)return undefined;
 
@@ -110,7 +110,7 @@ class API {
     if (openalexWork && openalexWork.referencedWorks && openalexWork.referencedWorks.length > 0) {
       try {
         const ids=openalexWork.referencedWorks;
-        openalexHydrated = await this.optional(child=>this.openAlex.hydrateBatch(ids,child),references.length?4000:10000,[],signal);
+        openalexHydrated = await this.optional(child=>this.openAlex.hydrateBatch(ids,child),references.length?6000:15000,[],signal);
       } catch (e) {
         ztoolkit.log("OpenAlex hydration error:", e);
       }
@@ -185,9 +185,13 @@ class API {
     }
 
     // 4. 完整度检验 (Completeness Check) 与 Semantic Scholar 兜底
-    // 若 Crossref/OpenAlex 均未收录，或收录数量显著低于论文预期引用数时，启用 Semantic Scholar
-    const expectedCount = (crossrefData && crossrefData["reference-count"]) || (openalexWork?.referencedWorks?.length) || 0;
-    const isUnderpopulated = expectedCount >= 10 && references.length < expectedCount * 0.6;
+    // 若 Crossref/OpenAlex 均未收录、收录数量显著低于预期，或仅有无 Crossref 佐证的少量图谱引用时，启用 Semantic Scholar
+    const crossrefCount = Number(crossrefData?.["reference-count"]);
+    const hasCrossrefReferences = Array.isArray(crossrefData?.reference) && crossrefData.reference.length > 0;
+    const hasCrossrefExpected = crossrefData !== undefined && Number.isFinite(crossrefCount) && crossrefCount >= 0 && (crossrefCount > 0 || hasCrossrefReferences);
+    const expectedCount = (hasCrossrefExpected ? crossrefCount : 0) || (openalexWork?.referencedWorks?.length) || 0;
+    const graphOnlySmall = !hasCrossrefReferences && (!hasCrossrefExpected || crossrefCount === 0) && references.length > 0 && references.length < 10;
+    const isUnderpopulated = (expectedCount >= 10 && references.length < expectedCount * 0.6) || graphOnlySmall;
 
     if (isUnderpopulated) {
       ztoolkit.log("Reference metadata is incomplete; preserving the primary provider's order instead of mixing lists", {
@@ -199,7 +203,7 @@ class API {
     if (references.length === 0 || isUnderpopulated) {
       try {
         const result = references.length
-          ? await this.optional(child=>this.getDOIReferenceListBySemanticScholar(cleanDOI,child),5000,undefined,signal)
+          ? await this.optional(child=>this.getDOIReferenceListBySemanticScholar(cleanDOI,child),8000,undefined,signal)
           : await this.getDOIReferenceListBySemanticScholar(cleanDOI,signal);
         semanticAvailable=Boolean(result);
         if(!references.length)semanticPartial=Boolean(result?.partial);
@@ -231,7 +235,9 @@ class API {
       || Array.isArray(openalexWork?.work?.referenced_works)&&openalexWork.work.referenced_works.length===0
       || semanticAvailable&&!semanticPartial;
     const crossrefLoss=references[0]?.sources?.[0]==='Crossref'&&Array.isArray(crossrefData?.reference)&&this.Info.crossref(crossrefData).references.length<crossrefData.reference.length;
-    finalInfo.referencePartial=Boolean(crossrefLoss)||semanticPartial || references.length<Number(expectedCount) || (!references.length&&!confirmedEmpty);
+    const semanticCorroborated = semanticAvailable && !semanticPartial && references[0]?.sources?.[0] === "SemanticScholar" && references.length > 0;
+    const unverifiedGraphSmall = !hasCrossrefReferences && references[0]?.sources?.[0] === "OpenAlex" && references.length < 10 && !semanticCorroborated;
+    finalInfo.referencePartial=Boolean(crossrefLoss)||semanticPartial || unverifiedGraphSmall || references.length<Number(expectedCount) || (!references.length&&!confirmedEmpty);
     finalInfo.DOI = cleanDOI;
     return finalInfo;
   }

@@ -44,7 +44,11 @@ export default class SemanticScholarProvider {
       publishDate:paper.publicationDate,citationCount:paper.citationCount,url:doi?`https://doi.org/${doi}`:undefined,oaUrl:paper.openAccessPdf?.url};
   }
   async neighborhood(value:string,kind:"References"|"Citations",signal?:AbortSignal,maxRecords=500,budgetMs=25000):Promise<ReferenceResult|undefined> {
-    const doi=CitationVerifier.normalizeDOI(value);if(!doi)return;
+    const trimmed = String(value || "").trim();
+    const arxivMatch = /^ARXIV:(\d{4}\.\d{4,5}(?:v\d+)?|[a-z\-]+(?:\.[A-Z]{2})?\/\d{7})$/i.exec(trimmed);
+    const doi = arxivMatch ? undefined : CitationVerifier.normalizeDOI(trimmed);
+    const paperId = arxivMatch ? `ARXIV:${arxivMatch[1].replace(/v\d+$/i, "")}` : doi ? `DOI:${doi}` : undefined;
+    if (!paperId) return;
     const references:ItemBaseInfo[]=[];let offset=0,next:number|undefined,partial=false,pages=0;const seen=new Set<string>();
     const budget=new OperationBudget(signal,budgetMs);maxRecords=Math.max(1,Math.min(500,Math.floor(maxRecords)||500));
     try {
@@ -52,7 +56,7 @@ export default class SemanticScholarProvider {
       this.cancelled(signal);
       const limit=Math.min(100,maxRecords-references.length);
       if(limit<=0 || budget.expired || ++pages>Math.ceil(maxRecords/100)){partial=true;break;}
-      const response=await budget.run(child=>this.get(`https://api.semanticscholar.org/graph/v1/paper/DOI:${encodeURIComponent(doi)}/${kind==="References"?"references":"citations"}?fields=paperId,title,authors,year,venue,externalIds&limit=${limit}&offset=${offset}`,child));
+      const response=await budget.run(child=>this.get(`https://api.semanticscholar.org/graph/v1/paper/${encodeURIComponent(paperId)}/${kind==="References"?"references":"citations"}?fields=paperId,title,authors,year,venue,externalIds&limit=${limit}&offset=${offset}`,child));
       this.cancelled(signal);
       if(!Array.isArray(response?.data)){if(!references.length)return undefined;partial=true;break;}
       for(const entry of response.data) {

@@ -3,6 +3,10 @@ import type { ReferenceTextLine } from "./referenceExtractor";
 
 /** Adapt Zotero SDT 1.x text-map rows to the existing column-aware line parser. */
 export function structuredPageToLines(blocks: unknown[], pageIndex: number, viewRect: number[]): ReferenceTextLine[] {
+  const originX = Number(viewRect?.[0]) || 0;
+  const originY = Number(viewRect?.[1]) || 0;
+  const pageWidth = Number(viewRect?.[2]) - originX || 612;
+  const pageHeight = Number(viewRect?.[3]) - originY || 792;
   const items: any[] = [];
   const visit = (node: any) => {
     if (!node || typeof node !== "object") return;
@@ -24,15 +28,17 @@ export function structuredPageToLines(blocks: unknown[], pageIndex: number, view
         const str = node.text.slice(start, cursor);
         if (row[1] !== pageIndex || !str.trim()) continue;
         const gap = Array.isArray(row[6]) ? Number(row[6][0]) || 0 : 0;
-        const width = row.slice(6).reduce((sum: number, advance: any) => sum +
+        const x = Number(row[2]) + gap - originX;
+        const y = Number(row[3]) - originY;
+        const advanceWidth = row.slice(6).reduce((sum: number, advance: any) => sum +
           (Array.isArray(advance) ? Number(advance[0]) + Number(advance[1]) : Number(advance)), 0) - gap;
+        const width = advanceWidth > 0 ? advanceWidth : Math.max(0, Number(row[4]) - (Number(row[2]) + gap));
         const height = Math.max(1, Number(row[5]) - Number(row[3]));
-        items.push({ str, width, height, transform: [height, 0, 0, height, Number(row[2]) + gap, Number(row[3])] });
+        items.push({ str, width, height, transform: [height, 0, 0, height, x, y] });
       }
     }
     if (Array.isArray(node.content)) for (const child of node.content) visit(child);
   };
   for (const block of blocks) visit(block);
-  return textItemsToLines(items, pageIndex + 1, Number(viewRect?.[2]) - Number(viewRect?.[0]) || 612,
-    Number(viewRect?.[3]) - Number(viewRect?.[1]) || 792);
+  return textItemsToLines(items, pageIndex + 1, pageWidth, pageHeight);
 }

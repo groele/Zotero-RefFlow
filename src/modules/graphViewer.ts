@@ -17,7 +17,8 @@ export function createGraphViewer(
   if (!mainNode) return undefined;
 
   const minHeight = 200;
-  const initialHeight = (Zotero.Prefs.get(`${config.addonRef}.graphView.height`) as string) || "400px";
+  const parsedHeight = Number.parseInt(String(Zotero.Prefs.get(`${config.addonRef}.graphView.height`) || ""), 10);
+  const initialHeight = `${Number.isFinite(parsedHeight) ? Math.min(1600, Math.max(minHeight, parsedHeight)) : 400}px`;
 
   const graphContainer = ztoolkit.UI.createElement(doc, "div", {
     id: "graph-view",

@@ -16,7 +16,7 @@ export interface ExtractedReference {
   x?: number;
 }
 
-const BIBLIOGRAPHY_HEADING = /^(?:(?:\d+(?:\.\d+)*\.?|[IVX]+\.)\s+)?(?:references?(?:\s+(?:and|&)\s+notes)?|bibliography|works\s+cited|literature\s+cited|références|referencias|literatur|参考文献|引用文献|文献)(?:\s*\(?continued\)?|\s*\(续\))?$/i;
+const BIBLIOGRAPHY_HEADING = /^(?:(?:(?:section|part|appendix)\s+[A-Z0-9]+\.?|(?:\d+(?:\.\d+)*|[IVX]+|[A-Z])\.)\s+)?(?:(?:main|methods?|selected|cited|additional|extended\s+data|supplementary|primary|key|online|general|bibliographical)\s+)?(?:references?(?:\s+(?:and|&)\s+(?:notes|links|sources|further\s+reading))?|notes\s+(?:and|&)\s+references|bibliography(?:\s+(?:and|&)\s+(?:notes|references))?|reference\s+list|list\s+of\s+references|works\s+cited|literature(?:\s+cited)?|cited\s+literature|references\s+cited|sources|endnotes|références|referencias(?:\s+bibliográficas)?|referências(?:\s+bibliográficas)?|bibliographie|literatur(?:verzeichnis|hinweise)?|quellenverzeichnis|主要参考文献|参考文献(?:与注释)?|引用文献|文献列表|主要文献|参考资料|引文目录)(?:\s*[\[(](?:continued|\d+\s*[-–—]\s*\d+|续)[\])])?$/i;
 const NUMBERED_START = /^\s*(?:\[(\d{1,4})\]|\((\d{1,4})\)|［(\d{1,4})］|(\d{1,4})\s*[.)、．]|(\d{1,4})\s+)/;
 const AUTHOR_YEAR_START = /^\s*(?:[A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'’.-]+(?:\s+(?:et\s+al\.?|and\s+[A-Z][A-Za-z'’.-]+|&\s*[A-Z][A-Za-z'’.-]+))?\s*[,.(]?\s*(?:18|19|20)\d{2}[a-z]?\b|[\u4e00-\u9fff]{2,8}(?:等|著)?[，,（( ]{0,3}(?:18|19|20)\d{2})/i;
 const AUTHOR_INITIALS_START = /^(?:(?:(?:van|von|de|del|der|da|di|du|la|le)\s+){0,3}\p{Lu}[\p{L}'’.-]{1,40},?\s+\p{Lu}\.(?:\s*\p{Lu}\.)?|[\u4e00-\u9fff]{2,8}[，,]\s*[\u4e00-\u9fff]{2,8})/u;
@@ -34,11 +34,21 @@ function normalizeText(text: string): string {
     .trim();
 }
 
-function getNumber(text: string): number | undefined {
+function getNumber(text: string, currentNumber?: number): number | undefined {
   const match = text.match(NUMBERED_START);
   const value = match && match.slice(1).find(Boolean);
-  // A continuation line beginning with a year is not a reference-number boundary.
-  return value && (!match?.[4] && !match?.[5] || Number(value) < 1800 || Number(value) > 2100) ? Number(value) : undefined;
+  if (!value) return undefined;
+  const num = Number(value);
+  // Years (e.g. (2019). or 2020.) are never citation numbers.
+  if (num < 1 || (num >= 1800 && num <= 2100)) return undefined;
+  if (match?.[5]) {
+    const rest = text.slice(match[0].length);
+    if (!/^[\p{L}\u4e00-\u9fff"“‘《\[]/u.test(rest) || /^(?:pp?|vol|no|ch|eds?|et\s+al|ff|ibid)\b\.?/i.test(rest)) {
+      return undefined;
+    }
+    if (currentNumber !== undefined && num > currentNumber + 25) return undefined;
+  }
+  return num;
 }
 
 function stripNumber(text: string): string {
@@ -47,11 +57,23 @@ function stripNumber(text: string): string {
 
 function isHeading(text: string): boolean {
   const clean = normalizeText(text).replace(/[.:：]$/, "");
-  return clean.length < 50 && (BIBLIOGRAPHY_HEADING.test(clean) || SECTION_HEADING.test(clean));
+  return clean.length < 65 && (BIBLIOGRAPHY_HEADING.test(clean) || SECTION_HEADING.test(clean));
+}
+
+function isSectionBoundary(text: string): boolean {
+  const clean = normalizeText(text).replace(/[.:：]$/, "");
+  if (!clean || clean.length >= 60 || !SECTION_HEADING.test(clean)) return false;
+  return !/\b(?:18|19|20)\d{2}\b|10\.\d{4,9}\/|https?:\/\//i.test(clean);
 }
 
 export function isBibliographyHeading(text: string): boolean {
-  return BIBLIOGRAPHY_HEADING.test(normalizeText(text).replace(/[.:：]$/, ""));
+  const clean = normalizeText(text).replace(/[.:：]$/, "");
+  if (!clean || clean.length >= 65) return false;
+  if (BIBLIOGRAPHY_HEADING.test(clean)) return true;
+  if (/^(?:\S\s+){3,}\S$/.test(clean)) {
+    return BIBLIOGRAPHY_HEADING.test(clean.replace(/\s+/g, ""));
+  }
+  return false;
 }
 
 export function isReferenceStart(text: string): boolean {
@@ -119,10 +141,10 @@ export function extractReferencesFromLines(input: ReferenceTextLine[]): Extracte
     const line = lines[i];
     if (i === (start >= 0 ? start : 0)) inBibliography = true;
     if (isBibliographyHeading(line.text)) { inBibliography = true; continue; }
-    if (sawReference && SECTION_HEADING.test(line.text)) { finish(); inBibliography = false; continue; }
+    if (sawReference && isSectionBoundary(line.text)) { finish(); inBibliography = false; continue; }
     if (!inBibliography) continue;
 
-    const numbered = getNumber(line.text);
+    const numbered = getNumber(line.text, numberedStyle ? current?.number : undefined);
     const authorYear = (AUTHOR_YEAR_START.test(line.text) || AUTHOR_INITIALS_START.test(line.text)) &&
       (!current || current.x === undefined || line.x === undefined || line.x <= current.x + 4);
     const referenceStart = numbered !== undefined || (headingIndex >= 0 && authorYear && !numberedStyle);
@@ -154,13 +176,20 @@ export function extractReferencesFromLines(input: ReferenceTextLine[]): Extracte
   }
   finish();
 
-  // Without a heading, require a coherent block of at least three entries. This avoids
-  // returning numbered equations/steps from the article body as a bibliography.
+  // Without a heading, require a coherent block of at least three entries with strong
+  // bibliographic evidence. Allow isolated missing numbers while rejecting prose steps.
   if (headingIndex < 0) {
     if (collected.length < 3) return [];
     const evidence = collected.filter(ref => /\b(?:18|19|20)\d{2}\b|10\.\d{4,9}\//.test(ref.text));
-    const orderedNumbers = collected.every((ref, i) => i === 0 || ref.number === (collected[i - 1].number || 0) + 1);
-    if (evidence.length < Math.ceil(collected.length * 0.6) || !orderedNumbers) return [];
+    const firstNumber = collected[0].number;
+    const increasingNumbers = firstNumber !== undefined && firstNumber <= 5 &&
+      collected.every((ref, i) => ref.number !== undefined && (i === 0 || ref.number > (collected[i - 1].number || 0)));
+    let sequentialSteps = 0;
+    for (let i = 1; i < collected.length; i++) {
+      if ((collected[i].number || 0) === (collected[i - 1].number || 0) + 1) sequentialSteps++;
+    }
+    const coherentSteps = sequentialSteps >= Math.max(2, Math.floor((collected.length - 1) * 0.6));
+    if (evidence.length < Math.ceil(collected.length * 0.6) || !increasingNumbers || !coherentSteps) return [];
   }
   return collected.filter(ref => ref.text.length >= 12);
 }
