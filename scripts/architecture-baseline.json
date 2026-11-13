@@ -4,8 +4,15 @@
   "capturedAt": "2026-11-06",
   "debtCleared": true,
   "note": "RefFlow source architecture fully compliant with §5.9. All 87 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "16.8.1",
+  "lastReleasedVersion": "16.8.2",
   "splitHistory": [
+    {
+      "version": "16.8.2",
+      "date": "2026-11-13",
+      "resolved": [
+        "Visual: Redesigned RefFlow icon set with pure-vector layered cards and batch-import badge (reference.svg), native 20px context-fill monochrome sidenav glyph (reference-sidenav.svg), and multi-resolution PNGs"
+      ]
+    },
     {
       "version": "16.8.1",
       "date": "2026-11-13",
