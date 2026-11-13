@@ -4,8 +4,16 @@
   "capturedAt": "2026-11-06",
   "debtCleared": true,
   "note": "RefFlow source architecture fully compliant with §5.9. All 87 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "16.8.2",
+  "lastReleasedVersion": "16.8.3",
   "splitHistory": [
+    {
+      "version": "16.8.3",
+      "date": "2026-11-13",
+      "resolved": [
+        "Visual: Redesigned reference.svg (16x16), reference-sidenav.svg (20x20 unit size with 95%-fill Option R3 wireframe sheets), and PNG icon set aligned with the Zotero Flow suite",
+        "Bugfix & Guard §4.3: Removed fixed 144px virtual card height and inflated floor in referenceCardRow.ts/referenceCards.ts, added natural-height measurement + anchor scrollTop preservation for >200 references"
+      ]
+    },
     {
       "version": "16.8.2",
       "date": "2026-11-13",

@@ -12,7 +12,7 @@ import { cleanupSync } from "../utils/lifecycle";
 import { openReferenceCardMenu, CardFilterMode } from "./referenceCardMenu";
 import { executeCardSettingsAction } from "./cardSettingsActions";
 import { createReferenceCardRow, CardRowContext } from "./referenceCardRow";
-import { remountVirtualWindow } from "./referenceCardsVirtual";
+import { remountVirtualWindow, measureAverageRowHeight } from "./referenceCardsVirtual";
 
 /** Compact reference cards and selection behavior aligned with the supplied XPI. */
 export default class ReferenceCards {
@@ -42,7 +42,7 @@ export default class ReferenceCards {
   private windowStart = 0;
   private virtualCount = 0;
   private virtual = false;
-  private rowHeight = 144;
+  private rowHeight = 96;
   private indices = new ListIndices();
   private searchIndex = new WeakMap<ItemBaseInfo, string>();
   private filterMode: CardFilterMode = "all";
@@ -157,11 +157,12 @@ export default class ReferenceCards {
   }
 
   private rowContext(): CardRowContext {
+    const self = this;
     return {
       views: this.views,
       body: this.body,
       virtual: this.virtual,
-      rowHeight: this.rowHeight,
+      get rowHeight() { return self.rowHeight; },
       batchResults: this.batchResults,
       selected: this.selected,
       rows: this.rows,
@@ -211,7 +212,7 @@ export default class ReferenceCards {
     const anchorKey = this.refs[this.anchor] ? referenceIdentity(this.refs[this.anchor]) : undefined;
     const scrollTop = this.grid.scrollTop;
     this.virtual = refs.length > 200;
-    if (this.virtual) { const fontSize = parseFloat(this.body.ownerDocument.defaultView?.getComputedStyle(this.grid)?.fontSize || "13") || 13; this.rowHeight = Math.max(144, Math.ceil(fontSize * 10.5 + 24)); }
+    if (this.virtual) { const fontSize = parseFloat(this.body.ownerDocument.defaultView?.getComputedStyle(this.grid)?.fontSize || "13") || 13; this.rowHeight = Math.max(84, Math.ceil(fontSize * 6.5 + 10)); }
     const { indices, numbers, width } = this.indices.forList(refs, (this.body as any).references || refs, this.virtual ? query : "", ref => this.matches(ref), this.filterMode);
     const start = this.virtual ? Math.min(this.windowStart, Math.max(0, indices.length - 60)) : 0;
     const displayIndices = this.virtual ? indices.slice(start, start + 60) : indices;
@@ -223,7 +224,8 @@ export default class ReferenceCards {
     const fragment = this.body.ownerDocument.createDocumentFragment();
     this.grid.style.maxHeight = this.virtual ? "65vh" : "";
     const spacer = (height: number) => { const node = this.body.ownerDocument.createElement("div"); node.style.height = `${height}px`; node.style.flexShrink = "0"; node.setAttribute("aria-hidden", "true"); return node; };
-    if (this.virtual) fragment.append(spacer(start * this.rowHeight));
+    const topSpacer = this.virtual ? spacer(start * this.rowHeight) : undefined;
+    if (topSpacer) fragment.append(topSpacer);
     this.grid.style.setProperty("--refflow-number-width", width + "ch");
     if ((this.body.ownerDocument.defaultView as any).IntersectionObserver) this.observer = new (this.body.ownerDocument.defaultView as any).IntersectionObserver((entries: IntersectionObserverEntry[]) => {
       for (const entry of entries) if (entry.isIntersecting) { this.observer?.unobserve(entry.target); this.queueLibraryMatch(entry.target as HTMLElement, parent, current); }
@@ -238,8 +240,18 @@ export default class ReferenceCards {
       if (!this.virtual && index % 40 === 39) { await Zotero.Promise.delay(0); if (!current() || this.disposed) return; }
     }
     if (current() && !this.disposed) {
-      if (this.virtual) fragment.append(spacer(Math.max(0, indices.length - start - displayIndices.length) * this.rowHeight));
-      this.grid.append(fragment); if (this.virtual) this.grid.scrollTop = scrollTop;
+      const bottomSpacer = this.virtual ? spacer(Math.max(0, indices.length - start - displayIndices.length) * this.rowHeight) : undefined;
+      if (bottomSpacer) fragment.append(bottomSpacer);
+      this.grid.append(fragment);
+      if (this.virtual) {
+        const measured = measureAverageRowHeight(this.rows);
+        if (measured > 0) {
+          this.rowHeight = measured;
+          if (topSpacer) topSpacer.style.height = `${start * measured}px`;
+          if (bottomSpacer) bottomSpacer.style.height = `${Math.max(0, indices.length - start - displayIndices.length) * measured}px`;
+        }
+        this.grid.scrollTop = scrollTop;
+      }
       this.empty = this.body.ownerDocument.createElement("p"); this.empty.className = "refflow-empty-result"; this.empty.setAttribute("role", "status"); this.empty.textContent = getString("cards-no-search-results"); this.empty.hidden = true; this.grid.after(this.empty);
       if (sameList) for (const ref of sameSelection) this.selected.add(ref);
       else {

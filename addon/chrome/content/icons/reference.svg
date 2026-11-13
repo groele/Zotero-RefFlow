@@ -1,52 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="16" height="16" fill="none" role="img" aria-label="Zotero RefFlow">
   <title>Zotero RefFlow</title>
-  <desc>Layered reference cards with batch extraction badge symbolizing discovering and importing references in Zotero RefFlow.</desc>
+  <desc>Airy wire-frame layered reference sheets with a coral-orange extraction arrow, aligned with the Zotero Flow icon family.</desc>
   <defs>
-    <linearGradient id="rfBackSheet" x1="44" y1="12" x2="108" y2="88" gradientUnits="userSpaceOnUse">
+    <linearGradient id="rfBackStroke" x1="34" y1="10" x2="116" y2="80" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#A78BFA" />
       <stop offset="100%" stop-color="#6366F1" />
     </linearGradient>
-    <linearGradient id="rfMidSheet" x1="29" y1="24" x2="93" y2="102" gradientUnits="userSpaceOnUse">
+    <linearGradient id="rfFrontStroke" x1="12" y1="30" x2="94" y2="114" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#38BDF8" />
-      <stop offset="100%" stop-color="#06B6D4" />
+      <stop offset="100%" stop-color="#2563EB" />
     </linearGradient>
-    <linearGradient id="rfFrontSheet" x1="14" y1="36" x2="78" y2="116" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#1D4ED8" />
-      <stop offset="100%" stop-color="#1E3A8A" />
+    <linearGradient id="rfExtractArrow" x1="66" y1="72" x2="120" y2="118" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FB923C" />
+      <stop offset="100%" stop-color="#F43F5E" />
     </linearGradient>
-    <linearGradient id="rfBadge" x1="72" y1="68" x2="114" y2="112" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#F43F5E" />
-      <stop offset="55%" stop-color="#F97316" />
-      <stop offset="100%" stop-color="#FB923C" />
-    </linearGradient>
-    <filter id="rfLayerShadow" x="-18%" y="-18%" width="140%" height="140%">
-      <feDropShadow dx="-2" dy="3" stdDeviation="3.2" flood-color="#0F172A" flood-opacity="0.22" />
-    </filter>
-    <filter id="rfBadgeShadow" x="-22%" y="-22%" width="148%" height="148%">
-      <feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#881337" flood-opacity="0.3" />
-    </filter>
   </defs>
 
-  <!-- Back Extracted Reference Card (Violet-Indigo) -->
-  <rect x="44" y="12" width="64" height="76" rx="13" fill="url(#rfBackSheet)" />
+  <!-- Back Floating L-corner Page Stroke -->
+  <path d="M 40 14 H 96 C 107 14, 113 20, 113 31 V 66" stroke="url(#rfBackStroke)" stroke-width="13" stroke-linecap="round" />
 
-  <!-- Middle Extracted Reference Card (Sky-Cyan) -->
-  <g filter="url(#rfLayerShadow)">
-    <rect x="29" y="24" width="64" height="78" rx="13" fill="url(#rfMidSheet)" />
-  </g>
+  <!-- Front Open Wire Page Frame -->
+  <path d="M 58 112 H 29 C 19 112, 13 106, 13 96 V 48 C 13 38, 19 32, 29 32 H 78 C 88 32, 94 38, 94 48 V 61" stroke="url(#rfFrontStroke)" stroke-width="13" stroke-linecap="round" />
 
-  <!-- Front Source Literature Card (Royal Cobalt) -->
-  <g filter="url(#rfLayerShadow)">
-    <rect x="14" y="36" width="64" height="80" rx="14" fill="url(#rfFrontSheet)" />
-    <rect x="14.75" y="36.75" width="62.5" height="78.5" rx="13.25" stroke="#93C5FD" stroke-opacity="0.35" stroke-width="1.5" />
-    <rect x="26" y="57" width="38" height="8" rx="4" fill="#FFFFFF" fill-opacity="0.95" />
-    <rect x="26" y="73" width="27" height="8" rx="4" fill="#E0F2FE" fill-opacity="0.86" />
-    <rect x="26" y="89" width="33" height="8" rx="4" fill="#E0F2FE" fill-opacity="0.72" />
-  </g>
+  <!-- Reference Lines inside Front Page -->
+  <path d="M 35 60 H 68" stroke="#0EA5E9" stroke-width="12" stroke-linecap="round" />
+  <path d="M 35 83 H 54" stroke="#38BDF8" stroke-width="12" stroke-linecap="round" />
 
-  <!-- Batch Extraction & Import Badge (Coral-Orange) -->
-  <g filter="url(#rfBadgeShadow)">
-    <circle cx="93" cy="91" r="24" fill="url(#rfBadge)" />
-    <path d="M 82 91 H 102 M 94 82 L 103 91 L 94 100" stroke="#FFFFFF" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" />
-  </g>
+  <!-- Sweeping Extraction Arrow breaking out of the corner -->
+  <path d="M 70 95 H 114 M 96 76 L 116 95 L 96 114" stroke="url(#rfExtractArrow)" stroke-width="14.5" stroke-linecap="round" stroke-linejoin="round" />
 </svg>

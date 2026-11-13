@@ -53,10 +53,8 @@ export function createReferenceCardRow(
   (row as any).reference = ref;
   if (ctx.virtual) {
     Object.assign(row.style, {
-      height: `${ctx.rowHeight}px`,
       flexShrink: "0",
       boxSizing: "border-box",
-      overflow: "hidden",
     });
   }
   row.setAttribute("aria-posinset", String(posInSet));

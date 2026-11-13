@@ -221,6 +221,35 @@ test('§9 update feeds point at valid released HTTPS URLs and complete SHA-512 h
   t.diagnostic('update.json validated with compliant hash and release URL');
 });
 
+test('§4.3 virtual reference cards use compact natural heights and full-scale sidenav brand icon', (t) => {
+  const cardRow = read('src/modules/referenceCardRow.ts');
+  const cards = read('src/modules/referenceCards.ts');
+  const sidenavSvg = read('addon/chrome/content/icons/reference-sidenav.svg');
+
+  const virtualStyleMatch = cardRow.match(/if\s*\(\s*ctx\.virtual\s*\)\s*\{([\s\S]*?)\}/);
+  assert.ok(virtualStyleMatch, 'expected ctx.virtual styling block in referenceCardRow.ts');
+  assert.equal(
+    /(?:^|[\s{,])height\s*:/.test(virtualStyleMatch[1]),
+    false,
+    'virtual reference cards must never assign fixed inline height (prevents >200-ref card blank gaps)',
+  );
+  assert.equal(
+    /rowHeight\s*=\s*144|Math\.max\(\s*144/.test(cards),
+    false,
+    'referenceCards.ts must not restore inflated 144px fixed rowHeight ceiling',
+  );
+  assert.equal(
+    sidenavSvg.includes('context-fill'),
+    false,
+    'reference-sidenav.svg must remain full-color Flow suite iconography (not monochrome context-fill)',
+  );
+  assert.ok(
+    /width="20"\s+height="20"/.test(sidenavSvg),
+    'reference-sidenav.svg must declare unit pixel dimensions width="20" height="20" (larger intrinsic sizes get cropped in Zotero sidenav)',
+  );
+  t.diagnostic('virtual card natural-height layout & full-scale sidenav SVG constraints verified');
+});
+
 test('§10 documentation metrics are dynamically synchronized with source count', (t) => {
   const sourceCount = walk('src', ['.ts', '.tsx']).length;
   assert.ok(baseline.note.includes(`All ${sourceCount} source files`), `architecture-baseline.json note mismatch (expected ${sourceCount})`);

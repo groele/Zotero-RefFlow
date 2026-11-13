@@ -1,4 +1,4 @@
-> **16.8.2** 重塑 Zotero RefFlow 全套纯矢量品牌图标（「叠页萃取」实色分层卡片与批量入库徽标）及 20px 原生 `context-fill` 侧边栏线框图标，全面替换历史位图包装 SVG 与高分屏 PNG 资产。[版本说明](docs/releases/v16.8.2.md)。
+> **16.8.3** 采用 **方案 R3「轻翼叠页」**（20×20 / 16×16 单元尺寸且有效图形占满 95% 视口）重构全套图标，并修复 `> 200` 篇文献虚拟列表强制 `144px` 行高导致的偶发大空白问题。[版本说明](docs/releases/v16.8.3.md)。
 
 
 
@@ -14,7 +14,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![当前版本](https://img.shields.io/badge/version-16.8.2-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v16.8.2) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.2/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
+[![当前版本](https://img.shields.io/badge/version-16.8.3-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v16.8.3) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.3/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
 
 [产品定位](#overview) · [安装与更新](#installation) · [快速开始](#quick-start) · [核心功能](#features) · [设置与使用](#settings) · [数据、同步与外部服务](#data) · [兼容性与验证范围](#compatibility) · [常见问题](#troubleshooting) · [开发与详细文档](#development) · [系列产品](#series) · [项目来源与许可](#license)
 
@@ -30,7 +30,7 @@
 
 ## 安装与更新
 
-1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.2/zotero-refflow.xpi)（插件版本 **16.8.2**）。不要安装 Source code ZIP。
+1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.3/zotero-refflow.xpi)（插件版本 **16.8.3**）。不要安装 Source code ZIP。
 2. 在 Zotero 打开 **工具 → 插件／附加组件**，从齿轮菜单选择 **从文件安装插件**。
 3. 选择 XPI，完成安装；按提示重启 Zotero。
 
@@ -81,9 +81,9 @@
 
 | 项目 | 范围 |
 |---|---|
-| 当前插件版本 | 16.8.2 |
+| 当前插件版本 | 16.8.3 |
 | 清单声明的 Zotero 范围 | `10.0` 至 `12.*` |
-| 当前说明 | 395 项自动化单元测试 100% 通过（48 suites，0 失败），9 项全量架构守卫通过，全仓 87 个源码模块 100% 达成 360 行硬约束（0 债务），兼容 Zotero 10 ~ 12 现代 Gecko 架构。 |
+| 当前说明 | 397 项自动化单元测试 100% 通过（49 个测试文件 / 27 组套件，0 失败），10 项全量架构守卫通过，全仓 87 个源码模块 100% 达成 360 行硬约束（0 债务），兼容 Zotero 10 ~ 12 现代 Gecko 架构。 |
 
 插件版本与 Zotero 版本分别管理。兼容声明不等于已验证所有宿主、系统和外部服务；本轮仅验证上述定向行为，未覆盖所有业务流程或主环境安装。
 

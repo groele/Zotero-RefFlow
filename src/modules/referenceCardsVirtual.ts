@@ -27,6 +27,23 @@ export interface VirtualWindowHost {
   label: () => HTMLElement;
 }
 
+/** Measure average rendered row height when layout geometry is available; returns 0 otherwise. */
+export function measureAverageRowHeight(rows: HTMLElement[]): number {
+  let total = 0;
+  let count = 0;
+  for (const row of rows) {
+    const measured = Math.max(
+      Number(row.offsetHeight || 0),
+      typeof row.getBoundingClientRect === "function" ? Number(row.getBoundingClientRect()?.height || 0) : 0,
+    );
+    if (Number.isFinite(measured) && measured > 0) {
+      total += measured;
+      count++;
+    }
+  }
+  return count ? Math.max(64, Math.round(total / count)) : 0;
+}
+
 /** Scroll window update: reuse cards for stable refs so library matches survive. */
 export async function remountVirtualWindow(host: VirtualWindowHost, current: () => boolean) {
   if (host.disposed || !host.virtual || !current()) return;
@@ -47,6 +64,12 @@ export async function remountVirtualWindow(host: VirtualWindowHost, current: () 
   host.observer?.disconnect();
   host.grid.style.setProperty("--refflow-number-width", width + "ch");
   const pool = new Map(host.rows.map((row) => [(row as any).reference as ItemBaseInfo, row]));
+  const reusedCandidates = displayIndices
+    .map((index) => pool.get(host.refs[index]))
+    .filter((row): row is HTMLElement => Boolean(row));
+  const anchorRow = reusedCandidates[Math.floor(reusedCandidates.length / 2)];
+  const anchorBeforeTop =
+    anchorRow && scrollTop > 0 && typeof anchorRow.offsetTop === "number" ? anchorRow.offsetTop : undefined;
   const nextRows: HTMLElement[] = [];
   const changed = new Set<HTMLElement>();
   const fragment = host.body.ownerDocument.createDocumentFragment();
@@ -89,7 +112,13 @@ export async function remountVirtualWindow(host: VirtualWindowHost, current: () 
   host.rows = nextRows;
   host.grid.replaceChildren();
   host.grid.append(fragment);
-  host.grid.scrollTop = scrollTop;
+  if (anchorRow && anchorBeforeTop !== undefined && typeof anchorRow.offsetTop === "number") {
+    host.grid.scrollTop = Math.max(0, scrollTop + (anchorRow.offsetTop - anchorBeforeTop));
+  } else {
+    host.grid.scrollTop = scrollTop;
+  }
+  const avg = measureAverageRowHeight(host.rows);
+  if (avg > 0) host.rowHeight = avg;
   host.label().textContent = `${indices.length} / ${host.refs.length} · ${host.body.getAttribute("data-refflow-result-source") || ""}`;
   if (host.empty) host.empty.hidden = indices.length > 0 || !host.refs.length;
   for (const [index, row] of host.rows.entries()) {
