@@ -526,7 +526,7 @@
 }
 
 #zotero-prefpane-refflow .refflow-tip-delay-row > checkbox {
-  flex: 1 1 14em;
+  flex: 0 1 auto;
 }
 
 #zotero-prefpane-refflow .refflow-tip-delay-row > input[type="text"] {
@@ -534,8 +534,11 @@
   width: 7em;
 }
 
-#zotero-prefpane-refflow .refflow-range-row > span:first-child {
-  flex: 0 1 10em;
+#zotero-prefpane-refflow .refflow-range-row > label {
+  flex: 1 1 16em;
+  color: var(--flow-pref-text);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 #zotero-prefpane-refflow .refflow-range-row > input[type="range"] {
@@ -559,17 +562,19 @@
   text-underline-offset: 2px;
 }
 
-#zotero-prefpane-refflow checkbox[data-refflow-quick-action],
-#zotero-prefpane-refflow p[data-l10n-id="actions-description"],
-#zotero-prefpane-refflow .refflow-setting-group[aria-labelledby="refflow-online-title"] .refflow-setting-group-body > input,
-#zotero-prefpane-refflow .refflow-setting-group[aria-labelledby="refflow-online-title"] .refflow-setting-group-body > p,
-#zotero-prefpane-refflow .refflow-setting-group[aria-labelledby="refflow-online-title"] .refflow-setting-group-body > a,
-#zotero-prefpane-refflow .refflow-setting-subgroup:first-child > .refflow-setting-input-row,
 #zotero-prefpane-refflow .refflow-setting-input-row-compact,
 #zotero-prefpane-refflow .refflow-indented-input,
 #zotero-prefpane-refflow .refflow-indented-pref,
 #zotero-prefpane-refflow .refflow-pref-description {
   margin-inline-start: 24px;
+}
+
+#zotero-prefpane-refflow .refflow-subgroup-desc {
+  margin-block: 4px 10px;
+  margin-inline-start: 0;
+  color: var(--flow-pref-muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .refflow-pref-description {
@@ -787,7 +792,16 @@
   color: var(--flow-pref-text);
 }
 
+#zotero-prefpane-refflow .refflow-secret-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 #zotero-prefpane-refflow .refflow-service-input {
+  flex: 1 1 auto;
+  min-width: 0;
   width: 100%;
   min-height: 32px;
   padding: 5px 10px;
@@ -796,6 +810,19 @@
   background-color: Field;
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
   font-size: 13px;
+}
+
+#zotero-prefpane-refflow .refflow-secret-toggle {
+  flex: 0 0 auto;
+  min-height: 32px;
+  white-space: nowrap;
+}
+
+#zotero-prefpane-refflow input:disabled,
+#zotero-prefpane-refflow checkbox[disabled],
+#zotero-prefpane-refflow .refflow-field-card:has(:disabled) {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 #zotero-prefpane-refflow .refflow-service-footer {

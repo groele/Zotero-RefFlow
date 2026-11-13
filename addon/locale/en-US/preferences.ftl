@@ -22,8 +22,7 @@ showSourceDetails =
 
 caption-display = Reference List & Card Display
 caption-match = Match
-notInLibraryOpacity =
-    .label = Match local items and set opacity for items not in library
+notInLibraryOpacity = Match local items and set opacity for items not in library
 caption-graph = Citation Graph (Connected Papers)
 graphView-enable =
     .label = Show citation graph at the bottom of the library
@@ -113,3 +112,5 @@ reset-heading = Reset Settings
 reset-description = Restore RefFlow display, refresh, cache, tooltip, and quick-action settings to defaults. Your API keys and CNKI account credentials are kept.
 reset-defaults = Restore Defaults
 reset-done = Behavioral settings restored to defaults.
+key-toggle-show = Show
+key-toggle-hide = Hide

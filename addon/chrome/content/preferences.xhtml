@@ -221,8 +221,8 @@
 
       <html:div class="refflow-setting-subgroup">
         <html:h3 data-l10n-id="caption-actions"></html:h3>
-        <html:p class="refflow-pref-description" data-l10n-id="actions-description"></html:p>
-        <html:div class="refflow-quick-action-grid refflow-indented-pref">
+        <html:p class="refflow-subgroup-desc" data-l10n-id="actions-description"></html:p>
+        <html:div class="refflow-quick-action-grid">
           <checkbox native="true" id="__addonRef__-quick-copy-text" data-refflow-quick-action="copy-text" data-l10n-id="quick-copy-text" preference="extensions.zotero.__addonRef__.quickAction.copy-text" />
           <checkbox native="true" id="__addonRef__-quick-copy-doi" data-refflow-quick-action="copy-doi" data-l10n-id="quick-copy-doi" preference="extensions.zotero.__addonRef__.quickAction.copy-doi" />
           <checkbox native="true" id="__addonRef__-quick-copy-url" data-refflow-quick-action="copy-url" data-l10n-id="quick-copy-url" preference="extensions.zotero.__addonRef__.quickAction.copy-url" />
@@ -244,7 +244,10 @@
           <html:span class="refflow-service-badge" data-l10n-id="service-badge-api"></html:span>
           <html:label data-l10n-id="openAlexKey-label" for="__addonRef__-openalex-key" class="refflow-service-name"></html:label>
         </html:div>
-        <html:input type="password" id="__addonRef__-openalex-key" class="refflow-service-input" preference="extensions.zotero.__addonRef__.openAlexKey" autocomplete="off" />
+        <html:div class="refflow-secret-row">
+          <html:input type="password" id="__addonRef__-openalex-key" class="refflow-service-input" preference="extensions.zotero.__addonRef__.openAlexKey" autocomplete="off" />
+          <html:button type="button" class="refflow-btn-secondary refflow-secret-toggle" data-secret-toggle="__addonRef__-openalex-key" aria-controls="__addonRef__-openalex-key" aria-pressed="false" data-l10n-id="key-toggle-show"></html:button>
+        </html:div>
         <html:div class="refflow-service-footer">
           <html:p class="refflow-pref-description" data-l10n-id="openAlexKey-description"></html:p>
           <html:a href="https://openalex.org/settings/api" data-l10n-id="openAlexKey-get" target="_blank"></html:a>
@@ -256,7 +259,10 @@
           <html:span class="refflow-service-badge" data-l10n-id="service-badge-api"></html:span>
           <html:label data-l10n-id="semanticScholarKey-label" for="__addonRef__-semanticscholar-key" class="refflow-service-name"></html:label>
         </html:div>
-        <html:input type="password" id="__addonRef__-semanticscholar-key" class="refflow-service-input" preference="extensions.zotero.__addonRef__.semanticScholarKey" autocomplete="off" />
+        <html:div class="refflow-secret-row">
+          <html:input type="password" id="__addonRef__-semanticscholar-key" class="refflow-service-input" preference="extensions.zotero.__addonRef__.semanticScholarKey" autocomplete="off" />
+          <html:button type="button" class="refflow-btn-secondary refflow-secret-toggle" data-secret-toggle="__addonRef__-semanticscholar-key" aria-controls="__addonRef__-semanticscholar-key" aria-pressed="false" data-l10n-id="key-toggle-show"></html:button>
+        </html:div>
         <html:div class="refflow-service-footer">
           <html:p class="refflow-pref-description" data-l10n-id="semanticScholarKey-description"></html:p>
           <html:a href="https://www.semanticscholar.org/product/api#api-key-form" data-l10n-id="semanticScholarKey-get" target="_blank"></html:a>
@@ -268,7 +274,10 @@
           <html:span class="refflow-service-badge" data-l10n-id="service-badge-api"></html:span>
           <html:label data-l10n-id="connectedPapersKey-label" for="__addonRef__-connectedpapers-key" class="refflow-service-name"></html:label>
         </html:div>
-        <html:input type="password" id="__addonRef__-connectedpapers-key" class="refflow-service-input" preference="extensions.zotero.__addonRef__.connectedPapersKey" autocomplete="off" />
+        <html:div class="refflow-secret-row">
+          <html:input type="password" id="__addonRef__-connectedpapers-key" class="refflow-service-input" preference="extensions.zotero.__addonRef__.connectedPapersKey" autocomplete="off" />
+          <html:button type="button" class="refflow-btn-secondary refflow-secret-toggle" data-secret-toggle="__addonRef__-connectedpapers-key" aria-controls="__addonRef__-connectedpapers-key" aria-pressed="false" data-l10n-id="key-toggle-show"></html:button>
+        </html:div>
         <html:div class="refflow-service-footer">
           <html:p class="refflow-pref-description" data-l10n-id="connectedPapersKey-description"></html:p>
           <html:a href="https://www.connectedpapers.com" data-l10n-id="connectedPapersKey-get" target="_blank"></html:a>
@@ -297,7 +306,7 @@
 
       <html:div class="refflow-setting-subgroup" id="__addonRef__-reset-group">
         <html:h3 data-l10n-id="reset-heading"></html:h3>
-        <html:p class="refflow-pref-description" data-l10n-id="reset-description"></html:p>
+        <html:p class="refflow-subgroup-desc" data-l10n-id="reset-description"></html:p>
         <html:div class="refflow-status-actions">
           <html:button type="button" id="__addonRef__-reset-defaults" class="refflow-btn-secondary" data-l10n-id="reset-defaults"></html:button>
           <html:span id="__addonRef__-reset-status" class="refflow-status-hint" role="status" aria-live="polite"></html:span>

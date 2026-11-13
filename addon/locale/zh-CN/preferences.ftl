@@ -22,8 +22,7 @@ showSourceDetails =
 
 caption-display = 文献列表与卡片显示
 caption-match = 匹配
-notInLibraryOpacity =
-    .label = 匹配本地条目并设置未入库条目的显示透明度
+notInLibraryOpacity = 匹配本地条目并设置未入库条目的显示透明度
 caption-graph = 关联文献图谱 (Connected Papers)
 graphView-enable =
     .label = 在主界面文献库底部显示关联文献图谱
@@ -113,3 +112,5 @@ reset-heading = 恢复默认设置
 reset-description = 将 RefFlow 的刷新、显示、缓存、浮窗与快捷操作偏好恢复为默认值，并保留已填写的 API 密钥与 CNKI 账号信息。
 reset-defaults = 恢复默认设置
 reset-done = 已将常规偏好恢复为默认值。
+key-toggle-show = 显示
+key-toggle-hide = 隐藏

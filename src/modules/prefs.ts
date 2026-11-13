@@ -133,6 +133,11 @@ export function bindCachePreferences(win: Window) {
     }
 
     setControlDisabled(autoRefreshChild, Zotero.Prefs.get(key("autoRefresh")) !== true);
+    const rawGraphHeight = String(Zotero.Prefs.get(key("graphView.height")) ?? "400px");
+    const parsedGraphHeight = Number.parseInt(rawGraphHeight, 10);
+    if (graphHeightInput && Number.isFinite(parsedGraphHeight)) {
+      graphHeightInput.value = String(parsedGraphHeight);
+    }
     setControlDisabled(graphHeightInput, Zotero.Prefs.get(key("graphView.enable")) !== true);
 
     const tipEnabled = Zotero.Prefs.get(key("isShowTip")) !== false;
@@ -140,6 +145,13 @@ export function bindCachePreferences(win: Window) {
       setControlDisabled(byId(id), !tipEnabled);
     }
   }
+  graphHeightInput?.addEventListener("change", () => {
+    if (!graphHeightInput.disabled && graphHeightInput.validity.valid && Number.isInteger(graphHeightInput.valueAsNumber)) {
+      const clamped = Math.min(1600, Math.max(200, graphHeightInput.valueAsNumber));
+      graphHeightInput.value = String(clamped);
+      Zotero.Prefs.set(key("graphView.height"), `${clamped}px`);
+    }
+  }, { signal: controller.signal });
   for (const input of inputs) input.addEventListener("change", () => {
     if (!input.disabled && input.validity.valid && Number.isInteger(input.valueAsNumber)) {
       Zotero.Prefs.set(key(input.dataset.cacheDuration!), input.valueAsNumber);
@@ -236,6 +248,20 @@ export function bindCachePreferences(win: Window) {
   }
   bindColorPair(`#${config.addonRef}-tip-background-color`, `#${config.addonRef}-tip-background-color-picker`);
   bindColorPair(`#${config.addonRef}-tip-title-color`, `#${config.addonRef}-tip-title-color-picker`);
+
+  // API 密钥显示/隐藏切换
+  const secretToggles = Array.from(root.querySelectorAll("[data-secret-toggle]")) as unknown as HTMLButtonElement[];
+  for (const toggle of secretToggles) {
+    toggle.addEventListener("click", () => {
+      const targetId = toggle.getAttribute("data-secret-toggle");
+      const target = targetId ? win.document.getElementById(targetId) as HTMLInputElement | null : null;
+      if (!target) return;
+      const show = target.type === "password";
+      target.type = show ? "text" : "password";
+      toggle.setAttribute("aria-pressed", String(show));
+      toggle.setAttribute("data-l10n-id", `${config.addonRef}-key-toggle-${show ? "hide" : "show"}`);
+    }, { signal: controller.signal });
+  }
 
   const resetBtn = byId<HTMLButtonElement>("reset-defaults");
   const resetStatus = byId<HTMLElement>("reset-status");

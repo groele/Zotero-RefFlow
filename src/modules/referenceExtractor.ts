@@ -139,7 +139,7 @@ export function extractReferencesFromLines(input: ReferenceTextLine[]): Extracte
       // A new unnumbered author/year entry is a boundary even when its style is not numeric.
       if (authorYear && !numberedStyle && current.text.length > 30) {
         collected.push(current);
-        current = { text: line.text, page: line.page, y: line.y };
+        current = { text: line.text, page: line.page, y: line.y, x: line.x };
       } else if (!isHeading(line.text) && line.text.length > 1) {
         current.text = joinReferenceLines(current.text, line.text);
       }

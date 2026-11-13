@@ -78,7 +78,7 @@ export default class ReferenceCards {
   }
 
   dispose() { if (this.disposed) return; this.disposed = true; this.cleanup.forEach(cleanupSync); this.cleanup = []; for (const menu of this.menus) cleanupSync(() => menu.remove()); this.menus.clear(); globalThis.clearTimeout(this.searchTimer); this.clear(); }
-  clear(preserveResults = false) { if (!preserveResults) { this.indices = new ListIndices(); this.batchResults.clear(); this.journalStatus.clear(); } this.generation++; this.matchGeneration++; this.matchCurrent = undefined; this.listCurrent = undefined; this.windowStart = 0; this.virtualCount = 0; this.observer?.disconnect(); this.matchQueue = []; globalThis.clearTimeout(this.searchTimer); globalThis.clearTimeout(this.hoverTimer); this.clearTip(); this.selected.clear(); this.refs = []; this.rows = []; this.empty?.remove(); this.empty = undefined; this.grid.replaceChildren(); this.search.value = ""; }
+  clear(preserveResults = false) { if (!preserveResults) { this.filterMode = "all"; this.indices = new ListIndices(); this.batchResults.clear(); this.journalStatus.clear(); } this.generation++; this.matchGeneration++; this.matchCurrent = undefined; this.listCurrent = undefined; this.windowStart = 0; this.virtualCount = 0; this.observer?.disconnect(); this.matchQueue = []; globalThis.clearTimeout(this.searchTimer); globalThis.clearTimeout(this.hoverTimer); this.clearTip(); this.selected.clear(); this.refs = []; this.rows = []; this.empty?.remove(); this.empty = undefined; this.grid.replaceChildren(); this.search.value = ""; }
   private clearTip() { const tip = this.tip; this.tip = undefined; if (tip) { globalThis.clearTimeout(tip.tipTimer); tip.clear(); } }
   private drainMatches() { while (this.matchActive < 4 && this.matchQueue.length) { const match = this.matchQueue.shift()!; this.matchActive++; void match().catch(error => ztoolkit.log(error)).finally(() => { this.matchActive--; if (!this.disposed) this.drainMatches(); }); } }
   private queueLibraryMatch(row: HTMLElement, parent: Zotero.Item, current: () => boolean) {
@@ -128,12 +128,14 @@ export default class ReferenceCards {
     if (this.filterMode === "imported" && !ref._item) return false;
     if (this.filterMode === "oa" && !ref.isOA && !ref.oaUrl) return false;
     if (this.filterMode === "retracted" && !ref.retraction?.isRetracted) return false;
+    const query = this.search.value.trim().toLocaleLowerCase();
+    if (!query) return true;
     let hay = this.searchIndex.get(ref);
     if (hay === undefined) {
       hay = [ref.text, ref.title, ...(ref.authors || []), ref.year, ref.publicationVenue, ref.identifiers?.DOI].join(" ").toLocaleLowerCase();
       this.searchIndex.set(ref, hay);
     }
-    return this.search.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean).every(token => hay!.includes(token));
+    return query.split(/\s+/).filter(Boolean).every(token => hay!.includes(token));
   }
   private filtered() { return this.refs.filter(ref => this.matches(ref)); }
   private subset(): ItemBaseInfo[] { return this.selected.size ? [...this.selected] : this.filtered(); }
@@ -245,7 +247,7 @@ export default class ReferenceCards {
         this.anchor = anchorKey ? Math.max(0, refs.findIndex(ref => referenceIdentity(ref) === anchorKey)) : 0;
       }
       this.updateSelection();
-      if (query && !this.virtual) this.filter();
+      if ((query || this.filterMode !== "all") && !this.virtual) this.filter();
       if (this.virtual) { this.label().textContent = `${indices.length} / ${this.refs.length} · ${this.body.getAttribute("data-refflow-result-source") || ""}`; this.empty.hidden = indices.length > 0 || !this.refs.length; }
       const now = this.grid.ownerDocument.activeElement;
       if (focusKey && (!now || now === this.grid.ownerDocument.body || now === this.grid.ownerDocument.documentElement)) {

@@ -134,6 +134,12 @@ function createPrefPaneFixture() {
     tipRemove: add("INPUT", "refflow-remove-tip-after-millisecond", { type: "number", value: "500" }, "removeTipAfterMillisecond"),
     opacity: add("INPUT", "refflow-not-in-library-opacity", { type: "range", value: "1" }, "notInLibarayOpacity"),
     opacityOut: add("OUTPUT", "refflow-not-in-library-opacity-val", {}),
+    openAlexKey: add("INPUT", "refflow-openalex-key", { type: "password", value: "secret-oa" }, "openAlexKey"),
+    openAlexToggle: (() => {
+      const btn = add("BUTTON", "refflow-openalex-toggle", {});
+      btn.setAttribute("data-secret-toggle", "refflow-openalex-key");
+      return btn;
+    })(),
     resetBtn: add("BUTTON", "refflow-reset-defaults", {}),
     resetStatus: add("SPAN", "refflow-reset-status", {}),
   };
@@ -172,6 +178,19 @@ test("bindCachePreferences links autoRefresh, graphView.enable, isShowTip and re
     f.els.graphEnable.checked = true;
     f.els.graphEnable.dispatchEvent({ type: "command" });
     assert.equal(f.els.graphHeight.disabled, false);
+    f.els.graphHeight.value = "520";
+    f.els.graphHeight.dispatchEvent({ type: "change" });
+    assert.equal(f.prefStore.get("refflow.graphView.height"), "520px");
+
+    // Secret toggle switches password <-> text and updates l10n key
+    f.els.openAlexToggle.dispatchEvent({ type: "click" });
+    assert.equal(f.els.openAlexKey.type, "text");
+    assert.equal(f.els.openAlexToggle.getAttribute("aria-pressed"), "true");
+    assert.equal(f.els.openAlexToggle.getAttribute("data-l10n-id"), "refflow-key-toggle-hide");
+    f.els.openAlexToggle.dispatchEvent({ type: "click" });
+    assert.equal(f.els.openAlexKey.type, "password");
+    assert.equal(f.els.openAlexToggle.getAttribute("aria-pressed"), "false");
+    assert.equal(f.els.openAlexToggle.getAttribute("data-l10n-id"), "refflow-key-toggle-show");
 
     // Pref observer disables all 8 tip children when isShowTip turns false
     f.prefStore.set("refflow.isShowTip", false);
@@ -212,10 +231,13 @@ test("bindCachePreferences links autoRefresh, graphView.enable, isShowTip and re
 
 test("preferences.xhtml contains no hardcoded 100%, px, or API badge literals", () => {
   const xhtml = fs.readFileSync(path.join(process.cwd(), "addon", "chrome", "content", "preferences.xhtml"), "utf8");
+  const css = fs.readFileSync(path.join(process.cwd(), "addon", "chrome", "content", "assets", "preferences.css"), "utf8");
   assert.doesNotMatch(xhtml, />100%</);
   assert.doesNotMatch(xhtml, />px</);
   assert.doesNotMatch(xhtml, />API</);
   assert.match(xhtml, /id="__addonRef__-reset-defaults"/);
+  assert.doesNotMatch(css, /checkbox\[data-refflow-quick-action\]/);
+  assert.doesNotMatch(css, /\.refflow-setting-subgroup:first-child\s*>\s*\.refflow-setting-input-row/);
 });
 
 test("PDF.getReferences progress notification uses Fluent addon.ftl keys", async () => {

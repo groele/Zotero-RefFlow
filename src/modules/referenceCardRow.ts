@@ -74,11 +74,13 @@ export function createReferenceCardRow(
     : `${getString("cards-number-label")} ${number}`;
   if (ref.page) {
     numberNode.style.cursor = "pointer";
-    numberNode.addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      void navigateToPdfReference(ctx.views, ctx.parent(), (row as any).reference, ctx.body.ownerDocument.defaultView!);
-    });
   }
+  numberNode.addEventListener("click", (ev) => {
+    const liveRef = (row as any).reference as ItemBaseInfo | undefined;
+    if (!liveRef?.page) return;
+    ev.stopPropagation();
+    void navigateToPdfReference(ctx.views, ctx.parent(), liveRef, ctx.body.ownerDocument.defaultView!);
+  });
   row.dataset.referenceNumber = String(number);
   row.setAttribute("aria-label", `${numberNode.title}: ${ref.title || ref.text || ""}`);
 

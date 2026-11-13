@@ -22,8 +22,7 @@ showSourceDetails =
 
 caption-display = Visualizzazione elenco e schede
 caption-match = Abbina
-notInLibraryOpacity =
-    .label = Abbina elementi locali e imposta l'opacità per elementi non in biblioteca
+notInLibraryOpacity = Abbina elementi locali e imposta l'opacità per elementi non in biblioteca
 caption-graph = Grafico delle citazioni (Connected Papers)
 graphView-enable =
     .label = Mostra il grafico delle citazioni nella parte inferiore della libreria
@@ -113,3 +112,5 @@ reset-heading = Ripristina impostazioni predefinite
 reset-description = Ripristina i valori predefiniti di aggiornamento, visualizzazione, cache, anteprima e azioni rapide. Le chiavi API e le credenziali CNKI vengono mantenute.
 reset-defaults = Ripristina predefiniti
 reset-done = Impostazioni predefinite ripristinate.
+key-toggle-show = Mostra
+key-toggle-hide = Nascondi

@@ -270,8 +270,7 @@ export async function performReferences(
   panel.setAttribute("data-refflow-result-source", resultSource);
   const refreshBtn = panel.querySelector("#refresh-button") as HTMLButtonElement;
   if (refreshBtn) {
-    const tooltipTpl = getString("relatedbox-source-tooltip") || "当前来源: { $source } (点击切换模式，长按强制更新)";
-    refreshBtn.title = tooltipTpl.replace("{ $source }", currentSource);
+    refreshBtn.title = getString("relatedbox-source-tooltip", { args: { source: currentSource } });
   }
 
   if (referenceNum === 0) {

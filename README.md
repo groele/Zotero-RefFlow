@@ -1,4 +1,4 @@
-> **16.8.0** 修复从文献详情侧栏或阅读器标签页添加参考文献时受主界面选中分类干扰的问题，确保新导入文献直接归入当前文献所在的子文件夹。[版本说明](docs/releases/v16.8.0.md)。
+> **16.8.1** 优化设置面板 40px 基准对齐与控件联动（图谱高度 px 双向同步、API 密钥显示切换、透明度标签修正与禁用态视觉反馈），并修复侧栏筛选模式重置、虚拟列表页码点击跳转与无编号参考文献缩进解析问题。[版本说明](docs/releases/v16.8.1.md)。
 
 
 
@@ -14,7 +14,7 @@
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![当前版本](https://img.shields.io/badge/version-16.8.0-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v16.8.0) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.0/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
+[![当前版本](https://img.shields.io/badge/version-16.8.1-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v16.8.1) · [下载 XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.1/zotero-refflow.xpi) · [问题反馈](https://github.com/groele/Zotero-RefFlow/issues)
 
 [产品定位](#overview) · [安装与更新](#installation) · [快速开始](#quick-start) · [核心功能](#features) · [设置与使用](#settings) · [数据、同步与外部服务](#data) · [兼容性与验证范围](#compatibility) · [常见问题](#troubleshooting) · [开发与详细文档](#development) · [系列产品](#series) · [项目来源与许可](#license)
 
@@ -30,7 +30,7 @@
 
 ## 安装与更新
 
-1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.0/zotero-refflow.xpi)（插件版本 **16.8.0**）。不要安装 Source code ZIP。
+1. 下载 [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.1/zotero-refflow.xpi)（插件版本 **16.8.1**）。不要安装 Source code ZIP。
 2. 在 Zotero 打开 **工具 → 插件／附加组件**，从齿轮菜单选择 **从文件安装插件**。
 3. 选择 XPI，完成安装；按提示重启 Zotero。
 
@@ -81,7 +81,7 @@
 
 | 项目 | 范围 |
 |---|---|
-| 当前插件版本 | 16.8.0 |
+| 当前插件版本 | 16.8.1 |
 | 清单声明的 Zotero 范围 | `10.0` 至 `12.*` |
 | 当前说明 | 395 项自动化单元测试 100% 通过（48 suites，0 失败），9 项全量架构守卫通过，全仓 87 个源码模块 100% 达成 360 行硬约束（0 债务），兼容 Zotero 10 ~ 12 现代 Gecko 架构。 |
 

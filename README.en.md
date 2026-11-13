@@ -1,4 +1,4 @@
-> **16.8.0** — Ensures adding references imports new items into the current paper's own collections/subcollections rather than being overridden by background or parent ZoteroPane selections. [Release notes](docs/releases/v16.8.0.md).
+> **16.8.1** — Refines preferences pane 40px alignment, graph height px sync, API key visibility toggle, opacity label l10n, and disabled state feedback, plus fixes sidebar filter reset, virtual-list page click navigation, and unnumbered reference hanging-indent tracking. [Release notes](docs/releases/v16.8.1.md).
 
 
 
@@ -14,7 +14,7 @@ Discover references, citing works, and related research.
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![Release](https://img.shields.io/badge/version-16.8.0-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v16.8.0) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.0/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
+[![Release](https://img.shields.io/badge/version-16.8.1-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v16.8.1) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.1/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
 
 [Overview](#overview) · [Installation and updates](#installation) · [Quick start](#quick-start) · [Key features](#features) · [Settings](#settings) · [Data, sync, and services](#data) · [Compatibility and validation](#compatibility) · [Troubleshooting](#troubleshooting) · [Development and documentation](#development) · [The Flow series](#series) · [Origin and license](#license)
 
@@ -30,7 +30,7 @@ Install this add-on independently and combine it with other Flow products as nee
 
 ## Installation and updates
 
-1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.0/zotero-refflow.xpi) (add-on version **16.8.0**). Do not install the Source code ZIP.
+1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v16.8.1/zotero-refflow.xpi) (add-on version **16.8.1**). Do not install the Source code ZIP.
 2. In Zotero, open **Tools → Plugins/Add-ons**, then choose **Install Add-on From File** from the gear menu.
 3. Select the XPI, complete installation, and restart if requested.
 
@@ -81,7 +81,7 @@ Seven sidebar quick-action switches control copy, open, import and rollback entr
 
 | Item | Scope |
 |---|---|
-| Current add-on version | 16.8.0 |
+| Current add-on version | 16.8.1 |
 | Declared Zotero range | `10.0` through `12.*` |
 | Evidence boundary | All 395 unit tests passed 100% across 48 suites (0 failures); 9 architecture guard rules passed; all 87 source modules strictly comply with §5.9 360-line ceiling (0 debt declared); fully compatible with modern Zotero 10 ~ 12 Gecko architecture. |
 

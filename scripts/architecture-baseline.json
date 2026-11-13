@@ -4,8 +4,16 @@
   "capturedAt": "2026-11-06",
   "debtCleared": true,
   "note": "RefFlow source architecture fully compliant with §5.9. All 87 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "16.8.0",
+  "lastReleasedVersion": "16.8.1",
   "splitHistory": [
+    {
+      "version": "16.8.1",
+      "date": "2026-11-13",
+      "resolved": [
+        "UI/UX: Refined preferences pane 40px alignment, graph height px bidirectional sync, API key visibility toggle, opacity label Fluent value, and disabled state feedback",
+        "Bugfix: Reset sidebar filterMode on non-preserving clears, reapply filterMode on non-virtual re-renders, preserve page-jump click on virtual row reuse, and retain x coordinate on unnumbered reference entries"
+      ]
+    },
     {
       "version": "16.8.0",
       "date": "2026-11-12",
