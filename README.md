@@ -155,3 +155,6 @@ npm run build-prod
 ## 第三方版权与许可证核查 / Third-party rights
 
 本项目的开源许可证并不自动覆盖上游插件、第三方代码、图标、字体、数据集或外部服务内容。各来源的署名、许可证、实际打包内容与待完成的验证事项见 [THIRD_PARTY.md](THIRD_PARTY.md)。仓库改为 Private 不会取消已经适用的第三方许可义务；未完成的检查不能视为已获版权清查证明。
+
+
+**致谢 / Acknowledgements：** 详细的上游作者、第三方项目贡献及版权归属请参见 [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md)。致谢不代替原许可证、版权行或发布包应包含的通知。
