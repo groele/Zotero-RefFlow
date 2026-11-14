@@ -149,3 +149,9 @@ npm run build-prod
 本系列独立维护，并非 Zotero 官方产品。Zotero 及第三方名称、商标与材料归各自权利人所有。
 
 [Release/tag policy](docs/release-tag-policy.md)
+
+---
+
+## 第三方版权与许可证核查 / Third-party rights
+
+本项目的开源许可证并不自动覆盖上游插件、第三方代码、图标、字体、数据集或外部服务内容。各来源的署名、许可证、实际打包内容与待完成的验证事项见 [THIRD_PARTY.md](THIRD_PARTY.md)。仓库改为 Private 不会取消已经适用的第三方许可义务；未完成的检查不能视为已获版权清查证明。
