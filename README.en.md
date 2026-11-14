@@ -149,3 +149,6 @@ License: [AGPL-3.0-or-later](LICENSE).
 This series is independently maintained and is not an official Zotero product. Zotero and third-party names, trademarks, and materials belong to their respective rights holders.
 
 [Release/tag policy](docs/release-tag-policy.md)
+
+
+**Acknowledgements and third-party rights:** See [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md) for upstream authorship and community credits, and [THIRD_PARTY.md](THIRD_PARTY.md) for license provenance and release verification. Credits do not replace the original license, copyright statements or distribution obligations.
