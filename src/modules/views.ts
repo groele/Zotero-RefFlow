@@ -24,6 +24,7 @@ import {
   showTypeMenu,
   registerReferenceItemPane
 } from "./referencePaneDOM";
+import { bindReferenceSidenavClick } from "./referenceSidenavTrigger";
 import {
   getPdfAttachment,
   getPdfCacheSignature
@@ -52,6 +53,7 @@ export default class Views {
   private unknownLibraryChange = false;
   private tips = new Map<Window, TipUI>();
   private localizationDocuments = new Set<Document>();
+  private documentControllers = new Map<Document, AbortController>();
   private menus = new Set<Element>();
   private importJobs = new Map<string, { job: ReturnType<typeof BatchImporter.importAll>; refs: ItemBaseInfo[] }>();
   private importOwnerIDs = new WeakMap<object, number>();
@@ -115,13 +117,23 @@ export default class Views {
     });
     cleanupSync(() => win.document.getElementById(`${config.addonRef}-style`)?.remove());
     cleanupSync(() => (win.document as any).l10n?.removeResourceIds([`${config.addonRef}-addon.ftl`]));
+    cleanupSync(() => this.documentControllers?.get(win.document)?.abort());
+    this.documentControllers?.delete(win.document);
     this.localizationDocuments.delete(win.document);
   }
 
   public attachDocument(doc: Document) {
-    if (this.localizationDocuments.has(doc)) return;
-    (doc as any).l10n?.addResourceIds([`${config.addonRef}-addon.ftl`]);
-    this.localizationDocuments.add(doc);
+    if (!this.localizationDocuments.has(doc)) {
+      (doc as any).l10n?.addResourceIds([`${config.addonRef}-addon.ftl`]);
+      this.localizationDocuments.add(doc);
+    }
+    this.documentControllers ??= new Map();
+    if (!this.documentControllers.has(doc) && typeof (doc as any).addEventListener === "function") {
+      const Controller = (doc.defaultView as any)?.AbortController || globalThis.AbortController;
+      const controller: AbortController = new Controller();
+      this.documentControllers.set(doc, controller);
+      bindReferenceSidenavClick(this, doc, controller.signal);
+    }
   }
 
   public addStyle(doc: Document = document) {
@@ -207,6 +219,12 @@ export default class Views {
         win.document.getElementById(`${config.addonRef}-style`)?.remove();
       });
     }
+    if (this.documentControllers) {
+      for (const controller of this.documentControllers.values()) {
+        cleanupSync(() => controller.abort());
+      }
+      this.documentControllers.clear();
+    }
     for (const doc of this.localizationDocuments) {
       cleanupSync(() => (doc as any).l10n?.removeResourceIds([`${config.addonRef}-addon.ftl`]));
     }
@@ -267,9 +285,10 @@ export default class Views {
     fromCurrentPage: boolean,
     item: Zotero.Item,
     readerOverride: _ZoteroTypes.ReaderInstance | undefined,
-    task: ReferenceTaskContext
+    task: ReferenceTaskContext,
+    cacheOnly: boolean = false
   ) {
-    return performReferences(this, panel, local, fromCurrentPage, item, readerOverride, task);
+    return performReferences(this, panel, local, fromCurrentPage, item, readerOverride, task, cacheOnly);
   }
 
   public async refreshReferences(
@@ -278,9 +297,10 @@ export default class Views {
     fromCurrentPage: boolean = false,
     toggleSource: boolean = false,
     itemOverride?: Zotero.Item,
-    readerOverride?: _ZoteroTypes.ReaderInstance
+    readerOverride?: _ZoteroTypes.ReaderInstance,
+    cacheOnly: boolean = false
   ) {
-    return refreshReferences(this, panel, local, fromCurrentPage, toggleSource, itemOverride, readerOverride);
+    return refreshReferences(this, panel, local, fromCurrentPage, toggleSource, itemOverride, readerOverride, cacheOnly);
   }
 
   public async sortReferences(panel: HTMLElement): Promise<void> {

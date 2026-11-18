@@ -3,9 +3,17 @@
   "maxSourceLines": 360,
   "capturedAt": "2026-11-06",
   "debtCleared": true,
-  "note": "RefFlow source architecture fully compliant with §5.9. All 87 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "17.0.0",
+  "note": "RefFlow source architecture fully compliant with §5.9. All 88 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
+  "lastReleasedVersion": "17.0.1",
   "splitHistory": [
+    {
+      "version": "17.0.1",
+      "date": "2026-11-18",
+      "resolved": [
+        "Performance & API Scheduling: Switched item selection to local-cache-only loading (supporting cross-source fallback cache) and bound Zotero right-hand sidenav icon clicks in referenceSidenavTrigger.ts to trigger API fetches strictly on demand",
+        "Architecture: Extracted src/modules/referenceSidenavTrigger.ts (144 lines) to keep referencePaneDOM.ts within the <= 360-line §5.9 ceiling (266 lines)"
+      ]
+    },
     {
       "version": "17.0.0",
       "date": "2026-11-13",

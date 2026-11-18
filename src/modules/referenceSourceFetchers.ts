@@ -1,6 +1,7 @@
 import {cacheEnabled, retentionMs} from "./cachePolicy";
 import { getString } from "../utils/locale";
 import { safeProviderAttempt } from "./referenceSourceDetails";
+import { getSnapshotSignatures } from "./referenceAttachment";
 import {
   type ReferenceResult,
   retrieveReferenceList,
@@ -21,6 +22,27 @@ export interface SourceFetcherResult {
   sourceEvidence: any;
 }
 
+/**
+ * Builds the cache signature for non-PDF retrieval modes.
+ */
+export async function buildRetrievalSignature(
+  views: Views,
+  item: Zotero.Item,
+  source: string,
+  reader: any
+): Promise<string> {
+  return JSON.stringify([
+    "retrieval-v8",
+    item.getField("DOI"),
+    item.getField("url"),
+    item.getField("title"),
+    item.getField("date"),
+    item.getCreators(),
+    ["Auto", "API"].includes(source) ? await views.pdfCacheSignature(item, reader) : "",
+    ["Auto", "Web"].includes(source) ? await getSnapshotSignatures(item) : []
+  ]);
+}
+
 export async function fetchAutoOrWebReferences(
   views: Views,
   item: Zotero.Item,
@@ -31,7 +53,8 @@ export async function fetchAutoOrWebReferences(
   fromCurrentPage: boolean,
   signature: string,
   label: HTMLElement,
-  showUnavailable: (result: ReferenceResult) => void
+  showUnavailable: (result: ReferenceResult) => void,
+  cacheOnly: boolean = false
 ): Promise<SourceFetcherResult | undefined> {
   const key = `References-${source}`;
   const cached = await views.storage.getAsync(item, key);
@@ -39,6 +62,8 @@ export async function fetchAutoOrWebReferences(
   let result: ReferenceResult;
   if (local && previous) {
     result = previous;
+  } else if (cacheOnly) {
+    return undefined;
   } else {
     result = await views.smartReferences(item, reader, task, source !== "Web", fromCurrentPage, label, source === "Web");
     if (!task.isCurrent()) return undefined;
@@ -67,7 +92,8 @@ export async function fetchPdfReferences(
   fromCurrentPage: boolean,
   signature: string,
   label: HTMLElement,
-  showUnavailable: (result: ReferenceResult) => void
+  showUnavailable: (result: ReferenceResult) => void,
+  cacheOnly: boolean = false
 ): Promise<SourceFetcherResult | undefined> {
   const key = "References-PDF";
   const cached = await views.storage.getAsync(item, key);
@@ -82,6 +108,9 @@ export async function fetchPdfReferences(
   if (references) {
     if (partial) resultSource += ` · ${getString("relatedbox-scan-limited")}`;
     sourceEvidence = { source: "PDF", count: references.length, partial, status: empty ? "empty" : partial ? "partial" : "success" };
+    if (cacheOnly) return { references, resultSource, sourceEvidence };
+  } else if (cacheOnly) {
+    return undefined;
   } else {
     const attachment = await views.pdfAttachment(item, reader);
     if (!task.isCurrent()) return undefined;
@@ -155,7 +184,8 @@ export async function fetchApiReferences(
   fromCurrentPage: boolean,
   signature: string,
   label: HTMLElement,
-  showUnavailable: (result: ReferenceResult) => void
+  showUnavailable: (result: ReferenceResult) => void,
+  cacheOnly: boolean = false
 ): Promise<SourceFetcherResult | undefined> {
   const key = "References-API";
   const cached = await views.storage.getAsync(item, key);
@@ -164,6 +194,8 @@ export async function fetchApiReferences(
   let result: ReferenceResult;
   if (local && previous) {
     result = previous;
+  } else if (cacheOnly) {
+    return undefined;
   } else {
     result = await retrieveReferenceList([
       { name: "Online", run: () => views.onlineReferences(item, task, label) },
@@ -194,4 +226,54 @@ export async function fetchApiReferences(
   const sourceEvidence = { source: result.source, count: result.references.length, expected: result.expected, partial: Boolean(result.partial), retained: result.retained, attempts: result.attempts, status: result.status, latestAttempt: result.latestAttempt };
   label.title = (result.attempts || []).map(safeProviderAttempt).join("\n");
   return { references, resultSource, sourceEvidence };
+}
+
+export async function readFallbackCachedReferences(
+  views: Views,
+  item: Zotero.Item,
+  primarySource: string,
+  reader: any,
+  task: ReferenceTaskContext
+): Promise<SourceFetcherResult | undefined> {
+  for (const cand of ["Auto", "API", "PDF", "Web"]) {
+    if (cand === primarySource || !task.isCurrent()) continue;
+    const raw = await views.storage.getAsync(item, `References-${cand}`);
+    if (!raw) continue;
+    if (cand === "PDF") {
+      if (!cacheEnabled("PDF")) continue;
+      const pdfSig = await views.pdfCacheSignature(item, reader);
+      if (!pdfSig || !task.isCurrent()) continue;
+      const partial = Boolean(raw?.snapshot?.partial);
+      const empty = raw?.snapshot?.status === "empty";
+      const refs = readCachedReferences(raw, pdfSig, retentionMs("pdf", partial || empty)) as ItemBaseInfo[] | undefined;
+      if (refs?.length) {
+        return {
+          references: refs,
+          resultSource: "PDF" + (partial ? ` · ${getString("relatedbox-scan-limited")}` : ""),
+          sourceEvidence: { source: "PDF", count: refs.length, partial, status: partial ? "partial" : "success" }
+        };
+      }
+    } else {
+      const sig = await buildRetrievalSignature(views, item, cand, reader);
+      if (!task.isCurrent()) continue;
+      const res = readCachedReferenceResult(raw, sig);
+      if (res?.references?.length) {
+        return {
+          references: res.references,
+          resultSource: views.referenceDescription(res),
+          sourceEvidence: {
+            source: res.source,
+            count: res.references.length,
+            expected: res.expected,
+            partial: Boolean(res.partial),
+            retained: res.retained,
+            attempts: res.attempts,
+            status: res.status,
+            latestAttempt: res.latestAttempt
+          }
+        };
+      }
+    }
+  }
+  return undefined;
 }

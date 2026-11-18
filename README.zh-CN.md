@@ -1,4 +1,4 @@
-> **17.0.0** 升级 TypeScript 编译配置至 Zotero Flow 现代标准（`ES2023`、`ESNext`、`bundler`、`isolatedModules`、`verbatimModuleSyntax`），清除 `utils.ts` 中 `@ts-ignore` 债务并补齐图谱错误日志脱敏与工具栏事件 `AbortController` 生命周期收口。[版本说明](docs/releases/v17.0.0.md)。
+> **17.0.1** 优化参考文献调度策略：选中条目时仅在本地存在缓存的情况下自动加载显示（支持跨来源缓存回退），点击右侧边栏图标或展开面板时才按需发起 API 请求获取参考文献列表。[版本说明](docs/releases/v17.0.1.md)。
 
 [简体中文](README.md) · [English](README.en.md)
 

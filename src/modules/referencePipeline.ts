@@ -11,12 +11,14 @@ import {
   retrieveReferenceList
 } from "./referenceRetrieval";
 import { renderReferenceSourceDetails } from "./referenceSourceDetails";
-import { getSnapshotSignatures, readerMatchesItem } from "./referenceAttachment";
+import { readerMatchesItem } from "./referenceAttachment";
 import { fetchNeighborhoodReferences } from "./referenceNeighborhood";
 import {
+  buildRetrievalSignature,
   fetchAutoOrWebReferences,
   fetchPdfReferences,
-  fetchApiReferences
+  fetchApiReferences,
+  readFallbackCachedReferences
 } from "./referenceSourceFetchers";
 import { dispatchReferenceRefresh } from "./referenceRefreshDispatcher";
 import Views from "./views";
@@ -190,38 +192,35 @@ export async function performReferences(
   fromCurrentPage: boolean,
   item: Zotero.Item,
   readerOverride: _ZoteroTypes.ReaderInstance | undefined,
-  task: ReferenceTaskContext
+  task: ReferenceTaskContext,
+  cacheOnly: boolean = false
 ) {
+  const initialRefs = (panel as any).references;
   const label = panel.querySelector("label#reference-num") as HTMLLabelElement;
   const literatureType = panel.getAttribute("data-refflow-type") || "References";
   const initialSource = panel.getAttribute("source") || "PDF";
-  label.textContent = `${getString("relatedbox-loading")} [${initialSource}]`;
+  if (!cacheOnly) {
+    label.textContent = `${getString("relatedbox-loading")} [${initialSource}]`;
+  }
   const details = panel.querySelector("#refflow-source-details") as HTMLDetailsElement | undefined;
-  if (details && Zotero.Prefs.get(`${config.addonRef}.showSourceDetails`) !== false) details.hidden = false;
+  if (!cacheOnly && details && Zotero.Prefs.get(`${config.addonRef}.showSourceDetails`) !== false) {
+    details.hidden = false;
+  }
   const source = fromCurrentPage && literatureType === "References" ? "PDF" : initialSource;
   let reader = readerOverride || views.utils.getReader(panel.ownerDocument.defaultView!);
   if (!readerMatchesItem(reader, item)) reader = undefined as any;
   const signature = source === "PDF"
     ? await views.pdfCacheSignature(item, reader)
-    : JSON.stringify([
-        "retrieval-v8",
-        item.getField("DOI"),
-        item.getField("url"),
-        item.getField("title"),
-        item.getField("date"),
-        item.getCreators(),
-        ["Auto", "API"].includes(source) ? await views.pdfCacheSignature(item, reader) : "",
-        ["Auto", "Web"].includes(source) ? await getSnapshotSignatures(item) : []
-      ]);
+    : await buildRetrievalSignature(views, item, source, reader);
   if (!task.isCurrent()) return;
 
-  if (panel.getAttribute("data-refflow-result-type") && panel.getAttribute("data-refflow-result-type") !== literatureType) {
+  if (!cacheOnly && panel.getAttribute("data-refflow-result-type") && panel.getAttribute("data-refflow-result-type") !== literatureType) {
     (panel as any)._cards?.clear();
     (panel as any).references = [];
   }
 
   let references: ItemBaseInfo[] = [];
-  if (!local || !cacheEnabled()) markFresh(task.signal);
+  if (!cacheOnly && (!local || !cacheEnabled())) markFresh(task.signal);
 
   let resultSource = source;
   let sourceEvidence: ReferenceSourceEvidence | undefined;
@@ -254,16 +253,23 @@ export async function performReferences(
 
   let fetched: { references: ItemBaseInfo[]; resultSource: string; sourceEvidence: any } | undefined;
   if (literatureType !== "References") {
-    fetched = await fetchNeighborhoodReferences(views, item, literatureType, signature, local, task, label);
+    fetched = await fetchNeighborhoodReferences(views, item, literatureType, signature, local, task, label, cacheOnly);
   } else if (source === "Auto" || source === "Web") {
-    fetched = await fetchAutoOrWebReferences(views, item, source, reader, task, local, fromCurrentPage, signature, label, showUnavailable);
+    fetched = await fetchAutoOrWebReferences(views, item, source, reader, task, local, fromCurrentPage, signature, label, showUnavailable, cacheOnly);
   } else if (source === "PDF") {
-    fetched = await fetchPdfReferences(views, item, reader, task, local, fromCurrentPage, signature, label, showUnavailable);
+    fetched = await fetchPdfReferences(views, item, reader, task, local, fromCurrentPage, signature, label, showUnavailable, cacheOnly);
   } else {
-    fetched = await fetchApiReferences(views, item, reader, task, local, fromCurrentPage, signature, label, showUnavailable);
+    fetched = await fetchApiReferences(views, item, reader, task, local, fromCurrentPage, signature, label, showUnavailable, cacheOnly);
+  }
+  if (cacheOnly && literatureType === "References" && !fromCurrentPage && !fetched?.references?.length && task.isCurrent()) {
+    fetched = await readFallbackCachedReferences(views, item, source, reader, task);
   }
 
   if (!task.isCurrent() || !fetched) return;
+  if (cacheOnly) {
+    if (!fetched.references?.length) return;
+    if ((panel as any).references !== initialRefs || Boolean((panel as any).references?.length)) return;
+  }
   references = fetched.references;
   resultSource = fetched.resultSource;
   sourceEvidence = fetched.sourceEvidence;
@@ -308,7 +314,8 @@ export function refreshReferences(
   fromCurrentPage: boolean = false,
   toggleSource: boolean = false,
   itemOverride?: Zotero.Item,
-  readerOverride?: _ZoteroTypes.ReaderInstance
+  readerOverride?: _ZoteroTypes.ReaderInstance,
+  cacheOnly: boolean = false
 ) {
-  return dispatchReferenceRefresh(views, panel, local, fromCurrentPage, toggleSource, itemOverride, readerOverride);
+  return dispatchReferenceRefresh(views, panel, local, fromCurrentPage, toggleSource, itemOverride, readerOverride, cacheOnly);
 }

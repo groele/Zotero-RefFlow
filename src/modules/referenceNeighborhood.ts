@@ -22,7 +22,8 @@ export async function fetchNeighborhoodReferences(
   signature: string,
   local: boolean,
   task: ReferenceTaskContext,
-  label: HTMLElement
+  label: HTMLElement,
+  cacheOnly: boolean = false
 ): Promise<NeighborhoodResult | undefined> {
   const key = `References-API-${literatureType}`;
   const cached = await views.storage.getAsync(item, key);
@@ -51,6 +52,7 @@ export async function fetchNeighborhoodReferences(
     resultSource = describe(sourceEvidence);
     return { references, resultSource, sourceEvidence };
   }
+  if (cacheOnly) return undefined;
 
   let doi = String(item.getField("DOI") || "");
   if (!doi) {
