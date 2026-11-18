@@ -2,142 +2,90 @@ import { config } from "../../package.json";
 import type Views from "./views";
 import { getPanelItem } from "./referencePipeline";
 
-/**
- * Checks whether the given item's type is eligible for automatic local-cache loading on selection.
- */
-export function isItemTypeAllowedForAutoCache(item: Zotero.Item): boolean {
+const paneID = `${config.addonRef}-references`;
+const sectionSelector = `item-pane-custom-section[data-pane$="-${paneID}"]`;
+const fetchRequest = "data-refflow-fetch-requested";
+const itemIDAttribute = "data-refflow-item-id";
+
+interface NativeCollapsibleSection extends HTMLElement {
+  open: boolean;
+}
+
+interface NativeItemPaneSection extends Element {
+  item?: Zotero.Item;
+}
+
+interface NativeSidenav extends Element {
+  container?: { getEnabledPane(id: string): NativeItemPaneSection | null };
+}
+
+export function shouldLoadReferenceCache(item: Zotero.Item): boolean {
+  if (!Zotero.Prefs.get(`${config.addonRef}.autoRefresh`)) return false;
   const excluded = String(Zotero.Prefs.get(`${config.addonRef}.notAutoRefreshItemTypes`) || "")
     .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
+    .map((value) => value.trim());
   return !excluded.includes(Zotero.ItemTypes.getName(item.itemTypeID));
 }
 
-function findTargetSection(
-  doc: Document,
-  sidenavButton: Element | undefined,
-  headerClickSection: HTMLElement | undefined,
-  paneSuffix: string
-): HTMLElement | null {
-  if (headerClickSection) return headerClickSection;
-  const scope =
-    sidenavButton?.closest?.("#zotero-context-pane-inner, #zotero-context-pane, #zotero-item-pane") || doc;
-  const exactPane = sidenavButton?.getAttribute("data-pane") || "";
-  if (exactPane && typeof scope.querySelectorAll === "function") {
-    for (const candidate of Array.from(scope.querySelectorAll("item-pane-custom-section") as unknown as Iterable<Element>)) {
-      if (candidate?.getAttribute("data-pane") === exactPane) return candidate as HTMLElement;
-    }
-  }
-  return (
-    (scope.querySelector?.(`item-pane-custom-section[data-pane$="${paneSuffix}"]`) as HTMLElement | null) ||
-    (doc.querySelector?.(`item-pane-custom-section[data-pane$="${paneSuffix}"]`) as HTMLElement | null)
-  );
+export async function fetchUnloadedReferences(views: Views, body: HTMLDivElement, item?: Zotero.Item): Promise<void> {
+  const panel = body as unknown as XUL.TabPanel & { references?: ItemBaseInfo[] };
+  if (views.isDisposed() || !body.isConnected || body.hasAttribute("aria-busy")) return;
+  const type = body.getAttribute("data-refflow-type") || "References";
+  if (panel.references?.length && body.getAttribute("data-refflow-result-type") === type) return;
+  if (item?.isRegularItem()) await views.refreshReferences(panel, true, false, false, item);
 }
 
-function resolvePendingItemID(views: Views, section: HTMLElement, doc: Document): string {
-  const existing = section.querySelector?.('[data-type="body"]')?.getAttribute("data-refflow-item-id");
-  if (existing) return existing;
-  const win = doc.defaultView as any;
-  const inContext = Boolean(section.closest?.("#zotero-context-pane-inner, #zotero-context-pane"));
-  if (inContext && win) {
-    const reader = views.utils.getReader(win);
-    const att = reader?.itemID ? (Zotero.Items.get(reader.itemID) || undefined) : undefined;
-    const parent = att ? (att.parentItem || att) : undefined;
-    if (parent?.id) return String(parent.id);
-  }
-  const selected = win?.ZoteroPane?.getSelectedItems?.()?.[0];
-  const parent = selected?.parentItem || selected;
-  return parent?.id ? String(parent.id) : "";
-}
-
-/**
- * Binds click/command listeners on the document so clicking the Zotero right-hand
- * sidenav icon (or expanding a collapsed RefFlow section) fetches references via API on demand.
- */
+/** Observe user actions while letting Zotero handle the header's native toggle. */
 export function bindReferenceSidenavClick(views: Views, doc: Document, signal: AbortSignal): void {
-  const paneSuffix = `-${config.addonRef}-references`;
   const onActivate = (event: Event) => {
     if (views.isDisposed()) return;
-    if (event.type === "click" && (event as MouseEvent).button !== 0) return;
+    const target = event.target as Element | null;
+    if (!target?.closest) return;
+    const isClick = event.type === "click";
+    if (isClick && (event as MouseEvent).button !== 0) return;
 
-    const rawPath = typeof (event as any).composedPath === "function" ? (event as any).composedPath() : [event.target];
-    let sidenavButton: Element | undefined;
-    let headerClickSection: HTMLElement | undefined;
-    for (const node of rawPath) {
-      if (!node || typeof (node as Element).getAttribute !== "function") continue;
-      const el = node as Element;
-      const dataPane = el.getAttribute("data-pane") || "";
-      if (
-        (dataPane === `${config.addonRef}-references` || dataPane.endsWith(paneSuffix)) &&
-        el.localName !== "item-pane-custom-section"
-      ) {
-        sidenavButton = el;
-        break;
+    // Zotero also puts data-pane on collapsible-section. Only the rail button
+    // identifies navigation, and its container identifies the active item pane.
+    const railButton = isClick ? target.closest("item-pane-sidenav .btn[data-pane]") : null;
+    if (railButton) {
+      const id = railButton.getAttribute("data-pane") || "";
+      if (id !== paneID && !id.endsWith(`-${paneID}`)) return;
+      if ((event as MouseEvent).detail > 1 || railButton.hasAttribute("disabled")) return;
+      const rail = railButton.closest("item-pane-sidenav") as NativeSidenav | null;
+      const section = rail?.container?.getEnabledPane(id);
+      const collapsible = section?.querySelector<NativeCollapsibleSection>("collapsible-section");
+      const body = collapsible?.querySelector<HTMLDivElement>('[data-type="body"]');
+      if (!section || !collapsible || !body) return;
+      collapsible.open = true;
+      const item = section.item?.parentItem || section.item;
+      if (!item?.isRegularItem()) return;
+      if (body.getAttribute(itemIDAttribute) === String(item.id)) {
+        void fetchUnloadedReferences(views, body, item);
+      } else {
+        section.setAttribute(fetchRequest, String(item.id));
       }
-    }
-    if (!sidenavButton && event.type === "click") {
-      const target = event.target as Element | null;
-      const customSection = target?.closest?.(`item-pane-custom-section[data-pane$="${paneSuffix}"]`) as HTMLElement | null;
-      if (
-        customSection &&
-        !target?.closest?.('[data-type="body"]') &&
-        !target?.closest?.('[slot="header-buttons"], .section-buttons, button, toolbarbutton, menupopup')
-      ) {
-        headerClickSection = customSection;
-      }
-    }
-    if (!sidenavButton && !headerClickSection) return;
-
-    const section = findTargetSection(doc, sidenavButton, headerClickSection, paneSuffix);
-    if (!section) return;
-
-    const collapsible = section.querySelector("collapsible-section") as any;
-    if (sidenavButton && collapsible && !collapsible.open) {
-      (collapsible.wrappedJSObject || collapsible).open = true;
-    }
-
-    const triggerFetch = (body: HTMLElement): boolean => {
-      if (!(body as any)._cards) return false;
-      section.removeAttribute("data-refflow-fetch-requested");
-      body.removeAttribute("data-refflow-fetch-requested");
-      const currentType = body.getAttribute("data-refflow-type") || "References";
-      if ((body as any).references?.length && body.getAttribute("data-refflow-result-type") === currentType) {
-        return true;
-      }
-      const item = getPanelItem(views, body);
-      if (item?.isRegularItem() && !body.hasAttribute("aria-busy")) {
-        void views.refreshReferences(body as any, true, false, false, item, undefined, false);
-      }
-      return true;
-    };
-
-    if (headerClickSection && !sidenavButton) {
-      globalThis.setTimeout(() => {
-        if (views.isDisposed() || signal.aborted || !section.isConnected) return;
-        const col = section.querySelector("collapsible-section") as any;
-        if (col && !col.open) return;
-        const body = section.querySelector('[data-type="body"]') as HTMLElement | null;
-        if (body && !(body as any).references?.length) triggerFetch(body);
-      }, 0);
       return;
     }
 
-    const body = section.querySelector('[data-type="body"]') as HTMLElement | null;
-    if (body && triggerFetch(body)) return;
+    const head = target.closest(".head");
+    const collapsible = head?.parentElement as NativeCollapsibleSection | undefined;
+    const section = collapsible?.parentElement;
+    if (!head || collapsible?.localName !== "collapsible-section" || !section?.matches(sectionSelector)) return;
+    if (target.closest(".section-custom-button, menupopup")) return;
+    if (!isClick && (target !== head || !["Enter", " ", "ArrowLeft", "ArrowRight"].includes((event as KeyboardEvent).key))) return;
+    if (collapsible.open) return;
+    const body = collapsible.querySelector<HTMLDivElement>('[data-type="body"]');
+    const identity = body?.getAttribute(itemIDAttribute);
+    if (!body || !identity) return;
 
-    const pendingItemID = resolvePendingItemID(views, section, doc);
-    const marker = pendingItemID || "true";
-    section.setAttribute("data-refflow-fetch-requested", marker);
+    // The native handler runs later in event propagation, including keyboard
+    // actions that Zotero translates into a click on the twisty.
     globalThis.setTimeout(() => {
-      if (views.isDisposed() || signal.aborted || !section.isConnected) return;
-      if (section.getAttribute("data-refflow-fetch-requested") !== marker) return;
-      const deferredBody = section.querySelector('[data-type="body"]') as HTMLElement | null;
-      if (!deferredBody) return;
-      if (pendingItemID && deferredBody.getAttribute("data-refflow-item-id") !== pendingItemID) return;
-      triggerFetch(deferredBody);
-    }, 50);
+      if (signal.aborted || views.isDisposed() || !collapsible.open || body.getAttribute(itemIDAttribute) !== identity) return;
+      void fetchUnloadedReferences(views, body, getPanelItem(views, body));
+    }, 0);
   };
 
   doc.addEventListener("click", onActivate, { capture: true, signal });
-  doc.addEventListener("command", onActivate, { capture: true, signal });
+  doc.addEventListener("keydown", onActivate, { capture: true, signal });
 }

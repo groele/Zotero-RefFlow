@@ -4,7 +4,7 @@ import ReferenceCards from "./referenceCards";
 import BatchImporter from "./batchImporter";
 import Views from "./views";
 import { addReferencePaneStyles } from "./referencePaneStyles";
-import { isItemTypeAllowedForAutoCache } from "./referenceSidenavTrigger";
+import { fetchUnloadedReferences, shouldLoadReferenceCache } from "./referenceSidenavTrigger";
 
 /**
  * Synchronizes the visibility of the cancel button depending on active fetch or import tasks.
@@ -227,19 +227,17 @@ export function registerReferenceItemPane(views: Views): string | undefined {
       const identity = String(parent.id);
       const section = body.closest?.("item-pane-custom-section");
       const req = section?.getAttribute("data-refflow-fetch-requested") || body.getAttribute("data-refflow-fetch-requested");
-      const fetchRequested = req === "true" || req === identity;
+      const fetchRequested = req === identity;
       section?.removeAttribute("data-refflow-fetch-requested");
       body.removeAttribute("data-refflow-fetch-requested");
       if (fetchRequested) {
-        if (!(body as any).references?.length) {
-          await views.refreshReferences(body as any, true, false, false, parent, undefined, false);
-        }
+        await fetchUnloadedReferences(views, body, parent);
         return;
       }
       if (
         !(body as any).references?.length &&
         body.getAttribute("data-refflow-cache-checked") !== identity &&
-        isItemTypeAllowedForAutoCache(parent)
+        shouldLoadReferenceCache(parent)
       ) {
         body.setAttribute("data-refflow-cache-checked", identity);
         await views.refreshReferences(body as any, true, false, false, parent, undefined, true);
@@ -248,13 +246,16 @@ export function registerReferenceItemPane(views: Views): string | undefined {
     onItemChange: ({ body, item }) => {
       const identity = String(item?.parentItem?.id || item?.id || "");
       if (body.getAttribute("data-refflow-item-id") === identity) return;
-      body.closest?.("item-pane-custom-section")?.removeAttribute("data-refflow-fetch-requested");
+      const section = body.closest?.("item-pane-custom-section");
+      if (section?.getAttribute("data-refflow-fetch-requested") !== identity) {
+        section?.removeAttribute("data-refflow-fetch-requested");
+      }
       body.removeAttribute("data-refflow-fetch-requested");
       resetReferencePane(views, body);
       body.setAttribute("data-refflow-item-id", identity);
       syncCancelButton(views, body);
       const parent = item?.parentItem || item;
-      if (parent?.isRegularItem() && (body as any)._cards && isItemTypeAllowedForAutoCache(parent)) {
+      if (parent?.isRegularItem() && (body as any)._cards && shouldLoadReferenceCache(parent)) {
         body.setAttribute("data-refflow-cache-checked", String(parent.id));
         void views.refreshReferences(body as any, true, false, false, parent, undefined, true);
       }

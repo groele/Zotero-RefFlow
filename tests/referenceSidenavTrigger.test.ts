@@ -228,7 +228,7 @@ test("bindReferenceSidenavClick triggers API fetch only on primary sidenav click
     const sectionAttrs = new Map<string, string>([
       ["data-pane", "refflow@groele.github.io-refflow-references"]
     ]);
-    const collapsible: any = { open: false };
+    const collapsible = { open: false, querySelector: () => body };
     const body: any = {
       _cards: {},
       references: [],
@@ -240,6 +240,7 @@ test("bindReferenceSidenavClick triggers API fetch only on primary sidenav click
       ownerDocument: { defaultView: {} }
     };
     const section: any = {
+      item,
       localName: "item-pane-custom-section",
       isConnected: true,
       getAttribute: (k: string) => sectionAttrs.get(k) ?? null,
@@ -252,19 +253,14 @@ test("bindReferenceSidenavClick triggers API fetch only on primary sidenav click
       },
       closest: () => null
     };
-    const sidenavButton: any = {
-      localName: "button",
-      getAttribute: (k: string) => (k === "data-pane" ? "refflow@groele.github.io-refflow-references" : null),
-      closest: (sel: string) => (sel.includes("#zotero-item-pane") ? itemPane : null)
-    };
-    const itemPane: any = {
-      querySelectorAll: (sel: string) => (sel === "item-pane-custom-section" ? [section] : []),
-      querySelector: () => section
+    const rail = { container: { getEnabledPane: (id: string) => sectionAttrs.get("data-pane") === id ? section : null } };
+    const sidenavButton = {
+      getAttribute: (k: string) => k === "data-pane" ? sectionAttrs.get("data-pane") : null,
+      hasAttribute: () => false,
+      closest: (selector: string) => selector === "item-pane-sidenav" ? rail : sidenavButton
     };
     const doc: any = {
       defaultView: {},
-      querySelectorAll: () => [section],
-      querySelector: () => section,
       addEventListener: (type: string, fn: (ev: any) => void, opts?: { signal?: AbortSignal }) => {
         if (!listeners.has(type)) listeners.set(type, new Set());
         listeners.get(type)!.add(fn);
@@ -276,7 +272,7 @@ test("bindReferenceSidenavClick triggers API fetch only on primary sidenav click
     const ac = new AbortController();
     bindReferenceSidenavClick(views, doc, ac.signal);
     const emitClick = (button = 0) => {
-      const ev = { type: "click", button, target: sidenavButton, composedPath: () => [sidenavButton, doc] };
+      const ev = { type: "click", button, detail: 1, target: sidenavButton };
       for (const fn of listeners.get("click") || []) fn(ev);
     };
 
@@ -319,8 +315,9 @@ test("registerReferenceItemPane only loads local cache on item selection even wh
       return cfg.paneID;
     }
   };
+  let autoRefresh = false;
   z.Prefs.get = (key: string) => {
-    if (key === "refflow.autoRefresh") return true;
+    if (key === "refflow.autoRefresh") return autoRefresh;
     if (key === "refflow.notAutoRefreshItemTypes") return "book, letter, note";
     return origGet(key);
   };
@@ -358,6 +355,10 @@ test("registerReferenceItemPane only loads local cache on item selection even wh
 
     const item1 = mockItem(301);
     registeredConfig.onItemChange({ body, item: item1 });
+    await registeredConfig.onAsyncRender({ body, item: item1 });
+
+    assert.deepEqual(calls, []);
+    autoRefresh = true;
     await registeredConfig.onAsyncRender({ body, item: item1 });
 
     // Only cacheOnly: true was invoked — zero API requests triggered on item selection

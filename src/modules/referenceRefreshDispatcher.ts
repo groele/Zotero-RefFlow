@@ -19,7 +19,7 @@ export async function dispatchReferenceRefresh(
   readerOverride?: _ZoteroTypes.ReaderInstance,
   cacheOnly: boolean = false
 ) {
-  if (views.isDisposed() || !panel?.isConnected) return;
+  if (views.isDisposed() || !panel?.isConnected || (cacheOnly && panel.hasAttribute("aria-busy"))) return;
   if (toggleSource) panel.setAttribute("source", panel.getAttribute("source") === "PDF" ? "API" : "PDF");
   const literatureType = panel.getAttribute("data-refflow-type") || "References";
   const source = literatureType === "References" ? (panel.getAttribute("source") || (Zotero.Prefs.get(`${config.addonRef}.prioritySource`) as string) || "PDF") : "API";

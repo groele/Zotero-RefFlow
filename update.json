@@ -3,16 +3,16 @@
     "refflow@groele.github.io": {
       "updates": [
         {
-          "version": "17.0.1",
-          "update_link": "https://github.com/groele/Zotero-RefFlow/releases/download/v17.0.1/zotero-refflow.xpi",
+          "version": "17.0.2",
+          "update_link": "https://github.com/groele/Zotero-RefFlow/releases/download/v17.0.2/zotero-refflow.xpi",
           "applications": {
             "zotero": {
               "strict_min_version": "10.0",
               "strict_max_version": "12.*"
             }
           },
-          "update_hash": "sha512:fe966506131e3ee2e8fc425bff9ac64d7436968b941b1ccdc2db00080767ddd7cc99b4e690364258fad5fe3e34c5b89795dc7d575aa65e75f721798f8273775c",
-          "update_info_url": "https://github.com/groele/Zotero-RefFlow/releases/tag/v17.0.1"
+          "update_hash": "sha512:37d1df6da2a32e8f361d65bb8ea070d1a17ca9fa57a9e173df5d5250d0f42fe2c6137fd2ff262c2f7e9819206390f741a418020f50332818ee30d38568965dbe",
+          "update_info_url": "https://github.com/groele/Zotero-RefFlow/releases/tag/v17.0.2"
         }
       ]
     }
