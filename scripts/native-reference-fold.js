@@ -7,13 +7,15 @@ const check = (condition, message) => { if (!condition) throw new Error(message)
 const test = async (name, run) => {
   try { await run(); report.tests.push({ name, ok: true }); }
   catch (error) { report.tests.push({ name, ok: false, error: String(error) }); }
+  await Zotero.File.putContentsAsync(cfg.output, JSON.stringify(report, null, 2));
 };
 const views = Zotero.ZoteroRefFlow.views;
 const refresh = views.refreshReferences;
 const fetches = [];
-views.refreshReferences = async (body, local, page, toggle, item, reader, cacheOnly) => {
+const recordRefresh = async (body, local, page, toggle, item, reader, cacheOnly) => {
   fetches.push({ body, id: item?.id, cacheOnly });
 };
+views.refreshReferences = recordRefresh;
 const click = target => target.dispatchEvent(new MouseEvent("click", {
   bubbles: true, composed: true, cancelable: true, button: 0, detail: 1
 }));
@@ -83,6 +85,63 @@ try {
     click(railButton);
     await delay(150);
     check(collapsible.open && fetches.length === 1 && fetches[0].body.closest(selector) === section, "Side navigation did not open and fetch once");
+  });
+  await test("toolbar commands animate and repeated refreshes reach the online provider", async () => {
+    const normalMotion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const activate = (type) => {
+      const button = head.querySelector(`.section-custom-button.${type}`);
+      check(button, `Native ${type} button missing`);
+      button.dispatchEvent(new window.Event("command", { bubbles: true }));
+      const animation = button.getAnimations().find(candidate => candidate.id === "refflow-section-action");
+      check(Boolean(animation) === normalMotion, `Unexpected animation state for ${type}`);
+      if (animation) {
+        const timing = animation.effect.getTiming();
+        check(timing.duration === (type === "refresh" ? 320 : 180) && timing.iterations === 1, "Unexpected animation timing");
+        check(timing.fill === "auto" || timing.fill === "none", "Animation should leave no persistent transform");
+      }
+      return button;
+    };
+
+    for (const type of ["type", "more"]) {
+      activate(type);
+      await delay(200);
+      for (const popup of document.querySelectorAll("menupopup[data-refflow-menu]")) popup.hidePopup();
+    }
+
+    const onlineReferences = views.onlineReferences;
+    const pdfAttachment = views.pdfAttachment;
+    const requests = [];
+    const pdfCalls = [];
+    views.refreshReferences = refresh;
+    views.onlineReferences = async (target) => {
+      requests.push(target.id);
+      const title = `Online reference ${requests.length}`;
+      return { source: "Crossref", status: "success", references: [{ title, text: title, identifiers: {} }] };
+    };
+    views.pdfAttachment = async (...args) => {
+      pdfCalls.push(args[0]?.id);
+      return pdfAttachment.apply(views, args);
+    };
+    try {
+      body.setAttribute("source", "PDF");
+      for (const count of [1, 2]) {
+        activate("refresh");
+        for (let i = 0; i < 100; i++) {
+          if (body.references?.[0]?.title === `Online reference ${count}` && !body.hasAttribute("aria-busy")) break;
+          await delay(25);
+        }
+        check(requests.length === count && requests.every(id => id === item.id), "Refresh did not request fresh references for the selected item");
+        check(body.references?.[0]?.title === `Online reference ${count}`, "Online result did not render");
+        check(!body.hasAttribute("aria-busy"), "Refresh did not settle");
+        check(body.getAttribute("source") === "PDF", "Refresh changed the configured pane source");
+        check(await views.storage.getAsync(item, "References-API"), "Online result did not warm the reference cache");
+      }
+      check(pdfCalls.length === 0, "Successful online refresh routed through PDF extraction");
+    } finally {
+      views.onlineReferences = onlineReferences;
+      views.pdfAttachment = pdfAttachment;
+      views.refreshReferences = recordRefresh;
+    }
   });
   await test("reader rail targets the PDF parent independently of the library selection", async () => {
     const parent = new Zotero.Item("journalArticle");

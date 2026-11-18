@@ -139,7 +139,7 @@ relatedbox-select-item = Seleziona prima un elemento di riferimento
 relatedbox-fetch-error = Recupero non riuscito. Riprova.
 
 pane-refresh =
-    .tooltiptext = Analizza / Recupera di nuovo
+    .tooltiptext = Recupera di nuovo tramite le API online
 pane-type =
     .tooltiptext = Tipo di letteratura
 pane-more =

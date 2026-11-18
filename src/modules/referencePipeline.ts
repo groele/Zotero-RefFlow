@@ -193,12 +193,12 @@ export async function performReferences(
   item: Zotero.Item,
   readerOverride: _ZoteroTypes.ReaderInstance | undefined,
   task: ReferenceTaskContext,
-  cacheOnly: boolean = false
+  cacheOnly: boolean = false,
+  initialSource = panel.getAttribute("source") || "PDF"
 ) {
   const initialRefs = (panel as any).references;
   const label = panel.querySelector("label#reference-num") as HTMLLabelElement;
   const literatureType = panel.getAttribute("data-refflow-type") || "References";
-  const initialSource = panel.getAttribute("source") || "PDF";
   if (!cacheOnly) {
     label.textContent = `${getString("relatedbox-loading")} [${initialSource}]`;
   }
@@ -315,7 +315,8 @@ export function refreshReferences(
   toggleSource: boolean = false,
   itemOverride?: Zotero.Item,
   readerOverride?: _ZoteroTypes.ReaderInstance,
-  cacheOnly: boolean = false
+  cacheOnly: boolean = false,
+  sourceOverride?: "API"
 ) {
-  return dispatchReferenceRefresh(views, panel, local, fromCurrentPage, toggleSource, itemOverride, readerOverride, cacheOnly);
+  return dispatchReferenceRefresh(views, panel, local, fromCurrentPage, toggleSource, itemOverride, readerOverride, cacheOnly, sourceOverride);
 }

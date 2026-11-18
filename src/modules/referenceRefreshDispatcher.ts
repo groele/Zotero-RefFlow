@@ -17,13 +17,15 @@ export async function dispatchReferenceRefresh(
   toggleSource: boolean = false,
   itemOverride?: Zotero.Item,
   readerOverride?: _ZoteroTypes.ReaderInstance,
-  cacheOnly: boolean = false
+  cacheOnly: boolean = false,
+  sourceOverride?: "API"
 ) {
   if (views.isDisposed() || !panel?.isConnected || (cacheOnly && panel.hasAttribute("aria-busy"))) return;
   if (toggleSource) panel.setAttribute("source", panel.getAttribute("source") === "PDF" ? "API" : "PDF");
   const literatureType = panel.getAttribute("data-refflow-type") || "References";
-  const source = literatureType === "References" ? (panel.getAttribute("source") || (Zotero.Prefs.get(`${config.addonRef}.prioritySource`) as string) || "PDF") : "API";
-  panel.setAttribute("source", source);
+  const configuredSource = literatureType === "References" ? (panel.getAttribute("source") || (Zotero.Prefs.get(`${config.addonRef}.prioritySource`) as string) || "PDF") : "API";
+  panel.setAttribute("source", configuredSource);
+  const source = sourceOverride ?? configuredSource;
   const item = itemOverride || getPanelItem(views, panel);
   const label = panel.querySelector("#reference-num");
   if (!item?.isRegularItem()) {
@@ -44,7 +46,7 @@ export async function dispatchReferenceRefresh(
 
   return views.referenceTasks.run(panel, key, async (context) => {
     const boundItem = panel.getAttribute("data-refflow-item-id");
-    const ownsPanel = () => context.isCurrent() && panel.isConnected && (panel.getAttribute("data-refflow-type") || "References") === literatureType && panel.getAttribute("source") === source && panel.getAttribute("data-refflow-item-id") === boundItem;
+    const ownsPanel = () => context.isCurrent() && panel.isConnected && (panel.getAttribute("data-refflow-type") || "References") === literatureType && panel.getAttribute("source") === configuredSource && panel.getAttribute("data-refflow-item-id") === boundItem;
     const current = () => ownsPanel() && sameInput();
     const cancel = panel.querySelector("#refflow-cancel") as HTMLElement;
     if (!cacheOnly) {
@@ -53,7 +55,7 @@ export async function dispatchReferenceRefresh(
       if (cancel) cancel.hidden = false;
     }
     try {
-      await views.performReferences(panel, local, fromCurrentPage, item, activeReader, { ...context, pageIndex, isCurrent: current }, cacheOnly);
+      await views.performReferences(panel, local, fromCurrentPage, item, activeReader, { ...context, pageIndex, isCurrent: current }, cacheOnly, source);
     } catch (error: any) {
       if (!cacheOnly && current() && label) {
         label.textContent = (error?.name === "TimeoutError" ? getString("relatedbox-timeout") : getString("relatedbox-fetch-error")) + ((panel as any).references?.length ? ` · ${getString("cards-kept-results")}` : "");
@@ -72,7 +74,7 @@ export async function dispatchReferenceRefresh(
     }
   }, {
     onTimeout: () => {
-      if (cacheOnly || !panel.isConnected || panel.getAttribute("data-refflow-item-id") !== boundIdentity || panel.getAttribute("source") !== source || (panel.getAttribute("data-refflow-type") || "References") !== literatureType) return;
+      if (cacheOnly || !panel.isConnected || panel.getAttribute("data-refflow-item-id") !== boundIdentity || panel.getAttribute("source") !== configuredSource || (panel.getAttribute("data-refflow-type") || "References") !== literatureType) return;
       if (label) label.textContent = getString(sameInput() ? "relatedbox-timeout" : "cards-context-changed") + ((panel as any).references?.length ? ` · ${getString("cards-kept-results")}` : "");
       panel.removeAttribute("aria-busy");
       panel.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach((button) => ((button as HTMLButtonElement).disabled = false));

@@ -35,7 +35,7 @@ relatedbox-no-rollback-batch = 未找到可撤回的批次记录
 relatedbox-source-tooltip = 当前来源: { $source } (点击切换模式，长按强制更新)
 
 pane-refresh =
-    .tooltiptext = 解析 / 重新获取
+    .tooltiptext = 通过在线 API 重新获取
 
 pane-type =
     .tooltiptext = 文献类型

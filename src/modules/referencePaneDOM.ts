@@ -89,6 +89,18 @@ export function showTypeMenu(views: Views, body: HTMLElement, item?: Zotero.Item
   popup.openPopup(body.closest("item-pane-custom-section"), "after_end", 0, 0, false, false);
 }
 
+function animateSectionAction(event: Event, rotate = false): void {
+  const button = (event as CustomEvent<{ button?: Element }>).detail?.button;
+  if (!button?.isConnected || button.ownerDocument?.defaultView?.matchMedia("(prefers-reduced-motion: reduce)")?.matches) return;
+  const animationID = "refflow-section-action";
+  button.getAnimations().find((animation) => animation.id === animationID)?.cancel();
+  const keyframes = rotate
+    ? [{ transform: "rotate(0deg)" }, { transform: "rotate(360deg)" }]
+    : [{ transform: "scale(1)" }, { transform: "scale(0.85)", offset: 0.4 }, { transform: "scale(1)" }];
+  const animation = button.animate(keyframes, { duration: rotate ? 320 : 180, easing: "ease-out" });
+  animation.id = animationID;
+}
+
 /**
  * Registers the native Zotero 10 reference item pane section.
  */
@@ -107,9 +119,18 @@ export function registerReferenceItemPane(views: Views): string | undefined {
     sidenav: { l10nID: "refflow-pane-sidenav", icon },
     header: { l10nID: "refflow-pane-title", l10nArgs: JSON.stringify({ count: 0 }), icon: `chrome://${config.addonRef}/content/icons/reference.svg` },
     sectionButtons: [
-      { type: "type", icon: `chrome://${config.addonRef}/content/icons/type.svg`, l10nID: "refflow-pane-type", onClick: ({ body, item }) => showTypeMenu(views, body, item) },
-      { type: "refresh", icon: `chrome://${config.addonRef}/content/icons/refresh.svg`, l10nID: "refflow-pane-refresh", onClick: ({ body, item }) => views.refreshReferences(body as any, false, false, false, item?.parentItem || item) },
-      { type: "more", icon: `chrome://${config.addonRef}/content/icons/more.svg`, l10nID: "refflow-pane-more", onClick: ({ body }) => (body as any)._cards?.menu() }
+      { type: "type", icon: `chrome://${config.addonRef}/content/icons/type.svg`, l10nID: "refflow-pane-type", onClick: ({ body, item, event }) => {
+        animateSectionAction(event);
+        showTypeMenu(views, body, item);
+      } },
+      { type: "refresh", icon: `chrome://${config.addonRef}/content/icons/refresh.svg`, l10nID: "refflow-pane-refresh", onClick: ({ body, item, event }) => {
+        animateSectionAction(event, true);
+        void views.refreshReferences(body as any, false, false, false, item?.parentItem || item, undefined, false, "API");
+      } },
+      { type: "more", icon: `chrome://${config.addonRef}/content/icons/more.svg`, l10nID: "refflow-pane-more", onClick: ({ body, event }) => {
+        animateSectionAction(event);
+        (body as any)._cards?.menu();
+      } }
     ],
     onRender: ({ body, item, setL10nArgs }) => {
       views.getPanes().add(body as HTMLElement);

@@ -35,7 +35,7 @@ relatedbox-no-rollback-batch = No rollback batch record found
 relatedbox-source-tooltip = Current source: { $source } (Click to toggle source, Long-press to force refresh)
 
 pane-refresh =
-    .tooltiptext = Parse / Fetch again
+    .tooltiptext = Fetch again via online APIs
 
 pane-type =
     .tooltiptext = Literature type

@@ -286,9 +286,10 @@ export default class Views {
     item: Zotero.Item,
     readerOverride: _ZoteroTypes.ReaderInstance | undefined,
     task: ReferenceTaskContext,
-    cacheOnly: boolean = false
+    cacheOnly: boolean = false,
+    source?: string
   ) {
-    return performReferences(this, panel, local, fromCurrentPage, item, readerOverride, task, cacheOnly);
+    return performReferences(this, panel, local, fromCurrentPage, item, readerOverride, task, cacheOnly, source);
   }
 
   public async refreshReferences(
@@ -298,9 +299,10 @@ export default class Views {
     toggleSource: boolean = false,
     itemOverride?: Zotero.Item,
     readerOverride?: _ZoteroTypes.ReaderInstance,
-    cacheOnly: boolean = false
+    cacheOnly: boolean = false,
+    sourceOverride?: "API"
   ) {
-    return refreshReferences(this, panel, local, fromCurrentPage, toggleSource, itemOverride, readerOverride, cacheOnly);
+    return refreshReferences(this, panel, local, fromCurrentPage, toggleSource, itemOverride, readerOverride, cacheOnly, sourceOverride);
   }
 
   public async sortReferences(panel: HTMLElement): Promise<void> {
