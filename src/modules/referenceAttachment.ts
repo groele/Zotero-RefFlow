@@ -17,12 +17,8 @@ export async function getPdfAttachment(item: Zotero.Item, reader?: any): Promise
   if (readerMatchesItem(reader, item)) {
     const attachment = Zotero.Items.get(reader.itemID);
     if (!attachment || attachment.deleted || (attachment as any).inTrash) return undefined;
-    try {
-      const path = await attachment.getFilePathAsync();
-      return path && Zotero.File.pathToFile(path).exists() ? attachment : undefined;
-    } catch {
-      return undefined;
-    }
+    const path = await attachment.getFilePathAsync();
+    return path && Zotero.File.pathToFile(path).exists() ? attachment : undefined;
   }
   const best = await item.getBestAttachment();
   const attachments = (await (Zotero.Items as any).getAsync(item.getAttachments())) as Zotero.Item[];
@@ -34,13 +30,20 @@ export async function getPdfAttachment(item: Zotero.Item, reader?: any): Promise
       String(candidate.getField("title")) + " " + String(candidate.getField("url"))
     );
   candidates.sort((a, b) => Number(supplementary(a)) - Number(supplementary(b)));
+  let lastError: unknown;
   for (const candidate of candidates) {
     if (!candidate || candidate.attachmentContentType !== "application/pdf" || candidate.deleted || (candidate as any).inTrash) {
       continue;
     }
-    const path = await candidate.getFilePathAsync();
-    if (path && Zotero.File.pathToFile(path).exists()) return candidate;
+    try {
+      const path = await candidate.getFilePathAsync();
+      if (path && Zotero.File.pathToFile(path).exists()) return candidate;
+      lastError = new Error("PDF file is unavailable");
+    } catch (error) {
+      lastError = error;
+    }
   }
+  if (lastError) throw lastError;
   return undefined;
 }
 
@@ -48,7 +51,8 @@ export async function getPdfAttachment(item: Zotero.Item, reader?: any): Promise
  * Calculates a signature representing the PDF file's state for cache invalidation.
  */
 export async function getPdfCacheSignature(item: Zotero.Item, reader?: any): Promise<string> {
-  const attachment = await getPdfAttachment(item, reader);
+  // An unreadable fallback PDF must not block an online provider.
+  const attachment = await getPdfAttachment(item, reader).catch(() => undefined);
   if (!attachment || attachment.attachmentContentType !== "application/pdf") return "";
   const path = await attachment.getFilePathAsync();
   if (!path) return "";

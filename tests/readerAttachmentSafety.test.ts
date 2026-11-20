@@ -17,3 +17,16 @@ test("reader PDF selection rejects deleted or missing files without switching do
     assert.equal(await views.pdfAttachment(parent,{itemID:2}),attachment);
   } finally {z.Items.get=oldGet;z.File.pathToFile=oldFile;}
 });
+
+test("automatic PDF selection continues after an unreadable file", async () => {
+  const z: any = Zotero;
+  const get = z.Items.getAsync, file = z.File.pathToFile;
+  const good = { attachmentContentType: "application/pdf", getField: () => "", getFilePathAsync: async () => "paper.pdf" };
+  const bad = { ...good, getFilePathAsync: async () => { throw new Error("storage unavailable"); } };
+  try {
+    z.Items.getAsync = async () => [bad, good];
+    z.File.pathToFile = () => ({ exists: () => true });
+    const parent: any = { getBestAttachment: async () => bad, getAttachments: () => [1, 2] };
+    assert.equal(await Object.create(Views.prototype).pdfAttachment(parent), good);
+  } finally { z.Items.getAsync = get; z.File.pathToFile = file; }
+});

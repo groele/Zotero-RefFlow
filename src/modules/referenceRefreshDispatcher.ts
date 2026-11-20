@@ -36,7 +36,7 @@ export async function dispatchReferenceRefresh(
   if (ownerID && ownerID !== String(item.id)) return;
   const metadataIdentity = JSON.stringify([item.libraryID, item.key, item.getField("DOI"), item.getField("title"), item.getField("url"), item.getField("date"), item.getCreators()]);
   const activeReader = readerOverride || views.utils.getReader(panel.ownerDocument.defaultView!);
-  const activeAttachment = readerMatchesItem(activeReader, item) ? Zotero.Items.get(activeReader!.itemID!) : undefined;
+  const activeAttachment = literatureType === "References" && readerMatchesItem(activeReader, item) ? Zotero.Items.get(activeReader!.itemID!) : undefined;
   const pageIndex = fromCurrentPage && activeAttachment ? activeAttachment.getAttachmentLastPageIndex() : undefined;
   const boundIdentity = panel.getAttribute("data-refflow-item-id");
   const windowReader = views.utils.getReader(panel.ownerDocument.defaultView!);

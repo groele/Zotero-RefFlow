@@ -1,3 +1,4 @@
+import { emptyStates } from "./referenceEmptyState";
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
 import ReferenceCards from "./referenceCards";
@@ -20,6 +21,7 @@ export function syncCancelButton(views: Views, body: Element): void {
  * Resets the contents and state of a reference sidebar pane.
  */
 export function resetReferencePane(views: Views, body: Element): void {
+  emptyStates.delete(body);
   views.referenceTasks.invalidate(body);
   (body as any).references = [];
   (body as any)._cards?.clear();
@@ -49,6 +51,7 @@ export function resetReferencePane(views: Views, body: Element): void {
  */
 export function cancelReferencePane(views: Views, body: Element): void {
   BatchImporter.cancelImports(Number(body.getAttribute("data-refflow-item-id")), body);
+  emptyStates.delete(body);
   views.referenceTasks.invalidate(body);
   body.removeAttribute("aria-busy");
   body.querySelectorAll("#refresh-button, #refflow-force-refresh").forEach((button) => ((button as HTMLButtonElement).disabled = false));
@@ -142,7 +145,8 @@ export function registerReferenceItemPane(views: Views): string | undefined {
         setL10nArgs(JSON.stringify({ count: (body as any).references?.length || 0 }));
         return;
       }
-      views.referenceTasks.invalidate(body);
+      emptyStates.delete(body);
+  views.referenceTasks.invalidate(body);
       body.replaceChildren();
       (body as any).references = [];
       body.setAttribute("data-refflow-type", String(Zotero.Prefs.get(`${config.addonRef}.type`) || "References"));
@@ -284,7 +288,8 @@ export function registerReferenceItemPane(views: Views): string | undefined {
     onDestroy: ({ body }) => {
       BatchImporter.cancelImports(undefined, body);
       views.getPanes().delete(body as HTMLElement);
-      views.referenceTasks.invalidate(body);
+      emptyStates.delete(body);
+  views.referenceTasks.invalidate(body);
       (body as any)._cards?.dispose();
     }
   });

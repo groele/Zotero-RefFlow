@@ -64,3 +64,29 @@ test("invalidate and dispose abort active jobs and release pane references", asy
   const next=tasks.run({},"other",async ctx => {signal=ctx.signal;await Promise.resolve();});
   await Promise.resolve();tasks.dispose();assert.equal(signal.aborted,true);await next;assert.equal(tasks.size,0);
 });
+test("abort listeners retain ownership when invalidating or replacing a pane task", async () => {
+  for (const invalidate of [true, false]) {
+    const tasks = new ReferenceTasks(), pane = {};
+    let newest!: Promise<void>, release!: () => void;
+    const gate = new Promise<void>(resolve => release = resolve);
+    let supersededCalls = 0;
+    const first = tasks.run(pane, "first", async ctx => {
+      ctx.signal.addEventListener("abort", () => {
+        newest = tasks.run(pane, "newest", async () => gate);
+      }, { once: true });
+      await gate;
+    });
+    await Promise.resolve();
+    if (invalidate) tasks.invalidate(pane);
+    else await tasks.run(pane, "middle", async () => { supersededCalls++; });
+    try {
+      assert.equal(tasks.size, 1);
+      assert.equal(tasks.run(pane, "newest", async () => {}), newest);
+      assert.equal(supersededCalls, 0);
+    } finally {
+      release();
+      await Promise.all([first, newest]);
+      tasks.dispose();
+    }
+  }
+});

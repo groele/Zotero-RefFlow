@@ -9,6 +9,7 @@ import Views from "./views";
 export interface NeighborhoodResult {
   references: ItemBaseInfo[];
   resultSource: string;
+  savedAt?: number;
   sourceEvidence: ReferenceSourceEvidence;
 }
 
@@ -50,7 +51,7 @@ export async function fetchNeighborhoodReferences(
       status
     };
     resultSource = describe(sourceEvidence);
-    return { references, resultSource, sourceEvidence };
+    return { references, resultSource, sourceEvidence, savedAt: cached.savedAt };
   }
   if (cacheOnly) return undefined;
 
@@ -87,7 +88,7 @@ export async function fetchNeighborhoodReferences(
   if (!task.isCurrent()) return undefined;
   if (result) {
     const candidate = normalizeReferenceResult({ references: result.references, source: provider, expected: result.total, partial: result.truncated });
-    const prior = previous ? { references: previous, source: cached?.snapshot?.source || provider, expected: cached?.snapshot?.total, partial: cached?.snapshot?.truncated } : undefined;
+    const prior = previous ? { references: previous, source: cached?.snapshot?.source || provider, expected: cached?.snapshot?.total, partial: cached?.snapshot?.status === "empty" ? false : cached?.snapshot?.truncated } : undefined;
     const selected = preferCachedReferences(candidate, prior, getString("cards-cached-offline"));
     references = selected.references;
     sourceEvidence = { source: selected.source, count: selected.references.length, expected: selected.expected, partial: Boolean(selected.partial), retained: selected.retained, attempts: [`${provider}: ${result.references.length}${result.truncated ? " (partial)" : ""}`], status: selected.status };

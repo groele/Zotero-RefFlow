@@ -10,7 +10,7 @@ export interface ReferenceResult {
   retained?:boolean;
   latestAttempt?:{source:string;count:number;partial:boolean;expected?:number};
 }
-export interface ReferenceProvider { name: string; run: () => Promise<ReferenceResult | undefined>; }
+export interface ReferenceProvider { name: string; run: () => Promise<ReferenceResult | undefined | "not-applicable">; }
 
 export function referenceGaps(references: ItemBaseInfo[]): boolean {
   const numbers = references.map(ref => ref.number);
@@ -40,6 +40,7 @@ function checkCancelled(signal?: AbortSignal) {
 export async function retrieveReferenceList(providers: ReferenceProvider[], signal?: AbortSignal,
   onProgress?: (source: string) => void): Promise<ReferenceResult> {
   let best: ReferenceResult | undefined;
+  let empty: ReferenceResult | undefined;
   let unavailable = false;
   const attempts: string[] = [];
   for (const provider of providers) {
@@ -48,9 +49,11 @@ export async function retrieveReferenceList(providers: ReferenceProvider[], sign
     try {
       const raw = await provider.run();
       checkCancelled(signal);
+      if (raw === "not-applicable") continue;
       const result = raw ? normalizeReferenceResult(raw, provider.name) : undefined;
       unavailable ||= !result || result.status === "unavailable";
       attempts.push(`${provider.name}: ${result?.references.length || 0}${result?.partial ? " (partial)" : ""}`);
+      if (result?.status === "empty") empty ??= result;
       if (!result?.references.length) continue;
       if (!best || result.references.length > best.references.length) best = result;
       if (!result.partial) return { ...result, attempts };
@@ -61,6 +64,7 @@ export async function retrieveReferenceList(providers: ReferenceProvider[], sign
     }
   }
   checkCancelled(signal);
+  if (!best && !unavailable && empty) return { ...empty, attempts };
   return best ? { ...best, attempts } : { references: [], source: "Auto", attempts,
-    status: unavailable || !providers.length ? "unavailable" : "empty" };
+    status: "unavailable" };
 }

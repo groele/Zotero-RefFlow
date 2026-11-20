@@ -1,3 +1,4 @@
+import { emptyStates } from "./referenceEmptyState";
 import {cacheEnabled, markFresh} from "./cachePolicy";
 import { config } from "../../package.json";
 import { getString } from "../utils/locale";
@@ -18,7 +19,7 @@ import {
   fetchAutoOrWebReferences,
   fetchPdfReferences,
   fetchApiReferences,
-  readFallbackCachedReferences
+  readPaneCachedReferences
 } from "./referenceSourceFetchers";
 import { dispatchReferenceRefresh } from "./referenceRefreshDispatcher";
 import Views from "./views";
@@ -121,7 +122,11 @@ export async function smartReferences(
       name: "PDF",
       run: async () => {
         const attachment = await views.pdfAttachment(item, reader);
-        if (!attachment || !task.isCurrent()) return;
+        if (!task.isCurrent()) return;
+          if (!attachment) {
+            if (reader?.itemID) throw new Error("Selected PDF is unavailable");
+            return "not-applicable";
+          }
         const references = await views.utils.PDF.getReferences(attachment, fromCurrentPage, {
           signal: task.signal,
           pageIndex: task.pageIndex,
@@ -140,10 +145,12 @@ export async function smartReferences(
   providers.push({
     name: "Snapshot",
     run: async () => {
+      let hadSnapshot = false;
       for (const id of item.getAttachments().slice(0, 20)) {
         if (!task.isCurrent()) return;
         const attachment = Zotero.Items.get(id);
         if (!attachment || attachment.attachmentContentType !== "text/html" || attachment.deleted) continue;
+        hadSnapshot = true;
         const path = await attachment.getFilePathAsync();
         if (!path) continue;
         const file = Zotero.File.pathToFile(path);
@@ -153,7 +160,7 @@ export async function smartReferences(
         const references = api.publisherReferences.parseHTML(html, String(attachment.getField("url") || url), doi, title);
         if (references.length) return { references, source: references[0].sources?.[0] + " snapshot" };
       }
-      return undefined;
+      return hadSnapshot ? undefined : "not-applicable";
     }
   });
 
@@ -196,6 +203,8 @@ export async function performReferences(
   cacheOnly: boolean = false,
   initialSource = panel.getAttribute("source") || "PDF"
 ) {
+  emptyStates.delete(panel);
+  const startedAt = Date.now();
   const initialRefs = (panel as any).references;
   const label = panel.querySelector("label#reference-num") as HTMLLabelElement;
   const literatureType = panel.getAttribute("data-refflow-type") || "References";
@@ -209,9 +218,10 @@ export async function performReferences(
   const source = fromCurrentPage && literatureType === "References" ? "PDF" : initialSource;
   let reader = readerOverride || views.utils.getReader(panel.ownerDocument.defaultView!);
   if (!readerMatchesItem(reader, item)) reader = undefined as any;
-  const signature = source === "PDF"
+  const restoreReferences = cacheOnly && literatureType === "References" && !fromCurrentPage;
+  const signature = restoreReferences ? "" : source === "PDF"
     ? await views.pdfCacheSignature(item, reader)
-    : await buildRetrievalSignature(views, item, source, reader);
+    : await buildRetrievalSignature(views, item, literatureType === "References" ? source : literatureType, reader);
   if (!task.isCurrent()) return;
 
   if (!cacheOnly && panel.getAttribute("data-refflow-result-type") && panel.getAttribute("data-refflow-result-type") !== literatureType) {
@@ -251,8 +261,10 @@ export async function performReferences(
     });
   };
 
-  let fetched: { references: ItemBaseInfo[]; resultSource: string; sourceEvidence: any } | undefined;
-  if (literatureType !== "References") {
+  let fetched: { references: ItemBaseInfo[]; resultSource: string; sourceEvidence: any; signature?: string; savedAt?: number } | undefined;
+  if (restoreReferences) {
+    fetched = await readPaneCachedReferences(views, item, source, reader, task);
+  } else if (literatureType !== "References") {
     fetched = await fetchNeighborhoodReferences(views, item, literatureType, signature, local, task, label, cacheOnly);
   } else if (source === "Auto" || source === "Web") {
     fetched = await fetchAutoOrWebReferences(views, item, source, reader, task, local, fromCurrentPage, signature, label, showUnavailable, cacheOnly);
@@ -261,13 +273,11 @@ export async function performReferences(
   } else {
     fetched = await fetchApiReferences(views, item, reader, task, local, fromCurrentPage, signature, label, showUnavailable, cacheOnly);
   }
-  if (cacheOnly && literatureType === "References" && !fromCurrentPage && !fetched?.references?.length && task.isCurrent()) {
-    fetched = await readFallbackCachedReferences(views, item, source, reader, task);
-  }
+
 
   if (!task.isCurrent() || !fetched) return;
   if (cacheOnly) {
-    if (!fetched.references?.length) return;
+    if (!fetched.references?.length && fetched.sourceEvidence?.status !== "empty") return;
     if ((panel as any).references !== initialRefs || Boolean((panel as any).references?.length)) return;
   }
   references = fetched.references;
@@ -295,6 +305,14 @@ export async function performReferences(
   }
 
   if (referenceNum === 0) {
+    if (!fromCurrentPage && sourceEvidence?.status === "empty" && !sourceEvidence.retained && !sourceEvidence.partial
+      && source === panel.getAttribute("source") && cacheEnabled(sourceEvidence.source)) {
+      const emptySignature = source === "PDF" && literatureType === "References"
+        ? await buildRetrievalSignature(views, item, "Auto", reader) : fetched.signature ?? signature;
+      if (!task.isCurrent()) return;
+      emptyStates.set(panel, { itemID: item.id, type: literatureType, source, signature: emptySignature,
+        provider: sourceEvidence.source, savedAt: fetched.savedAt ?? startedAt });
+    }
     (panel as any)._cards?.clear();
     (panel as any)._setL10nArgs?.(JSON.stringify({ count: 0 }));
     label.textContent = `${getString(["Auto", "Web", "PDF"].includes(source) ? "cards-auto-empty" : "relatedbox-empty")} [${currentSource}]`;

@@ -160,12 +160,13 @@ test("performReferences with cacheOnly loads cross-source local cache and skips 
   const item = mockItem(102);
   const store = new Map<string, any>();
   let apiCalls = 0;
+  let signatureCalls = 0;
   const views: any = {
     storage: {
       getAsync: async (_item: any, key: string) => store.get(key),
       set: async () => {}
     },
-    pdfCacheSignature: async () => "",
+    pdfCacheSignature: async () => { signatureCalls++; return ""; },
     mayPersist: () => true,
     referenceDescription: (r: any) => r.source,
     smartReferences: async () => {
@@ -185,6 +186,7 @@ test("performReferences with cacheOnly loads cross-source local cache and skips 
   const { panel: p1, label: l1 } = createMockPanel();
   await performReferences(views, p1, true, false, item, undefined, createTask(), true);
   assert.equal(apiCalls, 0);
+  assert.equal(signatureCalls, 0);
   assert.equal(p1.references.length, 0);
   assert.equal(l1.textContent, "");
 
@@ -380,4 +382,42 @@ test("registerReferenceItemPane only loads local cache on item selection even wh
     z.Prefs.get = origGet;
     z.ItemTypes.getName = origTypeName;
   }
+});
+
+test("confirmed empty cache suppresses reopening only within the same signature and original lifetime", async () => {
+  const { stillEmpty } = await import("../src/modules/referenceEmptyState");
+  const { buildRetrievalSignature } = await import("../src/modules/referenceSourceFetchers");
+  const { retrieveReferenceList } = await import("../src/modules/referenceRetrieval");
+  const item = mockItem(410);
+  const { panel } = createMockPanel();
+  let pdfSignature = "file-A", pdfReads = 0, raw: any;
+  const views: any = {
+    pdfCacheSignature: async () => { pdfReads++; return pdfSignature; },
+    storage: { getAsync: async (_: any, key: string) => key === "References-Auto" ? raw : undefined },
+    utils: { getReader: () => undefined }, referenceDescription: (r: any) => r.source
+  };
+  const empty = await retrieveReferenceList([
+    { name: "online", run: async () => ({ source: "Crossref", references: [], status: "empty" }) },
+    { name: "PDF", run: async () => "not-applicable" }
+  ]);
+  assert.equal(empty.source, "Crossref");
+  assert.equal(empty.status, "empty");
+  assert.equal((await retrieveReferenceList([{name:"online",run:async()=>empty},
+    {name:"PDF",run:async()=>{throw Error("timeout");}}])).status, "unavailable");
+  const sig = await buildRetrievalSignature(views, item, "Auto", undefined);
+  raw = cacheReferenceResult(empty, sig);
+  await performReferences(views, panel, true, false, item, undefined, createTask(), true);
+  assert.equal(await stillEmpty(views, panel, item), true);
+  pdfSignature = "file-B";
+  assert.equal(await stillEmpty(views, panel, item), false);
+  pdfSignature = "file-A";
+  raw.savedAt -= 16 * 60_000;
+  await performReferences(views, panel, true, false, item, undefined, createTask(), true);
+  assert.equal(await stillEmpty(views, panel, item), false);
+  const before = pdfReads;
+  const neighborhood = await buildRetrievalSignature(views, item, "Citations", undefined);
+  pdfSignature = "file-C";
+  assert.equal(await buildRetrievalSignature(views, item, "Citations", undefined), neighborhood);
+  assert.notEqual(await buildRetrievalSignature(views, mockItem(410, "10.7777/other"), "Citations", undefined), neighborhood);
+  assert.equal(pdfReads, before);
 });

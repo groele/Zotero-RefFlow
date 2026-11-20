@@ -3,8 +3,8 @@
   "maxSourceLines": 360,
   "capturedAt": "2026-11-06",
   "debtCleared": true,
-  "note": "RefFlow source architecture fully compliant with §5.9. All 88 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
-  "lastReleasedVersion": "17.0.3",
+  "note": "RefFlow source architecture fully compliant with §5.9. All 89 source files in src/ strictly <= 360 lines. Historical debt cleared; baseline freeze table is now empty.",
+  "lastReleasedVersion": "17.0.5",
   "splitHistory": [
     {
       "version": "17.0.1",

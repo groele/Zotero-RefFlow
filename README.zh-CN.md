@@ -1,3 +1,5 @@
+> **17.0.5** 优化 PDF 附件选择、确认空结果与引文邻域缓存。[版本说明](docs/releases/v17.0.5.md)。
+
 > **17.0.3** 参考文献栏操作图标增加短动画，点击刷新时主动重新请求在线 API。[版本说明](docs/releases/v17.0.3.md)。
 
 [简体中文](README.md) · [English](README.en.md)

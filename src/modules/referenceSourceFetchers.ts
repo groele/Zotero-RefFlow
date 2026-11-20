@@ -20,6 +20,8 @@ export interface SourceFetcherResult {
   references: ItemBaseInfo[];
   resultSource: string;
   sourceEvidence: any;
+  savedAt?: number;
+  signature?: string;
 }
 
 /**
@@ -31,6 +33,9 @@ export async function buildRetrievalSignature(
   source: string,
   reader: any
 ): Promise<string> {
+  if (source === "Related" || source === "Citations") {
+    return JSON.stringify(["neighborhood-v1", source, item.getField("DOI"), item.getField("title"), item.getField("date"), item.getCreators()]);
+  }
   return JSON.stringify([
     "retrieval-v8",
     item.getField("DOI"),
@@ -58,6 +63,7 @@ export async function fetchAutoOrWebReferences(
 ): Promise<SourceFetcherResult | undefined> {
   const key = `References-${source}`;
   const cached = await views.storage.getAsync(item, key);
+  if (!task.isCurrent()) return;
   const previous = !fromCurrentPage ? readCachedReferenceResult(cached, signature) : undefined;
   let result: ReferenceResult;
   if (local && previous) {
@@ -80,7 +86,7 @@ export async function fetchAutoOrWebReferences(
   const resultSource = views.referenceDescription(result);
   const sourceEvidence = { source: result.source, count: result.references.length, expected: result.expected, partial: Boolean(result.partial), retained: result.retained, attempts: result.attempts, status: result.status, latestAttempt: result.latestAttempt };
   label.title = (result.attempts || []).map(safeProviderAttempt).join("\n");
-  return { references, resultSource, sourceEvidence };
+  return { references, resultSource, sourceEvidence, savedAt: local && previous ? cached.savedAt : undefined };
 }
 
 export async function fetchPdfReferences(
@@ -97,6 +103,7 @@ export async function fetchPdfReferences(
 ): Promise<SourceFetcherResult | undefined> {
   const key = "References-PDF";
   const cached = await views.storage.getAsync(item, key);
+  if (!task.isCurrent()) return;
   let partial = Boolean(cached?.snapshot?.partial);
   const empty = cached?.snapshot?.status === "empty";
   let references = local && cacheEnabled("PDF") && !fromCurrentPage && signature ? (readCachedReferences(cached, signature, retentionMs("pdf", partial || empty)) as any) : undefined;
@@ -112,14 +119,21 @@ export async function fetchPdfReferences(
   } else if (cacheOnly) {
     return undefined;
   } else {
-    const attachment = await views.pdfAttachment(item, reader);
+    let attachment: Zotero.Item | undefined;
+    let attachmentError: string | undefined;
+    try {
+      attachment = await views.pdfAttachment(item, reader);
+    } catch (error) {
+      if (fromCurrentPage || task.signal.aborted) throw error;
+      attachmentError = safeProviderAttempt(String(error));
+    }
     if (!task.isCurrent()) return undefined;
     let pdfUnavailable = false;
     let pdfAttempt: string | undefined;
     if (!attachment) {
       references = [];
       pdfUnavailable = true;
-      pdfAttempt = "PDF: unavailable";
+      pdfAttempt = attachmentError || "PDF: unavailable";
     } else {
       try {
         references = await views.utils.PDF.getReferences(attachment, fromCurrentPage, {
@@ -189,6 +203,7 @@ export async function fetchApiReferences(
 ): Promise<SourceFetcherResult | undefined> {
   const key = "References-API";
   const cached = await views.storage.getAsync(item, key);
+  if (!task.isCurrent()) return;
   const previous = !fromCurrentPage ? readCachedReferenceResult(cached, signature) : undefined;
   if (!task.isCurrent()) return undefined;
   let result: ReferenceResult;
@@ -203,7 +218,11 @@ export async function fetchApiReferences(
         name: "PDF fallback",
         run: async () => {
           const attachment = await views.pdfAttachment(item, reader);
-          if (!attachment || !task.isCurrent()) return;
+          if (!task.isCurrent()) return;
+          if (!attachment) {
+            if (reader?.itemID) throw new Error("Selected PDF is unavailable");
+            return "not-applicable";
+          }
           const refs = await views.utils.PDF.getReferences(attachment, fromCurrentPage, { signal: task.signal, pageIndex: task.pageIndex, notify: false });
           return { references: refs, source: "PDF fallback", partial: views.utils.PDF.getDiagnostics(attachment)?.scanLimited };
         }
@@ -225,22 +244,23 @@ export async function fetchApiReferences(
   const resultSource = views.referenceDescription(result);
   const sourceEvidence = { source: result.source, count: result.references.length, expected: result.expected, partial: Boolean(result.partial), retained: result.retained, attempts: result.attempts, status: result.status, latestAttempt: result.latestAttempt };
   label.title = (result.attempts || []).map(safeProviderAttempt).join("\n");
-  return { references, resultSource, sourceEvidence };
+  return { references, resultSource, sourceEvidence, savedAt: local && previous ? cached.savedAt : undefined };
 }
 
-export async function readFallbackCachedReferences(
+export async function readPaneCachedReferences(
   views: Views,
   item: Zotero.Item,
   primarySource: string,
   reader: any,
   task: ReferenceTaskContext
 ): Promise<SourceFetcherResult | undefined> {
-  for (const cand of ["Auto", "API", "PDF", "Web"]) {
-    if (cand === primarySource || !task.isCurrent()) continue;
+  for (const cand of new Set([primarySource, "Auto", "API", "PDF", "Web"])) {
+    if (!task.isCurrent()) return;
+    if (cand === "PDF" && !cacheEnabled("PDF")) continue;
     const raw = await views.storage.getAsync(item, `References-${cand}`);
+    if (!task.isCurrent()) return;
     if (!raw) continue;
     if (cand === "PDF") {
-      if (!cacheEnabled("PDF")) continue;
       const pdfSig = await views.pdfCacheSignature(item, reader);
       if (!pdfSig || !task.isCurrent()) continue;
       const partial = Boolean(raw?.snapshot?.partial);
@@ -257,8 +277,10 @@ export async function readFallbackCachedReferences(
       const sig = await buildRetrievalSignature(views, item, cand, reader);
       if (!task.isCurrent()) continue;
       const res = readCachedReferenceResult(raw, sig);
-      if (res?.references?.length) {
+      if (res && (res.references.length || (cand === primarySource && res.status === "empty"))) {
         return {
+          signature: sig,
+          savedAt: raw.savedAt,
           references: res.references,
           resultSource: views.referenceDescription(res),
           sourceEvidence: {

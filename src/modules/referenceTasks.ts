@@ -16,7 +16,6 @@ export default class ReferenceTasks {
     if (this.disposed) return Promise.resolve();
     const pending = this.tasks.get(target);
     if (pending?.key === key && !pending.controller.signal.aborted) return pending.promise;
-    this.invalidate(target);
     const Controller=globalThis.AbortController;
     const controller: AbortController = new Controller();
     const task = { key, controller, promise: Promise.resolve() };
@@ -44,12 +43,15 @@ export default class ReferenceTasks {
       // Remove ownership first: an abort listener may immediately start a new task.
       controller.abort();
     });
+    // Abort handlers may synchronously start a newer operation.
+    pending?.controller.abort();
     return task.promise;
   }
 
   invalidate(target: object): void {
-    this.tasks.get(target)?.controller.abort();
+    const task = this.tasks.get(target);
     this.tasks.delete(target);
+    task?.controller.abort();
   }
 
   dispose(): void {

@@ -1,3 +1,4 @@
+import { emptyStates, stillEmpty } from "./referenceEmptyState";
 import { config } from "../../package.json";
 import type Views from "./views";
 import { getPanelItem } from "./referencePipeline";
@@ -32,6 +33,12 @@ export async function fetchUnloadedReferences(views: Views, body: HTMLDivElement
   if (views.isDisposed() || !body.isConnected || body.hasAttribute("aria-busy")) return;
   const type = body.getAttribute("data-refflow-type") || "References";
   if (panel.references?.length && body.getAttribute("data-refflow-result-type") === type) return;
+  if (item && emptyStates.has(body)) {
+    if (await stillEmpty(views, body, item)) return;
+    if (views.isDisposed() || !body.isConnected || body.hasAttribute("aria-busy")
+      || body.getAttribute(itemIDAttribute) !== String(item.id)
+      || (body.getAttribute("data-refflow-type") || "References") !== type) return;
+  }
   if (item?.isRegularItem()) await views.refreshReferences(panel, true, false, false, item);
 }
 
