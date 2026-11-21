@@ -1,31 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="20" height="20" fill="none" role="img" aria-label="Zotero RefFlow">
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Zotero RefFlow">
   <title>Zotero RefFlow</title>
-  <desc>Full-optical-scale airy wire-frame layered reference sheets with coral-orange extraction arrow for the Zotero item pane sidenav.</desc>
+  <desc>Full-optical-scale indexed reference list with coral-orange lookup lens for the Zotero item pane sidenav.</desc>
   <defs>
-    <linearGradient id="rfSideBackStroke" x1="34" y1="10" x2="116" y2="80" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#A78BFA" />
-      <stop offset="100%" stop-color="#6366F1" />
+    <linearGradient id="rf-side-indigo" x1="3" y1="4" x2="17" y2="12" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#818CF8" />
+      <stop offset="100%" stop-color="#4F46E5" />
     </linearGradient>
-    <linearGradient id="rfSideFrontStroke" x1="12" y1="30" x2="94" y2="114" gradientUnits="userSpaceOnUse">
+    <linearGradient id="rf-side-sky" x1="3" y1="12" x2="13" y2="18" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#38BDF8" />
       <stop offset="100%" stop-color="#2563EB" />
     </linearGradient>
-    <linearGradient id="rfSideExtractArrow" x1="66" y1="72" x2="120" y2="118" gradientUnits="userSpaceOnUse">
+    <linearGradient id="rf-side-coral" x1="12" y1="10" x2="22" y2="21" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#FB923C" />
       <stop offset="100%" stop-color="#F43F5E" />
     </linearGradient>
   </defs>
-
-  <!-- Back Floating L-corner Page Stroke -->
-  <path d="M 40 14 H 96 C 107 14, 113 20, 113 31 V 66" stroke="url(#rfSideBackStroke)" stroke-width="13" stroke-linecap="round" />
-
-  <!-- Front Open Wire Page Frame -->
-  <path d="M 58 112 H 29 C 19 112, 13 106, 13 96 V 48 C 13 38, 19 32, 29 32 H 78 C 88 32, 94 38, 94 48 V 61" stroke="url(#rfSideFrontStroke)" stroke-width="13" stroke-linecap="round" />
-
-  <!-- Reference Lines inside Front Page -->
-  <path d="M 35 60 H 68" stroke="#0EA5E9" stroke-width="12" stroke-linecap="round" />
-  <path d="M 35 83 H 54" stroke="#38BDF8" stroke-width="12" stroke-linecap="round" />
-
-  <!-- Sweeping Extraction Arrow breaking out of the corner -->
-  <path d="M 70 95 H 114 M 96 76 L 116 95 L 96 114" stroke="url(#rfSideExtractArrow)" stroke-width="14.5" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M4 5.5h.01M7 5.5h10M7 9h6.5" stroke="url(#rf-side-indigo)" />
+  <path d="M4 13.5h.01M7 13.5h3M7 17h4" stroke="url(#rf-side-sky)" />
+  <g stroke="url(#rf-side-coral)">
+    <circle cx="16.5" cy="14.5" r="4" />
+    <path d="m19.35 17.35 2.65 2.65" />
+  </g>
 </svg>
