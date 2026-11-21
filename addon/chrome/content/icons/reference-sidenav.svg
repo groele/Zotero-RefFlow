@@ -1,24 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Zotero RefFlow">
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Zotero RefFlow">
   <title>Zotero RefFlow</title>
-  <desc>Full-optical-scale indexed reference list with coral-orange lookup lens for the Zotero item pane sidenav.</desc>
+  <desc>Full-optical-scale bold indexed reference list with coral-orange lookup lens for the Zotero item pane sidenav.</desc>
   <defs>
-    <linearGradient id="rf-side-indigo" x1="3" y1="4" x2="17" y2="12" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#818CF8" />
-      <stop offset="100%" stop-color="#4F46E5" />
+    <linearGradient id="rf-side-indigo" x1="2" y1="3" x2="18" y2="11" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#4338CA" />
     </linearGradient>
-    <linearGradient id="rf-side-sky" x1="3" y1="12" x2="13" y2="18" gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#38BDF8" />
+    <linearGradient id="rf-side-sky" x1="2" y1="12" x2="13" y2="19" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0EA5E9" />
       <stop offset="100%" stop-color="#2563EB" />
     </linearGradient>
-    <linearGradient id="rf-side-coral" x1="12" y1="10" x2="22" y2="21" gradientUnits="userSpaceOnUse">
+    <linearGradient id="rf-side-coral" x1="11" y1="9" x2="22" y2="22" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#FB923C" />
-      <stop offset="100%" stop-color="#F43F5E" />
+      <stop offset="100%" stop-color="#E11D48" />
     </linearGradient>
   </defs>
-  <path d="M4 5.5h.01M7 5.5h10M7 9h6.5" stroke="url(#rf-side-indigo)" />
-  <path d="M4 13.5h.01M7 13.5h3M7 17h4" stroke="url(#rf-side-sky)" />
-  <g stroke="url(#rf-side-coral)">
-    <circle cx="16.5" cy="14.5" r="4" />
-    <path d="m19.35 17.35 2.65 2.65" />
+  <circle cx="3.3" cy="4.8" r="1.45" fill="url(#rf-side-indigo)" />
+  <path d="M7 4.8h12.5M7 9.2h8" stroke="url(#rf-side-indigo)" stroke-width="2.4" />
+  <circle cx="3.3" cy="14" r="1.45" fill="url(#rf-side-sky)" />
+  <path d="M7 14h3.2M7 18.4h4.2" stroke="url(#rf-side-sky)" stroke-width="2.4" />
+  <g stroke="url(#rf-side-coral)" stroke-width="2.5">
+    <circle cx="16.2" cy="14.2" r="4.5" fill="#FFFFFF" fill-opacity="0.7" />
+    <path d="m19.5 17.5 2.7 2.7" />
   </g>
 </svg>

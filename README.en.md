@@ -1,3 +1,5 @@
+> **17.0.7** Enlarges and bolds the V1-A RefFlow icons to full optical scale for higher visibility in the Zotero sidenav and toolbar. [Release notes](docs/releases/v17.0.7.md).
+
 > **17.0.6** Updates the Zotero RefFlow reference and multi-size add-on icons to the Flow family gradient design. [Release notes](docs/releases/v17.0.6.md).
 
 > **17.0.5** Improves PDF attachment selection, confirmed-empty results, and citation neighborhood caching. [Release notes](docs/releases/v17.0.5.md).
@@ -18,7 +20,7 @@ Discover references, citing works, and related research.
 
 [简体中文](README.md) · [English](README.en.md)
 
-[![Release](https://img.shields.io/badge/version-17.0.6-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v17.0.6) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v17.0.6/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
+[![Release](https://img.shields.io/badge/version-17.0.7-245ac7?style=flat-square)](https://github.com/groele/Zotero-RefFlow/releases/tag/v17.0.7) · [Download XPI](https://github.com/groele/Zotero-RefFlow/releases/download/v17.0.7/zotero-refflow.xpi) · [Report an issue](https://github.com/groele/Zotero-RefFlow/issues)
 
 [Overview](#overview) · [Installation and updates](#installation) · [Quick start](#quick-start) · [Key features](#features) · [Settings](#settings) · [Data, sync, and services](#data) · [Compatibility and validation](#compatibility) · [Troubleshooting](#troubleshooting) · [Development and documentation](#development) · [The Flow series](#series) · [Origin and license](#license)
 
@@ -34,7 +36,7 @@ Install this add-on independently and combine it with other Flow products as nee
 
 ## Installation and updates
 
-1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v17.0.6/zotero-refflow.xpi) (add-on version **17.0.6**). Do not install the Source code ZIP.
+1. Download [zotero-refflow.xpi](https://github.com/groele/Zotero-RefFlow/releases/download/v17.0.7/zotero-refflow.xpi) (add-on version **17.0.7**). Do not install the Source code ZIP.
 2. In Zotero, open **Tools → Plugins/Add-ons**, then choose **Install Add-on From File** from the gear menu.
 3. Select the XPI, complete installation, and restart if requested.
 
@@ -85,7 +87,7 @@ Seven sidebar quick-action switches control copy, open, import and rollback entr
 
 | Item | Scope |
 |---|---|
-| Current add-on version | 17.0.6 |
+| Current add-on version | 17.0.7 |
 | Declared Zotero range | `10.0` through `12.*` |
 | Evidence boundary | All 419 unit tests and 10 architecture checks passed. The 360-line limit holds for all 89 source modules. |
 
